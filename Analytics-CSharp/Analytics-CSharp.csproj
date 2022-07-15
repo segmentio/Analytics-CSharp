@@ -4,4 +4,17 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Segment\" />
+    <None Remove="Segment\Aanalytics\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Segment\" />
+    <Folder Include="Segment\Aanalytics\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Coroutine.NET" Version="0.1.0" />
+    <PackageReference Include="Serialization.NET" Version="0.1.0" />
+    <PackageReference Include="Sovran.NET" Version="0.1.0" />
+  </ItemGroup>
 </Project>
