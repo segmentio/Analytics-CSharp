@@ -7,7 +7,10 @@ namespace Segment.Analytics
     {
         public void Track(string name, JsonObject properties = default)
         {
-            properties ??= new JsonObject();
+            if (properties == null)
+            {
+                properties = new JsonObject();
+            }
             
             var trackEvent = new TrackEvent(name, properties);
             Process(trackEvent);
@@ -28,7 +31,10 @@ namespace Segment.Analytics
 
         public void Identify(string userId, JsonObject traits = default)
         {
-            traits ??= new JsonObject();
+            if (traits == null)
+            {
+                traits = new JsonObject();
+            }
 
             store.Dispatch<UserInfo.SetUserIdAndTraitsAction, UserInfo>(
                 new UserInfo.SetUserIdAndTraitsAction(userId, traits));
@@ -52,7 +58,10 @@ namespace Segment.Analytics
 
         public void Screen(string title, JsonObject properties = default, string category = "")
         {
-            properties ??= new JsonObject();
+            if (properties == null)
+            {
+                properties = new JsonObject();
+            }
             var screenEvent = new ScreenEvent(category, title, properties);
             Process(screenEvent);
         }
@@ -72,8 +81,12 @@ namespace Segment.Analytics
 
         public void Group(string groupId, JsonObject traits = default)
         {
-            traits ??= new JsonObject();
+            if (traits == null)
+            {
+                traits = new JsonObject();
+            }
             var groupEvent = new GroupEvent(groupId, traits);
+            Process(groupEvent);
         }
         
         public void Group<T>(string groupId, JsonObject traits = default) where T : ISerializable

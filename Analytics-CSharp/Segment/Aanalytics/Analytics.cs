@@ -72,7 +72,7 @@ namespace Segment.Analytics
             }
         }
         
-        string? UserId
+        string UserId
         {
             get
             {
@@ -81,7 +81,7 @@ namespace Segment.Analytics
             }
         }
 
-        public JsonObject? Traits()
+        public JsonObject Traits()
         {
             var userInfo = store.CurrentState<UserInfo>();
             return userInfo.traits;

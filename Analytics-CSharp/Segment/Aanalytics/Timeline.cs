@@ -20,7 +20,7 @@ namespace Segment.Analytics
             };
         }
         
-        internal RawEvent? Process<TE>(TE incomingEvent) where TE : RawEvent
+        internal RawEvent Process<TE>(TE incomingEvent) where TE : RawEvent
         {
             // Apply before and enrichment types first to start the timeline processing.
             var beforeResult = ApplyPlugins(PluginType.Before, incomingEvent);
@@ -37,7 +37,7 @@ namespace Segment.Analytics
             return afterResult;
         }
         
-        internal RawEvent? ApplyPlugins(PluginType type, RawEvent? incomingEvent)
+        internal RawEvent ApplyPlugins(PluginType type, RawEvent incomingEvent)
         {
             var returnEvent = incomingEvent;
             var mediator = plugins[type];
@@ -107,7 +107,7 @@ namespace Segment.Analytics
             return result;
         }
 
-        public DestinationPlugin? Find(string destination)
+        public DestinationPlugin Find(string destination)
         {
             return plugins[PluginType.Destination]?.plugins?.Find(it =>
                 it is DestinationPlugin plugin && plugin.key.Equals(destination)) as DestinationPlugin;
@@ -136,9 +136,9 @@ namespace Segment.Analytics
             plugins.RemoveAll(tempPlugin => tempPlugin == plugin);
         }
         
-        internal RawEvent? Execute(RawEvent incomingEvent)
+        internal RawEvent Execute(RawEvent incomingEvent)
         {
-            RawEvent? result = incomingEvent;
+            RawEvent result = incomingEvent;
             foreach (var plugin in plugins.Where(plugin => result != null))
             {
                 if (plugin is DestinationPlugin)

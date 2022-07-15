@@ -34,7 +34,7 @@ namespace Segment.Analytics
         
         internal virtual void Update(Settings settings, UpdateType type) { }
         
-        internal virtual RawEvent? Execute(RawEvent incomingEvent)
+        internal virtual RawEvent Execute(RawEvent incomingEvent)
         {
             return incomingEvent;
         }
@@ -44,29 +44,38 @@ namespace Segment.Analytics
 
     public abstract class EventPlugin : Plugin
     {
-        public virtual IdentifyEvent? Identify(IdentifyEvent identifyEvent) => identifyEvent;
+        public virtual IdentifyEvent Identify(IdentifyEvent identifyEvent) => identifyEvent;
 
-        public virtual TrackEvent? Track(TrackEvent trackEvent) => trackEvent;
+        public virtual TrackEvent Track(TrackEvent trackEvent) => trackEvent;
 
-        public virtual GroupEvent? Group(GroupEvent groupEvent) => groupEvent;
+        public virtual GroupEvent Group(GroupEvent groupEvent) => groupEvent;
 
-        public virtual AliasEvent? Alias(AliasEvent aliasEvent) => aliasEvent;
+        public virtual AliasEvent Alias(AliasEvent aliasEvent) => aliasEvent;
 
-        public virtual ScreenEvent? Screen(ScreenEvent screenEvent) => screenEvent;
+        public virtual ScreenEvent Screen(ScreenEvent screenEvent) => screenEvent;
 
         public virtual void Reset() {}
 
         public virtual void Flush() {}
 
-        internal override RawEvent? Execute(RawEvent incomingEvent) => incomingEvent switch
+        internal override RawEvent Execute(RawEvent incomingEvent)
         {
-            IdentifyEvent e => Identify(e),
-            TrackEvent e => Track(e),
-            ScreenEvent e => Screen(e),
-            AliasEvent e => Alias(e),
-            GroupEvent e => Group(e),
-            _ => incomingEvent
-        };
+            switch (incomingEvent)
+            {
+                case IdentifyEvent e:
+                    return Identify(e);
+                case TrackEvent e:
+                    return Track(e);
+                case ScreenEvent e:
+                    return Screen(e);
+                case AliasEvent e:
+                    return Alias(e);
+                case GroupEvent e:
+                    return Group(e);
+                default:
+                    return incomingEvent;
+            }
+        }
     }
 
     public abstract class DestinationPlugin : EventPlugin
@@ -102,13 +111,12 @@ namespace Segment.Analytics
             }
             catch (Exception e)
             {
-                Debug.Log($"Exception hit {e.StackTrace}");
                 throw;
             }
             
         }
 
-        public RawEvent? Process(RawEvent? @event)
+        public RawEvent Process(RawEvent @event)
         {
             if (!IsDestinationEnabled(@event))
             {
@@ -118,14 +126,27 @@ namespace Segment.Analytics
             var beforeResult = _timeline.ApplyPlugins(PluginType.Before, @event);
             var enrichmentResult = _timeline.ApplyPlugins(PluginType.Enrichment, beforeResult);
 
-            RawEvent destinationResult = enrichmentResult switch
+            RawEvent destinationResult;
+            switch(enrichmentResult)
             {
-                AliasEvent e => Alias(e),
-                GroupEvent e => Group(e),
-                IdentifyEvent e => Identify(e),
-                ScreenEvent e => Screen(e),
-                TrackEvent e => Track(e),
-                _ => enrichmentResult
+                case AliasEvent e:
+                    destinationResult = Alias(e);
+                    break;
+                case GroupEvent e:
+                    destinationResult = Group(e);
+                    break;
+                case IdentifyEvent e:
+                    destinationResult = Identify(e);
+                    break;
+                case ScreenEvent e:
+                    destinationResult = Screen(e);
+                    break;
+                case TrackEvent e:
+                    destinationResult = Track(e);
+                    break;
+                default:
+                    destinationResult = enrichmentResult;
+                    break;
             };
 
             var afterResult = _timeline.ApplyPlugins(PluginType.After, destinationResult);
@@ -133,9 +154,9 @@ namespace Segment.Analytics
             return afterResult;
         }
 
-        internal override RawEvent? Execute(RawEvent incomingEvent) => Process(incomingEvent);
+        internal override RawEvent Execute(RawEvent incomingEvent) => Process(incomingEvent);
 
-        internal bool IsDestinationEnabled(RawEvent? @event)
+        internal bool IsDestinationEnabled(RawEvent @event)
         {
             // if event payload has integration marked false then its disabled by customer
             // default to true when missing
@@ -168,6 +189,6 @@ namespace Segment.Analytics
 
         public IEnumerable<T> FindAll<T>(Type plugin) where T : Plugin => timeline.FindAll<T>(plugin);
 
-        public DestinationPlugin? Find(string destinationKey) => timeline.Find(destinationKey);
+        public DestinationPlugin Find(string destinationKey) => timeline.Find(destinationKey);
     }
 }

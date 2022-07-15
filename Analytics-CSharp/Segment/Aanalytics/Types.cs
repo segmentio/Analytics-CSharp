@@ -6,17 +6,17 @@ namespace Segment.Analytics
 {
     public abstract class RawEvent
     {
-        public virtual string? type { get; set; }
-        public virtual string? anonymousId { get; set; }
-        public virtual string? messageId { get; set; }
-        public virtual string? userId { get; set; }
-        public virtual string? timestamp { get; set; }
+        public virtual string type { get; set; }
+        public virtual string anonymousId { get; set; }
+        public virtual string messageId { get; set; }
+        public virtual string userId { get; set; }
+        public virtual string timestamp { get; set; }
 
         // JSON types
-        public JsonObject? context { get; set; }
-        public JsonObject? integrations { get; set; }
+        public JsonObject context { get; set; }
+        public JsonObject integrations { get; set; }
         
-        public JsonArray? metrics { get; set; }
+        public JsonArray metrics { get; set; }
 
         internal void ApplyRawEventData(RawEvent rawEvent)
         {
@@ -44,13 +44,13 @@ namespace Segment.Analytics
 
     public sealed class TrackEvent : RawEvent
     {
-        public override string? type => "track";
+        public override string type => "track";
         
         public string @event { get; set; }
         
         public JsonObject properties { get; set; }
         
-        internal TrackEvent(string trackEvent, JsonObject? properties)
+        internal TrackEvent(string trackEvent, JsonObject properties)
         {
             this.@event = trackEvent;
             this.properties = properties;
@@ -64,11 +64,11 @@ namespace Segment.Analytics
 
     public sealed class IdentifyEvent : RawEvent
     {
-        public override string? type => "identify";
+        public override string type => "identify";
         
-        public JsonObject? traits { get; set; }
+        public JsonObject traits { get; set; }
 
-        internal IdentifyEvent(string? userId = null, JsonObject? traits = null)
+        internal IdentifyEvent(string userId = null, JsonObject traits = null)
         {
             this.userId = userId;
             this.traits = traits;
@@ -82,15 +82,15 @@ namespace Segment.Analytics
     
     public sealed class ScreenEvent : RawEvent
     {
-        public string? type  => "screen"; 
+        public override string type  => "screen"; 
         
-        public string? name { get; set; }
+        public string name { get; set; }
         
-        public string? category { get; set; }
+        public string category { get; set; }
         
-        public JsonObject? properties { get; set; }
+        public JsonObject properties { get; set; }
 
-        internal ScreenEvent(string? category, string? title = null, JsonObject? properties = null)
+        internal ScreenEvent(string category, string title = null, JsonObject properties = null)
         {
             this.name = title;
             this.properties = properties;
@@ -105,13 +105,13 @@ namespace Segment.Analytics
     
     public sealed class GroupEvent : RawEvent
     {
-        public string? type => "group";
+        public override string type => "group";
         
-        public string? groupId { get; set; }
+        public string groupId { get; set; }
         
-        public JsonObject? traits { get; set; }
+        public JsonObject traits { get; set; }
 
-        internal GroupEvent(string? groupId = null, JsonObject? traits = null)
+        internal GroupEvent(string groupId = null, JsonObject traits = null)
         {
             this.groupId = groupId;
             this.traits = traits;
@@ -125,11 +125,11 @@ namespace Segment.Analytics
     
     public sealed class AliasEvent : RawEvent
     {
-        public string? type => "alias";
+        public override string type => "alias";
         
-        public string? previousId { get; set; }
+        public string previousId { get; set; }
 
-        internal AliasEvent(string? newId, string previousId)
+        internal AliasEvent(string newId, string previousId)
         {
             this.userId = newId;
             this.previousId = previousId;

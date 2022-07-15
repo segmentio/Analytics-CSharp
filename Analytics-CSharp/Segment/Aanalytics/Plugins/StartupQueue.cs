@@ -18,7 +18,7 @@ namespace Segment.Analytics.Plugins
             analytics.store.Subscribe<System>(this, state => RunningUpdate((System)state));
         }
 
-        internal override RawEvent? Execute(RawEvent? incomingEvent)
+        internal override RawEvent Execute(RawEvent incomingEvent)
         {
             if (!_running.Get() && incomingEvent != null)
             {

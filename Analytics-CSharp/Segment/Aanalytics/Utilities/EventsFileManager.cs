@@ -118,11 +118,14 @@ namespace Segment.Analytics.Utilities
         private FileInfo CurrentFile()
         {
             // if no file is opened, open a file according to _fileIndexKey
-            _curFile ??= new FileInfo(
-                    _directory.FullName + Path.DirectorySeparatorChar +
-                            _writeKey + "-" + _userPrefs.GetInt(_fileIndexKey, 0) +
-                            ".tmp"
-                        );
+            if (_curFile == null)
+            {
+                _curFile = new FileInfo(
+                        _directory.FullName + Path.DirectorySeparatorChar +
+                                _writeKey + "-" + _userPrefs.GetInt(_fileIndexKey, 0) +
+                                ".tmp"
+                            );
+            }
             
             return _curFile;
         }
@@ -130,7 +133,11 @@ namespace Segment.Analytics.Utilities
         private async Task WriteToFile(byte[] content, FileInfo file)
         {
             // if no fire stream is open, open the file stream of the given file in open or create mode
-            _fs ??= file.Open(FileMode.OpenOrCreate);
+            if (_fs == null)
+            {
+                _fs = file.Open(FileMode.OpenOrCreate);
+            }
+
             await _fs.WriteAsync(content, 0, content.Length);
             await _fs.FlushAsync();
             file.Refresh();

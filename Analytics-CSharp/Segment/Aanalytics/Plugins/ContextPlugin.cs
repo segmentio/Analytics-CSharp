@@ -34,7 +34,7 @@ namespace Segment.Analytics.Plugins
             @event.context = context;
         }
 
-        internal override RawEvent? Execute(RawEvent incomingEvent)
+        internal override RawEvent Execute(RawEvent incomingEvent)
         {
             ApplyContextData(incomingEvent);
             return base.Execute(incomingEvent);
