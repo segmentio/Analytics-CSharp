@@ -4,6 +4,17 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
+    
+    <Authors>Segment, Inc</Authors>
+    <Description>The hassle-free way to add analytics to your C# app.</Description>
+    <Version>0.1.0</Version>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/segmentio/Analytics-CSharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Remove="Segment\" />
     <None Remove="Segment\Aanalytics\" />
