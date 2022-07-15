@@ -7,10 +7,14 @@
   <ItemGroup>
     <None Remove="Segment\" />
     <None Remove="Segment\Aanalytics\" />
+    <None Remove="Segment\Aanalytics\Plugins\" />
+    <None Remove="Segment\Aanalytics\Utilities\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Segment\" />
     <Folder Include="Segment\Aanalytics\" />
+    <Folder Include="Segment\Aanalytics\Plugins\" />
+    <Folder Include="Segment\Aanalytics\Utilities\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Coroutine.NET" Version="0.1.0" />
