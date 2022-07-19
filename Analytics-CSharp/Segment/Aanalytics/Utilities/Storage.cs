@@ -35,10 +35,10 @@ namespace Segment.Analytics.Utilities
             _eventsFile = new EventsFileManager(_storageDirectory, writeKey, _userPrefs);
         }
 
-        public void SubscribeToStore()
+        public async Task SubscribeToStore()
         {
-            _store.Subscribe<UserInfo>(this, UserInfoUpdate, true);
-            _store.Subscribe<System>(this, SystemUpdate, true);
+            await _store.Subscribe<UserInfo>(this, UserInfoUpdate, true);
+            await _store.Subscribe<System>(this, SystemUpdate, true);
         }
         
         /// <summary>

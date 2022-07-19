@@ -36,8 +36,12 @@ namespace Segment.Analytics
                 traits = new JsonObject();
             }
 
-            store.Dispatch<UserInfo.SetUserIdAndTraitsAction, UserInfo>(
+            analyticsScope.Launch(analyticsDispatcher, async () =>
+            {
+                await store.Dispatch<UserInfo.SetUserIdAndTraitsAction, UserInfo>(
                 new UserInfo.SetUserIdAndTraitsAction(userId, traits));
+            });
+
             var identifyEvent = new IdentifyEvent(userId, traits);
             Process(identifyEvent);
         }
@@ -104,17 +108,20 @@ namespace Segment.Analytics
 
         public void Alias(string newId)
         {
-            var currentUserInfo = store.CurrentState<UserInfo>();
-            if (!currentUserInfo.isNull)
+            analyticsScope.Launch(analyticsDispatcher, async () =>
             {
-                var aliasEvent = new AliasEvent(newId, currentUserInfo.userId ?? currentUserInfo.anonymousId);
-                store.Dispatch<UserInfo.SetUserIdAction, UserInfo>(new UserInfo.SetUserIdAction(newId));
-                Process(aliasEvent);
-            }
-            else
-            {
-                // TODO: log failed to fetch current userinfo state
-            }
+                var currentUserInfo = await store.CurrentState<UserInfo>();
+                if (!currentUserInfo.isNull)
+                {
+                    var aliasEvent = new AliasEvent(newId, currentUserInfo.userId ?? currentUserInfo.anonymousId);
+                    await store.Dispatch<UserInfo.SetUserIdAction, UserInfo>(new UserInfo.SetUserIdAction(newId));
+                    Process(aliasEvent);
+                }
+                else
+                {
+                    // TODO: log failed to fetch current userinfo state
+                }
+            });
         }
     }
 }

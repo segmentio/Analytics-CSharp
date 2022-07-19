@@ -15,7 +15,10 @@ namespace Segment.Analytics.Plugins
         internal override void Configure(Analytics analytics)
         {
             base.Configure(analytics);
-            analytics.store.Subscribe<System>(this, state => RunningUpdate((System)state));
+            analytics.analyticsScope.Launch(analytics.analyticsDispatcher, async () =>
+            {
+                await analytics.store.Subscribe<System>(this, state => RunningUpdate((System)state));
+            });
         }
 
         internal override RawEvent Execute(RawEvent incomingEvent)
