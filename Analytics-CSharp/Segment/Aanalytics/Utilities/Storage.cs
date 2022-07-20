@@ -127,13 +127,8 @@ namespace Segment.Analytics.Utilities
         #region State Subscriptions
 
         public void UserInfoUpdate(IState state)
-        {
-            if (!(state is UserInfo))
-            {
-                return;
-            }
-            
-            UserInfo userInfo = (UserInfo) state;
+        {   
+            var userInfo = (UserInfo) state;
             WritePrefs(Constants.AnonymousId, userInfo.anonymousId);
             
             if (userInfo.userId != null)
@@ -149,7 +144,7 @@ namespace Segment.Analytics.Utilities
 
         public void SystemUpdate(IState state)
         {
-            System system = (System) state;
+            var system = (System) state;
             WritePrefs(Constants.Settings, JsonUtility.ToJson(system.settings));
         }
 

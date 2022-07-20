@@ -82,6 +82,8 @@ namespace Segment.Analytics
     {
         internal override PluginType type => PluginType.Destination;
         public abstract string key { get; }
+
+        private bool _enabled = false;
         
         private readonly Timeline _timeline = new Timeline();
 
@@ -114,6 +116,15 @@ namespace Segment.Analytics
                 throw;
             }
             
+        }
+
+        internal override void Update(Settings settings, UpdateType type)
+        {
+            _enabled = settings.integrations?.ContainsKey(key) ?? false;
+            _timeline.Apply(plugin =>
+            {
+                plugin.Update(settings, type);
+            });
         }
 
         public RawEvent Process(RawEvent @event)
@@ -161,9 +172,8 @@ namespace Segment.Analytics
             // if event payload has integration marked false then its disabled by customer
             // default to true when missing
             var customerEnabled = @event?.integrations?.GetBool(key, true) ?? true;
-            var hasSettings = analytics.Settings()?.integrations?.ContainsKey(key) ?? false;
             
-            return hasSettings && customerEnabled;
+            return _enabled && customerEnabled;
         }
     }
 

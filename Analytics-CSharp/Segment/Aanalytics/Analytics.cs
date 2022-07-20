@@ -180,7 +180,7 @@ namespace Segment.Analytics
 
                 await store.Provide(UserInfo.DefaultState(configuration, storage));
                 await store.Provide(System.DefaultState(configuration, storage));
-                storage.SubscribeToStore();
+                await storage.SubscribeToStore();
 
                 if (configuration.autoAddSegmentDestination)
                 {
