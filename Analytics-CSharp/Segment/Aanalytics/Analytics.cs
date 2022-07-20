@@ -187,7 +187,8 @@ namespace Segment.Analytics
                     Add(new SegmentDestination());
                 }
 
-                SetupSettingsCheck();
+                await CheckSettings();
+                // TODO: Add lifecycle events to call CheckSettings when app is brought to foreground (not launched)
             });
         }
         

@@ -19,16 +19,6 @@ namespace Segment.Analytics
         {
             timeline.Apply(plugin => plugin.Update(settings, type));
         }
-        
-        private void SetupSettingsCheck()
-        {
-            analyticsScope.Launch(networkIODispatcher, async () =>
-            {
-                await CheckSettings();
-            });
-            
-            // TODO: Add lifecycle events to call CheckSettings when app is brought to foreground (not launched)
-        }
 
         private async Task CheckSettings()
         {
