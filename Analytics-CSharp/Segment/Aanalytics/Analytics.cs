@@ -6,6 +6,7 @@ using Segment.Serialization;
 using Segment.Analytics.Utilities;
 using Segment.Sovran;
 using JsonUtility = Segment.Serialization.JsonUtility;
+using System.Threading.Tasks;
 
 namespace Segment.Analytics
 {
@@ -37,11 +38,6 @@ namespace Segment.Analytics
             networkIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(1));
             analyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
 
-            // TODO: Add the default states
-            store.Provide(UserInfo.DefaultState(configuration, storage));
-            store.Provide(System.DefaultState(configuration, storage));
-            storage.SubscribeToStore();
-
             // Start everything
             Startup();
         }
@@ -56,40 +52,55 @@ namespace Segment.Analytics
         {
             analyticsScope.Launch(analyticsDispatcher, async () =>
             {
-                var updatedEvent = incomingEvent.ApplyRawEventData(store);
-                timeline.Process(updatedEvent); 
+                await incomingEvent.ApplyRawEventData(store);
+                timeline.Process(incomingEvent); 
             });
         }
         
         #region System Modifiers
 
-        string AnonymousId
+        public string AnonymousId()
         {
-            get
-            {
-                UserInfo userInfo = store.CurrentState<UserInfo>();
-                return userInfo.anonymousId;
-            }
+            var task = AnonymousIdAsync();
+            task.Wait();
+            return task.Result;
         }
-        
-        string UserId
+
+        public async Task<string> AnonymousIdAsync()
         {
-            get
-            {
-                UserInfo userInfo = store.CurrentState<UserInfo>();
-                return userInfo.userId;
-            }
+            var userInfo = await store.CurrentState<UserInfo>();
+            return userInfo.anonymousId;
+        }
+
+        public string UserId()
+        {
+            var task = UserIdAsync();
+            task.Wait();
+            return task.Result;
+        }
+
+        public async Task<string> UserIdAsync()
+        {
+            var userInfo = await store.CurrentState<UserInfo>();
+            return userInfo.userId;
         }
 
         public JsonObject Traits()
         {
-            var userInfo = store.CurrentState<UserInfo>();
+            var task = TraitsAsync();
+            task.Wait();
+            return task.Result;
+        }
+
+        public async Task<JsonObject> TraitsAsync()
+        {
+            var userInfo = await store.CurrentState<UserInfo>();
             return userInfo.traits;
         }
 
-        public T Traits<T>() where T : ISerializable
+        public async Task<T> TraitsAsync<T>() where T : ISerializable
         {   
-            var traits = Traits();
+            var traits = await TraitsAsync();
             return traits != null ? JsonUtility.FromJson<T>(traits.ToString()) : default;
         }
 
@@ -104,14 +115,18 @@ namespace Segment.Analytics
 
         public void Reset()
         {
-            store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction());
-            Apply(plugin =>
+            analyticsScope.Launch(analyticsDispatcher, async () =>
             {
-                if (plugin is EventPlugin eventPlugin)
+                await store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction());
+                Apply(plugin =>
                 {
-                    eventPlugin.Reset();
-                }
+                    if (plugin is EventPlugin eventPlugin)
+                    {
+                        eventPlugin.Reset();
+                    }
+                });
             });
+
         }
 
         public string Version()
@@ -129,11 +144,18 @@ namespace Segment.Analytics
         
         
         #region Settings
-        
+
         public Settings? Settings()
         {
+            var task = SettingsAsync();
+            task.Wait();
+            return task.Result;
+        }
+
+        public async Task<Settings?> SettingsAsync()
+        {
             Settings? returnSettings = null;
-            IState system = store.CurrentState<System>();
+            IState system = await store.CurrentState<System>();
             if (system is System convertedSystem)
             {
                 returnSettings = convertedSystem.settings;
@@ -151,23 +173,23 @@ namespace Segment.Analytics
         private void Startup()
         {
             Add(new StartupQueue());
-            
-            if (configuration.autoAddSegmentDestination)
-            {
-                Add(new SegmentDestination());
-            }
-
             Add(new ContextPlugin());
 
-            try
-            {
-                SetupSettingsCheck();
-            }
-            catch (Exception e)
+            analyticsScope.Launch(analyticsDispatcher, async () =>
             {
 
-            }
-            
+                await store.Provide(UserInfo.DefaultState(configuration, storage));
+                await store.Provide(System.DefaultState(configuration, storage));
+                await storage.SubscribeToStore();
+
+                if (configuration.autoAddSegmentDestination)
+                {
+                    Add(new SegmentDestination());
+                }
+
+                await CheckSettings();
+                // TODO: Add lifecycle events to call CheckSettings when app is brought to foreground (not launched)
+            });
         }
         
         #endregion

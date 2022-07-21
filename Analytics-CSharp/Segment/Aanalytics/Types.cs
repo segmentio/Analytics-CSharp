@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Segment.Serialization;
 using Segment.Sovran;
 
@@ -28,17 +29,21 @@ namespace Segment.Analytics
             this.integrations = rawEvent.integrations;
         }
 
-        internal RawEvent ApplyRawEventData(Store store)
+        internal async Task ApplyRawEventData(Store store)
         {
-            var returnValue = this;
-            UserInfo userInfo = store.CurrentState<UserInfo>();
+            var userInfo = await store.CurrentState<UserInfo>();
+            if (userInfo.isNull) return;
+
             this.anonymousId = userInfo.anonymousId;
             this.userId = userInfo.userId;
-            this.messageId = Guid.NewGuid().ToString();
-            this.timestamp = DateTime.UtcNow.ToString("o"); // iso8601
             this.integrations = new JsonObject();  
+        }
 
-            return returnValue;
+        internal void ApplyBaseData()
+        {
+            this.messageId = Guid.NewGuid().ToString();
+            this.context = new JsonObject();
+            this.timestamp = DateTime.UtcNow.ToString("o"); // iso8601
         }
     }
 

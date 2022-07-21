@@ -18,10 +18,13 @@ namespace Segment.Analytics
         
         public string cdnHost { get; }
         
+        public Settings defaultSettings { get; }
+        
         public Configuration(string writeKey,
             string persistentDataPath,
             int flushAt = 20,
             int flushInterval = 30,
+            Settings defaultSettings = new Settings(),
             bool autoAddSegmentDestination = true,
             string apiHost = null,
             string cdnHost = null)
@@ -30,6 +33,7 @@ namespace Segment.Analytics
             this.persistentDataPath = persistentDataPath;
             this.flushAt = flushAt;
             this.flushInterval = flushInterval;
+            this.defaultSettings = defaultSettings;
             this.autoAddSegmentDestination = autoAddSegmentDestination;
             this.apiHost = apiHost;
             this.cdnHost = cdnHost;

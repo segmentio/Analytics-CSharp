@@ -123,12 +123,16 @@ namespace Segment.Analytics
         internal void Add(Plugin plugin)
         {
             plugins.Add(plugin);
-            
-            var settings = plugin.analytics.Settings();
-            if (settings.HasValue)
+
+            var analytics = plugin.analytics;
+            analytics.analyticsScope.Launch(analytics.analyticsDispatcher, async () =>
             {
-                plugin.Update(settings.Value, UpdateType.Initial);
-            }
+                var settings = await plugin.analytics.SettingsAsync();
+                if (settings.HasValue)
+                {
+                    plugin.Update(settings.Value, UpdateType.Initial);
+                }
+            });
         }
 
         internal void Remove(Plugin plugin)
