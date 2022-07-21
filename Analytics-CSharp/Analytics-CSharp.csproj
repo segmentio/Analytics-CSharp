@@ -10,7 +10,7 @@
     
     <Authors>Segment, Inc</Authors>
     <Description>The hassle-free way to add analytics to your C# app.</Description>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/segmentio/Analytics-CSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -29,8 +29,8 @@
     <Folder Include="Segment\Aanalytics\Utilities\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Coroutine.NET" Version="0.3.0" />
+    <PackageReference Include="Coroutine.NET" Version="0.4.0" />
     <PackageReference Include="Serialization.NET" Version="0.1.0" />
-    <PackageReference Include="Sovran.NET" Version="0.2.0" />
+    <PackageReference Include="Sovran.NET" Version="0.3.0" />
   </ItemGroup>
 </Project>
