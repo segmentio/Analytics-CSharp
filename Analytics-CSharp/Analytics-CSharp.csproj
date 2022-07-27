@@ -29,8 +29,8 @@
     <Folder Include="Segment\Aanalytics\Utilities\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Coroutine.NET" Version="0.4.0" />
+    <PackageReference Include="Coroutine.NET" Version="0.5.0" />
     <PackageReference Include="Serialization.NET" Version="0.1.0" />
-    <PackageReference Include="Sovran.NET" Version="0.3.0" />
+    <PackageReference Include="Sovran.NET" Version="0.4.0" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using Segment.Concurrent;
 using Segment.Serialization;
 using Segment.Sovran;
 
@@ -18,11 +19,13 @@ namespace Segment.Analytics.Utilities
 
         private readonly EventsFileManager _eventsFile;
 
+        private readonly IDispatcher _ioDispatcher;
+
         public const long MaxPayloadSize = 32_000;
 
         public const long MaxBatchSize = 475_000;
 
-        public Storage(Store store, string writeKey, string rootDir)
+        public Storage(Store store, string writeKey, string rootDir, IDispatcher ioDispatcher = default)
         {
             _store = store;
             _writeKey = writeKey;
@@ -33,12 +36,13 @@ namespace Segment.Analytics.Utilities
                                     writeKey + Path.DirectorySeparatorChar +
                                     "events";
             _eventsFile = new EventsFileManager(_storageDirectory, writeKey, _userPrefs);
+            _ioDispatcher = ioDispatcher;
         }
 
         public async Task SubscribeToStore()
         {
-            await _store.Subscribe<UserInfo>(this, UserInfoUpdate, true);
-            await _store.Subscribe<System>(this, SystemUpdate, true);
+            await _store.Subscribe<UserInfo>(this, UserInfoUpdate, true, _ioDispatcher);
+            await _store.Subscribe<System>(this, SystemUpdate, true, _ioDispatcher);
         }
         
         /// <summary>

@@ -19,25 +19,34 @@ namespace Segment.Analytics
         internal Storage storage { get;}
 
         internal Scope analyticsScope { get;}
-        internal Dispatcher fileIODispatcher { get;}
-        internal Dispatcher networkIODispatcher { get;}
-        internal Dispatcher analyticsDispatcher { get;}
+        internal IDispatcher fileIODispatcher { get;}
+        internal IDispatcher networkIODispatcher { get;}
+        internal IDispatcher analyticsDispatcher { get;}
 
 
         public Analytics(Configuration configuration)
         {
             this.configuration = configuration;
 
-            store = new Store();
-            storage = new Storage(store, configuration.writeKey, configuration.persistentDataPath);
+            analyticsScope = new Scope();
+            if (configuration.userSynchronizeDispatcher)
+            {
+                IDispatcher dispatcher = new SynchronizeDispatcher();
+                fileIODispatcher = dispatcher;
+                networkIODispatcher = dispatcher;
+                analyticsDispatcher = dispatcher;
+            }
+            else
+            {
+                fileIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(2));
+                networkIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(1));
+                analyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
+            }
+            
+            store = new Store(configuration.userSynchronizeDispatcher);
+            storage = new Storage(store, configuration.writeKey, configuration.persistentDataPath, fileIODispatcher);
             timeline = new Timeline();
             
-            // Start with default states
-            analyticsScope = new Scope();
-            fileIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(2));
-            networkIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(1));
-            analyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
-
             // Start everything
             Startup();
         }

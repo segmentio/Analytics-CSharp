@@ -30,7 +30,7 @@ namespace Segment.Analytics.Utilities
 
         private readonly Scope _scope;
 
-        private readonly Dispatcher _dispatcher;
+        private readonly IDispatcher _dispatcher;
 
         public UserPrefs(string file)
         {
