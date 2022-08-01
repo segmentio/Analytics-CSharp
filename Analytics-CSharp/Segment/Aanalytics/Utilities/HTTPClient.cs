@@ -14,8 +14,6 @@ namespace Segment.Analytics.Utilities
 
         internal const string DefaultCdnHost = "cdn-settings.segment.com/v1";
 
-        private Analytics _analytics;
-
         private readonly HttpClient _httpClient;
 
         private string _apiKey;
@@ -26,10 +24,9 @@ namespace Segment.Analytics.Utilities
 
         private string _authHeader;
 
-        public HTTPClient(Analytics analytics, string apiKey = null, string apiHost = null, string cdnHost = null)
+        public HTTPClient(string apiKey, string apiHost = null, string cdnHost = null)
         {
-            _analytics = analytics;
-            _apiKey = apiKey ?? analytics.configuration.writeKey;
+            _apiKey = apiKey;
             _apiHost = apiHost ?? DefaultAPIHost;
             _cdnHost = cdnHost ?? DefaultCdnHost;
             _authHeader = AuthorizationHeader(apiKey);

@@ -22,7 +22,7 @@ namespace Segment.Analytics
 
         private async Task CheckSettings()
         {
-            var httpClient = new HTTPClient(this, cdnHost: configuration.cdnHost);
+            var httpClient = new HTTPClient(configuration.writeKey, cdnHost: configuration.cdnHost);
             var systemState = await store.CurrentState<System>();
             var hasSettings = systemState.settings.integrations != null && systemState.settings.plan != null;
             var updateType = hasSettings ? UpdateType.Refresh : UpdateType.Initial;
