@@ -38,7 +38,7 @@ namespace Segment.Analytics.Utilities
             return "https://" + host + path;
         }
         
-        public async Task<Settings?> Settings()
+        public virtual async Task<Settings?> Settings()
         {
             var settingsURL = SegmentURL(_cdnHost, "/projects/" + _apiKey + "/settings");
             var response = await DoGet(settingsURL);

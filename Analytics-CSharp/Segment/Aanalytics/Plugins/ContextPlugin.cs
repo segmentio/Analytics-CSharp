@@ -19,8 +19,8 @@ namespace Segment.Analytics.Plugins
             base.Configure(analytics);
             _library = new JsonObject
             {
-                [LibraryNameKey] = "analytics-unity",
-                [LibraryVersionKey] = Version.__segment_version
+                [LibraryNameKey] = "analytics-csharp",
+                [LibraryVersionKey] = Version.SegmentVersion
             };
         }
 

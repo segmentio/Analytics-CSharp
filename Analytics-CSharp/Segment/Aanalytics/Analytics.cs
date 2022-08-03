@@ -59,6 +59,8 @@ namespace Segment.Analytics
          */
         public void Process(RawEvent incomingEvent)
         {
+            incomingEvent.ApplyBaseData();
+            
             analyticsScope.Launch(analyticsDispatcher, async () =>
             {
                 await incomingEvent.ApplyRawEventData(store);
@@ -138,15 +140,7 @@ namespace Segment.Analytics
 
         }
 
-        public string Version()
-        {
-            return Analytics._Version();
-        }
-
-        public static string _Version()
-        {
-            return Segment.Analytics.Version.__segment_version;
-        }
+        public string version => Version.SegmentVersion;
 
         #endregion
 
@@ -179,7 +173,7 @@ namespace Segment.Analytics
 
         #region Startup
 
-        private void Startup()
+        private void Startup(HTTPClient httpClient = null)
         {
             Add(new StartupQueue());
             Add(new ContextPlugin());
@@ -196,7 +190,7 @@ namespace Segment.Analytics
                     Add(new SegmentDestination());
                 }
 
-                await CheckSettings();
+                await CheckSettings(httpClient);
                 // TODO: Add lifecycle events to call CheckSettings when app is brought to foreground (not launched)
             });
         }
