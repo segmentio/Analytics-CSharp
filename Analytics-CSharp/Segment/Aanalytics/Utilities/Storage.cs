@@ -98,7 +98,7 @@ namespace Segment.Analytics.Utilities
             await _eventsFile.Rollover();
         }
         
-        public string Read(Constants key)
+        public virtual string Read(Constants key)
         {
             switch (key)
             {
