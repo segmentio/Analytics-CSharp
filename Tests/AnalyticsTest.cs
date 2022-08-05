@@ -124,7 +124,11 @@ namespace Tests
         [Fact]
         public void TestFlush()
         {
-            var plugin = new Mock<DestinationPlugin>();
+            var plugin = new Mock<DestinationPlugin>
+            {
+                // need this setting to prevent faking internal methods
+                CallBase = true
+            };
             plugin.Setup(o => o.Flush()).Verifiable();
 
             _analytics.Add(plugin.Object);
@@ -136,7 +140,11 @@ namespace Tests
         [Fact]
         public async Task TestReset()
         {
-            var plugin = new Mock<DestinationPlugin>();
+            var plugin = new Mock<DestinationPlugin>
+            {
+                // need this setting to prevent faking internal methods
+                CallBase = true
+            };
             plugin.Setup(o => o.Reset()).Verifiable();
 
             _analytics.Add(plugin.Object);

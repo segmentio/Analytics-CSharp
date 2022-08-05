@@ -14,6 +14,8 @@ namespace Tests
         private Analytics _analytics;
 
         private Settings? _settings;
+        
+        private Mock<StubEventPlugin> _plugin;
 
         public EventsTest()
         {
@@ -31,7 +33,12 @@ namespace Tests
             mockHttpClient
                 .Setup(httpClient => httpClient.Settings())
                 .ReturnsAsync(_settings);
-            
+
+            _plugin = new Mock<StubEventPlugin>
+            {
+                CallBase = true
+            };
+
             _analytics = new Analytics(config, httpClient: mockHttpClient.Object);
         }
 
@@ -43,11 +50,10 @@ namespace Tests
                 ["foo"] = "bar"
             };
             var expectedEvent = "foo";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<TrackEvent>();
-            plugin.Setup(o => o.Track(Capture.In(actual)));
+            _plugin.Setup(o => o.Track(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Track(expectedEvent, expected);
             
             Assert.NotEmpty(actual);
@@ -59,11 +65,10 @@ namespace Tests
         public void TestTrackNoProperties()
         {
             var expectedEvent = "foo";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<TrackEvent>();
-            plugin.Setup(o => o.Track(Capture.In(actual)));
+            _plugin.Setup(o => o.Track(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Track(expectedEvent);
             
             Assert.NotEmpty(actual);
@@ -76,11 +81,10 @@ namespace Tests
         {
             var expected = new FooBar();
             var expectedEvent = "foo";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<TrackEvent>();
-            plugin.Setup(o => o.Track(Capture.In(actual)));
+            _plugin.Setup(o => o.Track(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Track(expectedEvent, expected);
             
             Assert.NotEmpty(actual);
@@ -92,11 +96,10 @@ namespace Tests
         public void TestTrackTNoProperties()
         {
             var expectedEvent = "foo";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<TrackEvent>();
-            plugin.Setup(o => o.Track(Capture.In(actual)));
+            _plugin.Setup(o => o.Track(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Track<FooBar>(expectedEvent);
             
             Assert.NotEmpty(actual);
@@ -112,11 +115,10 @@ namespace Tests
                 ["foo"] = "bar"
             };
             var expectedUserId = "newUserId";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<IdentifyEvent>();
-            plugin.Setup(o => o.Identify(Capture.In(actual)));
+            _plugin.Setup(o => o.Identify(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId, expected);
             var actualUserId = await _analytics.UserIdAsync();
             
@@ -129,11 +131,10 @@ namespace Tests
         public async Task TestIdentifyNoTraits()
         {
             var expectedUserId = "newUserId";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<IdentifyEvent>();
-            plugin.Setup(o => o.Identify(Capture.In(actual)));
+            _plugin.Setup(o => o.Identify(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId);
             var actualUserId = await _analytics.UserIdAsync();
             
@@ -147,11 +148,10 @@ namespace Tests
         {
             var expected = new FooBar();
             var expectedUserId = "newUserId";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<IdentifyEvent>();
-            plugin.Setup(o => o.Identify(Capture.In(actual)));
+            _plugin.Setup(o => o.Identify(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId, expected);
             var actualUserId = await _analytics.UserIdAsync();
             
@@ -164,11 +164,10 @@ namespace Tests
         public async Task TestIdentifyTNoTraits()
         {
             var expectedUserId = "newUserId";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<IdentifyEvent>();
-            plugin.Setup(o => o.Identify(Capture.In(actual)));
+            _plugin.Setup(o => o.Identify(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Identify<FooBar>(expectedUserId);
             var actualUserId = await _analytics.UserIdAsync();
             
@@ -186,11 +185,10 @@ namespace Tests
             };
             var expectedTitle = "foo";
             var expectedCategory = "bar";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<ScreenEvent>();
-            plugin.Setup(o => o.Screen(Capture.In(actual)));
+            _plugin.Setup(o => o.Screen(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Screen(expectedTitle, expected, expectedCategory);
             
             Assert.NotEmpty(actual);
@@ -202,11 +200,10 @@ namespace Tests
         [Fact]
         public void TestScreenWithNulls()
         {
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<ScreenEvent>();
-            plugin.Setup(o => o.Screen(Capture.In(actual)));
+            _plugin.Setup(o => o.Screen(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Screen(null, null, null);
             
             Assert.NotEmpty(actual);
@@ -221,11 +218,10 @@ namespace Tests
             var expected = new FooBar();
             var expectedTitle = "foo";
             var expectedCategory = "bar";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<ScreenEvent>();
-            plugin.Setup(o => o.Screen(Capture.In(actual)));
+            _plugin.Setup(o => o.Screen(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Screen(expectedTitle, expected, expectedCategory);
             
             Assert.NotEmpty(actual);
@@ -237,11 +233,10 @@ namespace Tests
         [Fact]
         public void TestScreenTWithNulls()
         {
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<ScreenEvent>();
-            plugin.Setup(o => o.Screen(Capture.In(actual)));
+            _plugin.Setup(o => o.Screen(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Screen<FooBar>(null, null, null);
             
             Assert.NotEmpty(actual);
@@ -258,11 +253,10 @@ namespace Tests
                 ["foo"] = "bar"
             };
             var expectedGroupId = "foo";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<GroupEvent>();
-            plugin.Setup(o => o.Group(Capture.In(actual)));
+            _plugin.Setup(o => o.Group(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Group(expectedGroupId, expected);
             
             Assert.NotEmpty(actual);
@@ -274,11 +268,10 @@ namespace Tests
         public void TestGroupNoProperties()
         {
             var expectedGroupId = "foo";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<GroupEvent>();
-            plugin.Setup(o => o.Group(Capture.In(actual)));
+            _plugin.Setup(o => o.Group(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Group(expectedGroupId);
             
             Assert.NotEmpty(actual);
@@ -291,11 +284,10 @@ namespace Tests
         {
             var expected = new FooBar();
             var expectedGroupId = "foo";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<GroupEvent>();
-            plugin.Setup(o => o.Group(Capture.In(actual)));
+            _plugin.Setup(o => o.Group(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Group(expectedGroupId, expected);
             
             Assert.NotEmpty(actual);
@@ -307,11 +299,10 @@ namespace Tests
         public void TestGroupTNoProperties()
         {
             var expectedGroupId = "foo";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<GroupEvent>();
-            plugin.Setup(o => o.Group(Capture.In(actual)));
+            _plugin.Setup(o => o.Group(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Group<FooBar>(expectedGroupId);
             
             Assert.NotEmpty(actual);
@@ -324,11 +315,10 @@ namespace Tests
         {
             var expectedPrevious = "foo";
             var expected = "bar";
-            var plugin = new Mock<StubEventPlugin>();
             var actual = new List<AliasEvent>();
-            plugin.Setup(o => o.Alias(Capture.In(actual)));
+            _plugin.Setup(o => o.Alias(Capture.In(actual)));
 
-            _analytics.Add(plugin.Object);
+            _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedPrevious);
             _analytics.Alias(expected);
             
