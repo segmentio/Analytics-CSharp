@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Segment.Serialization;
 
 namespace Segment.Analytics.Utilities
@@ -49,7 +50,7 @@ namespace Segment.Analytics.Utilities
             
             if (!response.IsSuccessStatusCode)
             {
-                // TODO: log error
+                Analytics.logger?.LogError("Error {Status} getting from settings url", response.StatusCode);
             }
             else
             {
@@ -67,7 +68,7 @@ namespace Segment.Analytics.Utilities
             var response =  await DoUpload(uploadURL, file);
             if (!response.IsSuccessStatusCode)
             {
-                // TODO: log error
+                Analytics.logger?.LogError("Error {Status} uploading to url", response.StatusCode);
                 response.Dispose();
                 return false;
             }
@@ -80,7 +81,7 @@ namespace Segment.Analytics.Utilities
                 case var n when (n >= 1 && n < 300):
                     return true;
                 case var n when (n >= 300 && n < 400):
-                    // TODO: log error
+                    // TODO: log error  !!!!!!!!  Wouldn't a non-success status have exited the function above?
                     return false;
                 case 429:
                     // TODO: log error

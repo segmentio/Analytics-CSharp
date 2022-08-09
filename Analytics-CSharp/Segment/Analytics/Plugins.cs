@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using Segment.Serialization;
 
 namespace Segment.Analytics
@@ -113,7 +114,8 @@ namespace Segment.Analytics
             }
             catch (Exception e)
             {
-                throw;
+                Analytics.logger?.LogError(e, "Error applying event in timeline.");
+                throw e;
             }
             
         }

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Segment.Concurrent;
 
 namespace Segment.Analytics.Utilities
@@ -95,7 +96,7 @@ namespace Segment.Analytics.Utilities
                     }
                     catch (Exception exception)
                     {
-                        // TODO: log exception
+                        Analytics.logger?.LogError(exception, "Error writing events to storage.");
                     }
                 }
 
@@ -133,7 +134,7 @@ namespace Segment.Analytics.Utilities
                     }
                     catch (Exception e)
                     {
-                        
+                        Analytics.logger?.LogError(e, "Error uploading to url");
                     }
 
                     if (shouldCleanup)
