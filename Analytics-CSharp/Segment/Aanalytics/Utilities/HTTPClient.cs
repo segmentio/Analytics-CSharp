@@ -58,7 +58,7 @@ namespace Segment.Analytics.Utilities
             return result;
         }
 
-        public async Task<bool> Upload(string file)
+        public virtual async Task<bool> Upload(string file)
         {
             var uploadURL = SegmentURL(_apiHost, "/b");
             var response =  await DoUpload(uploadURL, file);

@@ -7,7 +7,6 @@
  * pattern just for the purpose of tests is simply a bad idea.
  */
 
-using System.Threading.Tasks;
 using Segment.Analytics.Utilities;
 using Segment.Concurrent;
 using Segment.Sovran;
@@ -38,6 +37,37 @@ namespace Segment.Analytics
             this.timeline = timeline ?? new Timeline();
             
             Startup(httpClient);
+        }
+    }
+}
+
+namespace Segment.Analytics.Utilities
+{
+    internal partial class EventPipeline
+    {
+        internal EventPipeline(
+            Analytics analytics, 
+            HTTPClient httpClient,
+            string logTag, 
+            string apiKey, 
+            Channel<string> writeChannel = default,
+            Channel<string> uploadChannel = default,
+            int flushCount = 20, 
+            long flushIntervalInMillis = 30_000, 
+            string apiHost = HTTPClient.DefaultAPIHost)
+        {
+            _analytics = analytics;
+            _logTag = logTag;
+            _flushCount = flushCount;
+            _flushIntervalInMillis = flushIntervalInMillis;
+            this.apiHost = apiHost;
+
+            _writeChannel = writeChannel ?? new Channel<string>();
+            _uploadChannel = uploadChannel ?? new Channel<string>();
+            _eventCount = new AtomicInteger(0);
+            _httpClient = httpClient ?? new HTTPClient(apiKey);
+            _storage = analytics.storage;
+            running = false;
         }
     }
 }

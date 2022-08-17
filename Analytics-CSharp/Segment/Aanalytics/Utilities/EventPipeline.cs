@@ -6,7 +6,7 @@ using Segment.Concurrent;
 
 namespace Segment.Analytics.Utilities
 {
-    internal class EventPipeline
+    internal partial class EventPipeline
     {
         private readonly Analytics _analytics;
 

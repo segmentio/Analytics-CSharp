@@ -56,7 +56,7 @@ namespace Segment.Analytics.Utilities
         /// <param name="key">the type of value being written</param>
         /// <param name="value">the value being written</param>
         /// <exception cref="Exception">exception that captures the failure of writing an event to disk</exception>
-        public async Task Write(Constants key, string value)
+        public virtual async Task Write(Constants key, string value)
         {
             switch (key)
             {
@@ -93,7 +93,7 @@ namespace Segment.Analytics.Utilities
             editor.Apply();
         }
         
-        public async Task Rollover()
+        public virtual async Task Rollover()
         {
             await _eventsFile.Rollover();
         }
@@ -123,7 +123,7 @@ namespace Segment.Analytics.Utilities
             }
         }
 
-        public bool RemoveFile(string filePath)
+        public virtual bool RemoveFile(string filePath)
         {
             return _eventsFile.Remove(filePath);
         }
