@@ -31,7 +31,7 @@ namespace Tests
                 }
             };
             _configuration = new Configuration(
-                writeKey: "!23",
+                writeKey: "123",
                 persistentDataPath: "tests",
                 autoAddSegmentDestination: false,
                 userSynchronizeDispatcher: true,
@@ -132,7 +132,7 @@ namespace Tests
                 traits = new JsonObject { ["baz"] = "qux" }
             };
             _configuration = new Configuration(
-                writeKey: "!23",
+                writeKey: "123",
                 persistentDataPath: "tests",
                 autoAddSegmentDestination: false,
                 userSynchronizeDispatcher: true

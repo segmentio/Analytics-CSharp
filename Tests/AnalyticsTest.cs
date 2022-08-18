@@ -22,7 +22,7 @@ namespace Tests
                 "{\"integrations\":{\"Segment.io\":{\"apiKey\":\"1vNgUqwJeCHmqgI9S1sOm9UHCyfYqbaQ\"}},\"plan\":{},\"edgeFunction\":{}}");
 
             var config = new Configuration(
-                writeKey: "!23",
+                writeKey: "123",
                 persistentDataPath: "tests",
                 autoAddSegmentDestination: false,
                 userSynchronizeDispatcher: true
