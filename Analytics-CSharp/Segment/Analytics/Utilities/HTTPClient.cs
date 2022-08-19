@@ -66,33 +66,31 @@ namespace Segment.Analytics.Utilities
         {
             var uploadURL = SegmentURL(_apiHost, "/b");
             var response =  await DoUpload(uploadURL, file);
+
             if (!response.IsSuccessStatusCode)
             {
                 Analytics.logger?.LogError("Error {Status} uploading to url", response.StatusCode);
+                var responseCode = (int)response.StatusCode;
                 response.Dispose();
-                return false;
+
+                switch (responseCode)
+                {
+                    case var n when (n >= 1 && n < 300):
+                        return false;
+                    case var n when (n >= 300 && n < 400):
+                        return false;
+                    case 429:
+                        return false;
+                    case var n when (n >= 400 && n < 500):
+                        Analytics.logger?.LogError("Payloads were rejected by server. Marked for removal.");
+                        return true;
+                    default:
+                        return false;
+                }
             }
 
-            var responseCode = (int)response.StatusCode;
             response.Dispose();
-            
-            switch (responseCode)
-            {
-                case var n when (n >= 1 && n < 300):
-                    return true;
-                case var n when (n >= 300 && n < 400):
-                    // TODO: log error  !!!!!!!!  Wouldn't a non-success status have exited the function above?
-                    return false;
-                case 429:
-                    // TODO: log error
-                    return false;
-                case var n when (n >= 400 && n < 500):
-                    // TODO: log error
-                    return false;
-                default:
-                    // TODO: log error
-                    return false;
-            }
+            return true;
         }
 
         public async Task<HttpResponseMessage> DoGet(string url)

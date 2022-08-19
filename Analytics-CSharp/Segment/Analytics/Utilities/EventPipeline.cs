@@ -130,7 +130,7 @@ namespace Segment.Analytics.Utilities
                     var shouldCleanup = true;
                     try
                     {
-                        await _httpClient.Upload(url);
+                        shouldCleanup = await _httpClient.Upload(url);
                     }
                     catch (Exception e)
                     {

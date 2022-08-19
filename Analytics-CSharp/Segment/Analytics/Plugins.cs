@@ -115,9 +115,7 @@ namespace Segment.Analytics
             catch (Exception e)
             {
                 Analytics.logger?.LogError(e, "Error applying event in timeline.");
-                throw e;
             }
-            
         }
 
         internal override void Update(Settings settings, UpdateType type)
