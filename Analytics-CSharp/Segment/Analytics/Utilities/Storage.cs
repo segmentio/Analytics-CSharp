@@ -22,17 +22,17 @@ namespace Segment.Analytics.Utilities
 
         public const long MaxBatchSize = 475_000;
 
-        public Storage(Store store, string writeKey, string rootDir)
+        public Storage(Analytics analytics, Store store, string writeKey, string rootDir)
         {
             _store = store;
             _writeKey = writeKey;
-            _userPrefs = new UserPrefs(rootDir + Path.DirectorySeparatorChar + 
+            _userPrefs = new UserPrefs(analytics, rootDir + Path.DirectorySeparatorChar + 
                                        "segment.prefs" + Path.DirectorySeparatorChar + writeKey);
             _storageDirectory = rootDir + Path.DirectorySeparatorChar +
                                     "segment.data" + Path.DirectorySeparatorChar +
                                     writeKey + Path.DirectorySeparatorChar +
                                     "events";
-            _eventsFile = new EventsFileManager(_storageDirectory, writeKey, _userPrefs);
+            _eventsFile = new EventsFileManager(analytics, _storageDirectory, writeKey, _userPrefs);
         }
 
         public async Task SubscribeToStore()

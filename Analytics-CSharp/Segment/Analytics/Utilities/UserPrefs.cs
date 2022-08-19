@@ -11,6 +11,8 @@ namespace Segment.Analytics.Utilities
 {
     public class UserPrefs
     {
+        internal Analytics _analytics;
+
         internal Dictionary<string, object> cache;
 
         internal readonly object mutex;
@@ -33,8 +35,9 @@ namespace Segment.Analytics.Utilities
 
         private readonly Dispatcher _dispatcher;
 
-        public UserPrefs(string file)
+        public UserPrefs(Analytics analytics, string file)
         {
+            _analytics = analytics;
             cache = new Dictionary<string, object>();
             mutex = new object();
             diskWriteMutex = new object();
@@ -181,7 +184,7 @@ namespace Segment.Analytics.Utilities
                     }
                     catch (Exception e)
                     {
-                        Analytics.logger?.LogError(e, "Error encountered renaming file.");
+                        _analytics.logger?.LogError(e, "Error encountered renaming file.");
                         return;
                     }
                 }
@@ -206,7 +209,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                Analytics.logger?.LogError(e, "Error encountered updating file.");
+                _analytics.logger?.LogError(e, "Error encountered updating file.");
             }
 
             // exception happens during update, remove partial updated file

@@ -120,7 +120,7 @@ namespace Segment.Analytics
                 }
                 else
                 {
-                    Analytics.logger?.LogError("failed to fetch current userinfo state");
+                    logger?.LogError("failed to fetch current userinfo state");
                 }
             });
         }
