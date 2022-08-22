@@ -13,17 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - dotnet-version: '3.1.x'
-            tfm: 'netcoreapp3.1'
-          - dotnet-version: '5.0.x'
-            tfm: 'net5.0'
-          - dotnet-version: '6.0.x'
-            tfm: 'net6.0'
+        dotnet-version: [ '3.0', '3.1.x', '5.0.x' ]
 
     steps:
       - uses: actions/checkout@v3
-      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+      - name: Setup dotnet ${{ matrix.dotnet-version }}
         uses: actions/setup-dotnet@v2
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
@@ -38,10 +32,10 @@ jobs:
             ${{ runner.os }}-nuget
 
       - name: Install dependencies
-        run: dotnet restore -p:TargetFramework=${{ matrix.tfm }}
+        run: dotnet restore
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build
 
       - name: Test
-        run: dotnet test --no-restore --verbosity normal -f=${{ matrix.tfm }}
+        run: dotnet test
