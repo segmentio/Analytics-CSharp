@@ -11,22 +11,16 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - dotnet-version: '3.1.x'
-            tfm: 'netcoreapp3.1'
-          - dotnet-version: '5.0.x'
-            tfm: 'net5.0'
-          - dotnet-version: '6.0.x'
-            tfm: 'net6.0'
 
     steps:
       - uses: actions/checkout@v3
-      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+      - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v2
         with:
-          dotnet-version: ${{ matrix.dotnet-version }}
+          dotnet-version: |
+            3.1.x
+            5.0.x
+            6.0.x
 
       - name: Restore cache
         uses: actions/cache@v3
@@ -36,14 +30,9 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget
-
-      - name: Install dependencies
-        run: |
-          dotnet restore Analytics-CSharp
-          dotnet restore Tests -p:TargetFramework=${{ matrix.tfm }}
         
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build
 
       - name: Test
-        run: dotnet test --no-restore --verbosity normal -f=${{ matrix.tfm }}
+        run: dotnet test
