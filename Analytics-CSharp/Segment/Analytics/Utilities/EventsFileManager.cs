@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Segment.Analytics.Utilities
 {
@@ -83,7 +84,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                // TODO: log exception
+                Analytics.logger?.LogError(e, "Failed to remove file path.");
                 return false;
             }
         }
@@ -161,7 +162,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                // TODO: log exception
+                Analytics.logger?.LogError(e, "Error editing preference file.");
                 return false;
             }
         }

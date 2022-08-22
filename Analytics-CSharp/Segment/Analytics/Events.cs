@@ -1,4 +1,5 @@
 using System.Runtime.Serialization;
+using Microsoft.Extensions.Logging;
 using Segment.Serialization;
 
 namespace Segment.Analytics
@@ -119,7 +120,7 @@ namespace Segment.Analytics
                 }
                 else
                 {
-                    // TODO: log failed to fetch current userinfo state
+                    Analytics.logger?.LogError("failed to fetch current userinfo state");
                 }
             });
         }
