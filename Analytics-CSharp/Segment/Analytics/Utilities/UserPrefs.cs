@@ -9,6 +9,11 @@ using Segment.Concurrent;
 
 namespace Segment.Analytics.Utilities
 {
+    /**
+     * This UserPrefs is a translation of the Android SharedPreference.
+     * Refer to <see cref="https://android.googlesource.com/platform/frameworks/base.git/+/master/core/java/android/app/SharedPreferencesImpl.java"/>
+     * for the original implementation.
+     */
     public class UserPrefs
     {
         internal Dictionary<string, object> cache;
@@ -31,7 +36,7 @@ namespace Segment.Analytics.Utilities
 
         private readonly Scope _scope;
 
-        private readonly Dispatcher _dispatcher;
+        private readonly IDispatcher _dispatcher;
 
         public UserPrefs(string file)
         {
@@ -231,43 +236,79 @@ namespace Segment.Analytics.Utilities
 
         private void LoadFromDisk()
         {
+            Exception thrown = null;
+            
             lock (mutex)
             {
                 if (_loaded) return;
 
-                // if the directory does not exist, create it
-                if (!string.IsNullOrEmpty(_file.DirectoryName))
+                try
                 {
-                    Directory.CreateDirectory(_file.DirectoryName);   
+                    // if the directory does not exist, create it
+                    if (!string.IsNullOrEmpty(_file.DirectoryName))
+                    {
+                        Directory.CreateDirectory(_file.DirectoryName);
+                    }
+
+                    // an update failed previously, recover from backup
+                    if (_backupFile.Exists)
+                    {
+                        _file.Delete();
+                        RenameFile(_backupFile, _file);
+                    }
                 }
-                
-                // an update failed previously, recover from backup
-                if (_backupFile.Exists)
+                catch (Exception e)
                 {
-                    _file.Delete();
-                    RenameFile(_backupFile, _file);
+                    // TODO: log exception
+                    thrown = e;
                 }
             }
 
-            var fs = _file.Open(FileMode.OpenOrCreate);
+            FileStream fs = null;
             Dictionary<string, object> dict = null;
 
-            if (fs.Length == 0)
+            try
             {
-                dict = new Dictionary<string, object>();
+                fs = _file.Open(FileMode.OpenOrCreate);
+                if (fs.Length == 0)
+                {
+                    dict = new Dictionary<string, object>();
+                }
+                else
+                {
+                    var deserializer = new DataContractSerializer(cache.GetType());
+                    dict = (Dictionary<string, object>) deserializer.ReadObject(fs);
+                }
             }
-            else
+            catch (Exception e)
             {
-                var deserializer = new DataContractSerializer(cache.GetType());
-                dict = (Dictionary<string, object>)deserializer.ReadObject(fs);
+                // TODO: log exception
+                thrown = e;
             }
-
-            fs.Close();
+            finally
+            {
+                fs?.Close();
+            }
             
             lock (mutex)
             {
                 _loaded = true;
-                cache = dict;
+
+                // if there is no exception, use the loaded dictionary
+                if (thrown == null)
+                {
+                    cache = dict;    
+                }
+
+                // if the cache is still null, init it with empty dictionary
+                if (cache == null)
+                {
+                    cache = new Dictionary<string, object>();
+                }
+                
+                // It's important that we always signal waiters, even if we'll make
+                // them fail with an exception. The try-finally is pretty wide, but
+                // better safe than sorry.
                 Monitor.PulseAll(mutex);
             }
         }

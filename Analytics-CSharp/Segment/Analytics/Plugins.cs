@@ -195,9 +195,9 @@ namespace Segment.Analytics
             timeline.Remove(plugin);
         }
 
-        public T Find<T>(Type plugin) where T : Plugin => timeline.Find<T>(plugin);
+        public T Find<T>() where T : Plugin => timeline.Find<T>();
 
-        public IEnumerable<T> FindAll<T>(Type plugin) where T : Plugin => timeline.FindAll<T>(plugin);
+        public IEnumerable<T> FindAll<T>() where T : Plugin => timeline.FindAll<T>();
 
         public DestinationPlugin Find(string destinationKey) => timeline.Find(destinationKey);
     }

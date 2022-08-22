@@ -7,7 +7,7 @@ using Segment.Concurrent;
 
 namespace Segment.Analytics.Utilities
 {
-    internal class EventPipeline
+    internal partial class EventPipeline
     {
         private readonly Analytics _analytics;
 
@@ -52,7 +52,7 @@ namespace Segment.Analytics.Utilities
             _writeChannel = new Channel<string>();
             _uploadChannel = new Channel<string>();
             _eventCount = new AtomicInteger(0);
-            _httpClient = new HTTPClient(analytics, apiKey);
+            _httpClient = new HTTPClient(apiKey);
             _storage = analytics.storage;
             running = false;
         }

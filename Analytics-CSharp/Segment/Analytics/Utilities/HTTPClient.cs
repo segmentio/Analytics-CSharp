@@ -15,8 +15,6 @@ namespace Segment.Analytics.Utilities
 
         internal const string DefaultCdnHost = "cdn-settings.segment.com/v1";
 
-        private Analytics _analytics;
-
         private readonly HttpClient _httpClient;
 
         private string _apiKey;
@@ -27,10 +25,9 @@ namespace Segment.Analytics.Utilities
 
         private string _authHeader;
 
-        public HTTPClient(Analytics analytics, string apiKey = null, string apiHost = null, string cdnHost = null)
+        public HTTPClient(string apiKey, string apiHost = null, string cdnHost = null)
         {
-            _analytics = analytics;
-            _apiKey = apiKey ?? analytics.configuration.writeKey;
+            _apiKey = apiKey;
             _apiHost = apiHost ?? DefaultAPIHost;
             _cdnHost = cdnHost ?? DefaultCdnHost;
             _authHeader = AuthorizationHeader(apiKey);
@@ -42,7 +39,7 @@ namespace Segment.Analytics.Utilities
             return "https://" + host + path;
         }
         
-        public async Task<Settings?> Settings()
+        public virtual async Task<Settings?> Settings()
         {
             var settingsURL = SegmentURL(_cdnHost, "/projects/" + _apiKey + "/settings");
             var response = await DoGet(settingsURL);
@@ -62,7 +59,7 @@ namespace Segment.Analytics.Utilities
             return result;
         }
 
-        public async Task<bool> Upload(string file)
+        public virtual async Task<bool> Upload(string file)
         {
             var uploadURL = SegmentURL(_apiHost, "/b");
             var response =  await DoUpload(uploadURL, file);

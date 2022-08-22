@@ -94,7 +94,7 @@ namespace Segment.Analytics
             Process(groupEvent);
         }
         
-        public void Group<T>(string groupId, JsonObject traits = default) where T : ISerializable
+        public void Group<T>(string groupId, T traits = default) where T : ISerializable
         {
             if (traits == null)
             {
