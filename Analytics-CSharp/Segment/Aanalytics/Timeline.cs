@@ -67,24 +67,18 @@ namespace Segment.Analytics
         internal void Remove(Plugin plugin)
         {
             // Remove all plugins with this name in every category
-            foreach (var item in plugins)
+            foreach (var item in plugins.ToList())
             {
                 var mediator = item.Value;
-                
-                var toRemove = mediator.plugins.Where(storedPlugin => storedPlugin == plugin);
-                foreach (var removePlugin in toRemove)
-                {
-                    removePlugin.Shutdown();
-                    mediator.Remove(removePlugin);
-                }
+                mediator.Remove(plugin);
             }
         }
 
-        public T Find<T>(Type plugin) where T : Plugin
+        public T Find<T>() where T : Plugin
         {
             foreach (var item in plugins)
             {
-                var found = item.Value.Find<T>(plugin);
+                var found = item.Value.Find<T>();
                 if (found != null)
                 {
                     return found;
@@ -94,13 +88,13 @@ namespace Segment.Analytics
             return default;
         }
         
-        public IEnumerable<T> FindAll<T>(Type plugin) where T : Plugin
+        public IEnumerable<T> FindAll<T>() where T : Plugin
         {
             var result = new List<T>();
             
             foreach (var item in plugins)
             {
-                var found = item.Value.FindAll<T>(plugin);
+                var found = item.Value.FindAll<T>();
                 result.AddRange(found);
             }
 
@@ -157,14 +151,14 @@ namespace Segment.Analytics
             return result;
         }
 
-        public T Find<T>(Type pluginType) where T : Plugin
+        public T Find<T>() where T : Plugin
         {
-            return (T) plugins.FirstOrDefault(pluginType.IsInstanceOfType);
+            return (T) plugins.FirstOrDefault(typeof(T).IsInstanceOfType);
         }
 
-        public IEnumerable<T> FindAll<T>(Type pluginType) where T : Plugin
+        public IEnumerable<T> FindAll<T>() where T : Plugin
         {
-            return plugins.Where(pluginType.IsInstanceOfType).Cast<T>();
+            return plugins.Where(typeof(T).IsInstanceOfType).Cast<T>();
         }
     }
 }

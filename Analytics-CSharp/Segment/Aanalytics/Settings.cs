@@ -20,9 +20,9 @@ namespace Segment.Analytics
             timeline.Apply(plugin => plugin.Update(settings, type));
         }
 
-        private async Task CheckSettings()
+        private async Task CheckSettings(HTTPClient httpClient = null)
         {
-            var httpClient = new HTTPClient(this, cdnHost: configuration.cdnHost);
+            httpClient = httpClient ?? new HTTPClient(configuration.writeKey, cdnHost: configuration.cdnHost);
             var systemState = await store.CurrentState<System>();
             var hasSettings = systemState.settings.integrations != null && systemState.settings.plan != null;
             var updateType = hasSettings ? UpdateType.Refresh : UpdateType.Initial;

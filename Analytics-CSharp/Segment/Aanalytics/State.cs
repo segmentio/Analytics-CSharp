@@ -7,7 +7,7 @@ namespace Segment.Analytics
 {
     internal struct System: IState
     {
-        Configuration configuration;
+        internal Configuration configuration;
         internal Settings settings;
         internal bool running;
 
@@ -79,7 +79,12 @@ namespace Segment.Analytics
         internal struct AddDestinationToSettingsAction : IAction
         {
             private string key;
-            
+
+            public AddDestinationToSettingsAction(string key)
+            {
+                this.key = key;
+            }
+
             public IState Reduce(IState state)
             {
                 IState result = null;
@@ -176,6 +181,11 @@ namespace Segment.Analytics
         {
             private JsonObject traits;
 
+            public SetTraitsAction(JsonObject traits)
+            {
+                this.traits = traits;
+            }
+
             public IState Reduce(IState state)
             {
                 IState result = null;
@@ -214,6 +224,11 @@ namespace Segment.Analytics
         internal struct SetAnonymousIdAction : IAction
         {
             private string anonymousId;
+
+            public SetAnonymousIdAction(string anonymousId)
+            {
+                this.anonymousId = anonymousId;
+            }
 
             public IState Reduce(IState state)
             {

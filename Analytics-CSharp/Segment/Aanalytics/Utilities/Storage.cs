@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading.Tasks;
+using Segment.Concurrent;
 using Segment.Serialization;
 using Segment.Sovran;
 
@@ -18,11 +19,13 @@ namespace Segment.Analytics.Utilities
 
         private readonly EventsFileManager _eventsFile;
 
+        private readonly IDispatcher _ioDispatcher;
+
         public const long MaxPayloadSize = 32_000;
 
         public const long MaxBatchSize = 475_000;
 
-        public Storage(Store store, string writeKey, string rootDir)
+        public Storage(Store store, string writeKey, string rootDir, IDispatcher ioDispatcher = default)
         {
             _store = store;
             _writeKey = writeKey;
@@ -33,12 +36,13 @@ namespace Segment.Analytics.Utilities
                                     writeKey + Path.DirectorySeparatorChar +
                                     "events";
             _eventsFile = new EventsFileManager(_storageDirectory, writeKey, _userPrefs);
+            _ioDispatcher = ioDispatcher;
         }
 
         public async Task SubscribeToStore()
         {
-            await _store.Subscribe<UserInfo>(this, UserInfoUpdate, true);
-            await _store.Subscribe<System>(this, SystemUpdate, true);
+            await _store.Subscribe<UserInfo>(this, UserInfoUpdate, true, _ioDispatcher);
+            await _store.Subscribe<System>(this, SystemUpdate, true, _ioDispatcher);
         }
         
         /// <summary>
@@ -52,7 +56,7 @@ namespace Segment.Analytics.Utilities
         /// <param name="key">the type of value being written</param>
         /// <param name="value">the value being written</param>
         /// <exception cref="Exception">exception that captures the failure of writing an event to disk</exception>
-        public async Task Write(Constants key, string value)
+        public virtual async Task Write(Constants key, string value)
         {
             switch (key)
             {
@@ -89,12 +93,12 @@ namespace Segment.Analytics.Utilities
             editor.Apply();
         }
         
-        public async Task Rollover()
+        public virtual async Task Rollover()
         {
             await _eventsFile.Rollover();
         }
         
-        public string Read(Constants key)
+        public virtual string Read(Constants key)
         {
             switch (key)
             {
@@ -119,7 +123,7 @@ namespace Segment.Analytics.Utilities
             }
         }
 
-        public bool RemoveFile(string filePath)
+        public virtual bool RemoveFile(string filePath)
         {
             return _eventsFile.Remove(filePath);
         }

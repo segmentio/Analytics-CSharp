@@ -19,25 +19,34 @@ namespace Segment.Analytics
         internal Storage storage { get;}
 
         internal Scope analyticsScope { get;}
-        internal Dispatcher fileIODispatcher { get;}
-        internal Dispatcher networkIODispatcher { get;}
-        internal Dispatcher analyticsDispatcher { get;}
+        internal IDispatcher fileIODispatcher { get;}
+        internal IDispatcher networkIODispatcher { get;}
+        internal IDispatcher analyticsDispatcher { get;}
 
 
         public Analytics(Configuration configuration)
         {
             this.configuration = configuration;
 
-            store = new Store();
-            storage = new Storage(store, configuration.writeKey, configuration.persistentDataPath);
+            analyticsScope = new Scope();
+            if (configuration.userSynchronizeDispatcher)
+            {
+                IDispatcher dispatcher = new SynchronizeDispatcher();
+                fileIODispatcher = dispatcher;
+                networkIODispatcher = dispatcher;
+                analyticsDispatcher = dispatcher;
+            }
+            else
+            {
+                fileIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(2));
+                networkIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(1));
+                analyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
+            }
+            
+            store = new Store(configuration.userSynchronizeDispatcher);
+            storage = new Storage(store, configuration.writeKey, configuration.persistentDataPath, fileIODispatcher);
             timeline = new Timeline();
             
-            // Start with default states
-            analyticsScope = new Scope();
-            fileIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(2));
-            networkIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(1));
-            analyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
-
             // Start everything
             Startup();
         }
@@ -50,6 +59,8 @@ namespace Segment.Analytics
          */
         public void Process(RawEvent incomingEvent)
         {
+            incomingEvent.ApplyBaseData();
+            
             analyticsScope.Launch(analyticsDispatcher, async () =>
             {
                 await incomingEvent.ApplyRawEventData(store);
@@ -129,15 +140,7 @@ namespace Segment.Analytics
 
         }
 
-        public string Version()
-        {
-            return Analytics._Version();
-        }
-
-        public static string _Version()
-        {
-            return Segment.Analytics.Version.__segment_version;
-        }
+        public string version => Version.SegmentVersion;
 
         #endregion
 
@@ -170,7 +173,7 @@ namespace Segment.Analytics
 
         #region Startup
 
-        private void Startup()
+        private void Startup(HTTPClient httpClient = null)
         {
             Add(new StartupQueue());
             Add(new ContextPlugin());
@@ -187,7 +190,7 @@ namespace Segment.Analytics
                     Add(new SegmentDestination());
                 }
 
-                await CheckSettings();
+                await CheckSettings(httpClient);
                 // TODO: Add lifecycle events to call CheckSettings when app is brought to foreground (not launched)
             });
         }
