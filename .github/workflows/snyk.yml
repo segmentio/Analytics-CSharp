@@ -17,4 +17,4 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --file=.sln
+          args: --file=Analytics-CSharp.sln
