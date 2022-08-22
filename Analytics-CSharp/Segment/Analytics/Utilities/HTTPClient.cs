@@ -50,7 +50,7 @@ namespace Segment.Analytics.Utilities
             
             if (!response.IsSuccessStatusCode)
             {
-                _analytics.logger?.LogError("Error {Status} getting from settings url", response.StatusCode);
+                Analytics.logger?.LogError("Error {Status} getting from settings url", response.StatusCode);
             }
             else
             {
@@ -69,7 +69,7 @@ namespace Segment.Analytics.Utilities
 
             if (!response.IsSuccessStatusCode)
             {
-                _analytics.logger?.LogError("Error {Status} uploading to url", response.StatusCode);
+                Analytics.logger?.LogError("Error {Status} uploading to url", response.StatusCode);
                 var responseCode = (int)response.StatusCode;
                 response.Dispose();
 
@@ -82,7 +82,7 @@ namespace Segment.Analytics.Utilities
                     case 429:
                         return false;
                     case var n when (n >= 400 && n < 500):
-                        _analytics.logger?.LogError("Payloads were rejected by server. Marked for removal.");
+                        Analytics.logger?.LogError("Payloads were rejected by server. Marked for removal.");
                         return true;
                     default:
                         return false;

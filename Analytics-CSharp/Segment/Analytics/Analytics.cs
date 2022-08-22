@@ -25,15 +25,17 @@ namespace Segment.Analytics
         internal Dispatcher networkIODispatcher { get;}
         internal Dispatcher analyticsDispatcher { get;}
 
-        internal Microsoft.Extensions.Logging.ILogger logger = null;
+        internal static Microsoft.Extensions.Logging.ILogger logger = null;
 
-        public Analytics(Configuration configuration)
+
+        public Analytics(Configuration configuration, Microsoft.Extensions.Logging.ILogger logger)
         {
             this.configuration = configuration;
-            logger = configuration.logger;
+
+            Analytics.logger = logger;
 
             store = new Store();
-            storage = new Storage(this, store, configuration.writeKey, configuration.persistentDataPath);
+            storage = new Storage(store, configuration.writeKey, configuration.persistentDataPath);
             timeline = new Timeline();
             
             // Start with default states

@@ -11,8 +11,6 @@ namespace Segment.Analytics.Utilities
 {
     internal class EventsFileManager
     {
-        private Analytics _analytics;
-
         private readonly DirectoryInfo _directory;
 
         private readonly string _writeKey;
@@ -29,9 +27,8 @@ namespace Segment.Analytics.Utilities
 
         private const long MaxFileSize = 475_000;
 
-        public EventsFileManager(Analytics analytics, string directory, string writeKey, UserPrefs userPrefs)
+        public EventsFileManager(string directory, string writeKey, UserPrefs userPrefs)
         {
-            _analytics = analytics;
             _directory = Directory.CreateDirectory(directory);
             _writeKey = writeKey;
             _userPrefs = userPrefs;
@@ -87,7 +84,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                _analytics.logger?.LogError(e, "Failed to remove file path.");
+                Analytics.logger?.LogError(e, "Failed to remove file path.");
                 return false;
             }
         }
@@ -165,7 +162,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                _analytics.logger?.LogError(e, "Error editing preference file.");
+                Analytics.logger?.LogError(e, "Error editing preference file.");
                 return false;
             }
         }

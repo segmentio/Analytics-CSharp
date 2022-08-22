@@ -96,7 +96,7 @@ namespace Segment.Analytics.Utilities
                     }
                     catch (Exception exception)
                     {
-                        _analytics.logger?.LogError(exception, "Error writing events to storage.");
+                        Analytics.logger?.LogError(exception, "Error writing events to storage.");
                     }
                 }
 
@@ -134,7 +134,7 @@ namespace Segment.Analytics.Utilities
                     }
                     catch (Exception e)
                     {
-                        _analytics.logger?.LogError(e, "Error uploading to url");
+                        Analytics.logger?.LogError(e, "Error uploading to url");
                     }
 
                     if (shouldCleanup)

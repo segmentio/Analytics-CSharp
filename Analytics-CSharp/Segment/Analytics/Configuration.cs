@@ -19,8 +19,6 @@ namespace Segment.Analytics
         public string cdnHost { get; }
         
         public Settings defaultSettings { get; }
-
-        public Microsoft.Extensions.Logging.ILogger logger { get; }
         
         public Configuration(string writeKey,
             string persistentDataPath,
@@ -29,8 +27,7 @@ namespace Segment.Analytics
             Settings defaultSettings = new Settings(),
             bool autoAddSegmentDestination = true,
             string apiHost = null,
-            string cdnHost = null,
-            Microsoft.Extensions.Logging.ILogger logger = null)
+            string cdnHost = null)
         {
             this.writeKey = writeKey;
             this.persistentDataPath = persistentDataPath;
@@ -40,7 +37,6 @@ namespace Segment.Analytics
             this.autoAddSegmentDestination = autoAddSegmentDestination;
             this.apiHost = apiHost;
             this.cdnHost = cdnHost;
-            this.logger = logger;
         }
     }
 
