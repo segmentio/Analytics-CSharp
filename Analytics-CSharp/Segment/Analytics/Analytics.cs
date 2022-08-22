@@ -27,12 +27,11 @@ namespace Segment.Analytics
 
         internal static Microsoft.Extensions.Logging.ILogger logger = null;
 
-
-        public Analytics(Configuration configuration, Microsoft.Extensions.Logging.ILogger logger)
+        public Analytics(Configuration configuration)
         {
             this.configuration = configuration;
 
-            Analytics.logger = logger;
+            Analytics.logger = this.configuration.logger;
 
             store = new Store();
             storage = new Storage(store, configuration.writeKey, configuration.persistentDataPath);
