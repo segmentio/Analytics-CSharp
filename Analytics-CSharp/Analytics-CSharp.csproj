@@ -21,17 +21,19 @@
     <None Remove="Segment\Aanalytics\" />
     <None Remove="Segment\Aanalytics\Plugins\" />
     <None Remove="Segment\Aanalytics\Utilities\" />
+    <None Remove="Microsoft.Extensions.Logging" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Segment\" />
-    <Folder Include="Segment\Aanalytics\" />
-    <Folder Include="Segment\Aanalytics\Plugins\" />
-    <Folder Include="Segment\Aanalytics\Utilities\" />
+    <Folder Include="Segment\Analytics\" />
+    <Folder Include="Segment\Analytics\Plugins\" />
+    <Folder Include="Segment\Analytics\Utilities\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Coroutine.NET" Version="0.5.0" />
     <PackageReference Include="Serialization.NET" Version="0.1.0" />
     <PackageReference Include="Sovran.NET" Version="0.4.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
   </ItemGroup>
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">

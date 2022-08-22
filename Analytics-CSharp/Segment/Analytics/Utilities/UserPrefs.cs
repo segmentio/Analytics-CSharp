@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Segment.Concurrent;
 
 namespace Segment.Analytics.Utilities
@@ -69,7 +70,7 @@ namespace Segment.Analytics.Utilities
                 {
                     ret = (int)cache[key];
                 }
-                catch (Exception _)
+                catch
                 {
                     ret = defaultValue;
                 }
@@ -90,7 +91,7 @@ namespace Segment.Analytics.Utilities
                 {
                     ret = (float)cache[key];
                 }
-                catch (Exception _)
+                catch
                 {
                     ret = defaultValue;
                 }
@@ -111,7 +112,7 @@ namespace Segment.Analytics.Utilities
                 {
                     ret = (string)cache[key];
                 }
-                catch (Exception _)
+                catch
                 {
                     ret = defaultValue;
                 }
@@ -185,7 +186,7 @@ namespace Segment.Analytics.Utilities
                     }
                     catch (Exception e)
                     {
-                        // TODO: log exception
+                        Analytics.logger?.LogError(e, "Error encountered renaming file.");
                         return;
                     }
                 }
@@ -210,7 +211,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                // TODO log exception
+                Analytics.logger?.LogError(e, "Error encountered updating file.");
             }
 
             // exception happens during update, remove partial updated file

@@ -5,8 +5,10 @@ using Segment.Concurrent;
 using Segment.Serialization;
 using Segment.Analytics.Utilities;
 using Segment.Sovran;
+
 using JsonUtility = Segment.Serialization.JsonUtility;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Segment.Analytics
 {
@@ -23,11 +25,12 @@ namespace Segment.Analytics
         internal IDispatcher networkIODispatcher { get;}
         internal IDispatcher analyticsDispatcher { get;}
 
+        internal static Microsoft.Extensions.Logging.ILogger logger = null;
 
         public Analytics(Configuration configuration)
         {
             this.configuration = configuration;
-
+            Analytics.logger = this.configuration.logger;
             analyticsScope = new Scope();
             if (configuration.userSynchronizeDispatcher)
             {
@@ -180,7 +183,6 @@ namespace Segment.Analytics
 
             analyticsScope.Launch(analyticsDispatcher, async () =>
             {
-
                 await store.Provide(UserInfo.DefaultState(configuration, storage));
                 await store.Provide(System.DefaultState(configuration, storage));
                 await storage.SubscribeToStore();
