@@ -61,7 +61,7 @@ namespace Tests.Utilities
             });
             
             Assert.True(File.Exists(path));
-            Assert.True(actual.Contains(_payload));
+            Assert.Contains(_payload, actual);
             Assert.Null(exception);
         }
 
@@ -73,8 +73,8 @@ namespace Tests.Utilities
 
             var actual = _manager.Read();
             
-            Assert.Equal(1, actual.Count);
-            Assert.True(actual[0].EndsWith(dir + Path.DirectorySeparatorChar + writeKey + "-0"));
+            Assert.Single(actual);
+            Assert.EndsWith(dir + Path.DirectorySeparatorChar + writeKey + "-0", actual[0]);
         }
 
         [Fact]
@@ -119,7 +119,7 @@ namespace Tests.Utilities
                 }
             }
             
-            Assert.Equal(1, files.Length);
+            Assert.Single(files);
             Assert.True(hasCompletedFile);
             Assert.False(hasTempFile);
         }
@@ -135,7 +135,7 @@ namespace Tests.Utilities
             }
             
             var files = Directory.GetFiles(dir);
-            Assert.Equal(0, files.Length);
+            Assert.Empty(files);
         }
 
         [Fact]

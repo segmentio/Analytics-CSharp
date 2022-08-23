@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.Extensions.Logging;
 using Segment.Sovran;
 using Segment.Serialization;
 using Segment.Analytics.Utilities;
@@ -26,8 +27,9 @@ namespace Segment.Analytics
                 var cache = storage.Read(Storage.Constants.Settings) ?? "";
                 settings = JsonUtility.FromJson<Settings>(cache);
             }
-            catch (Exception _)
+            catch (Exception e)
             {
+                Analytics.logger?.LogError(e, "Failed to load settings from storage. Switch to default settings provided through configuration.");
                 settings = configuration.defaultSettings;
             }
 
@@ -134,8 +136,9 @@ namespace Segment.Analytics
             {
                 traits = JsonUtility.FromJson<JsonObject>(traitsStr);
             }
-            catch (Exception _)
+            catch (Exception e)
             {
+                Analytics.logger?.LogError(e, "Failed to load cached traits from storage, creating an empty traits");
                 traits = new JsonObject();
             }
             
