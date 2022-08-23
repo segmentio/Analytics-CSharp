@@ -45,8 +45,14 @@ namespace Tests.Utilities
                 .Setup(httpclient => httpclient.Upload(It.IsAny<string>()))
                 .ReturnsAsync(true);
 
-            _storage = new Mock<Storage>(new Store(true), "123", "tests", new SynchronizeDispatcher());
+            var store = new Store(true);
+            var dispatcher = new SynchronizeDispatcher();
+            _storage = new Mock<Storage>(store, "123", "tests", dispatcher);
             _analytics = new Analytics(config,
+                store: store,
+                analyticsDispatcher: dispatcher,
+                fileIODispatcher: dispatcher,
+                networkIODispatcher: dispatcher,
                 httpClient: _mockHttpClient.Object,
                 storage: _storage.Object);
             _eventPipeline = new EventPipeline(
