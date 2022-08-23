@@ -45,14 +45,8 @@ namespace Tests.Utilities
                 .Setup(httpclient => httpclient.Upload(It.IsAny<string>()))
                 .ReturnsAsync(true);
 
-            var store = new Store(true);
-            var dispatcher = new SynchronizeDispatcher();
-            _storage = new Mock<Storage>(store, "123", "tests", dispatcher);
+            _storage = new Mock<Storage>(new Store(true), "123", "tests", new SynchronizeDispatcher());
             _analytics = new Analytics(config,
-                store: store,
-                analyticsDispatcher: dispatcher,
-                fileIODispatcher: dispatcher,
-                networkIODispatcher: dispatcher,
                 httpClient: _mockHttpClient.Object,
                 storage: _storage.Object);
             _eventPipeline = new EventPipeline(
@@ -81,11 +75,13 @@ namespace Tests.Utilities
         }
 
         [Fact]
-        public void TestPut()
+        public async Task TestPut()
         {
             _eventPipeline.Start();
             _eventPipeline.Put("test");
 
+            await Task.Delay(1000);
+            
             _storage.Verify(o => o.Write(Storage.Constants.Events, It.IsAny<string>()), Times.Exactly(1));
         }
         
