@@ -259,7 +259,7 @@ namespace Segment.Analytics.Utilities
                 }
                 catch (Exception e)
                 {
-                    // TODO: log exception
+                    Analytics.logger?.LogError(e, "Error on restoring user prefs.");
                     thrown = e;
                 }
             }
@@ -282,7 +282,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                // TODO: log exception
+                Analytics.logger?.LogError(e, "Error on deserializing cached user prefs.");
                 thrown = e;
             }
             finally

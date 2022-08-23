@@ -159,7 +159,7 @@ namespace Tests
         [Fact]
         public void TestVersion()
         {
-            Assert.Equal(_analytics.version, Version.SegmentVersion);
+            Assert.Equal(Version.SegmentVersion, _analytics.version);
         }
 
         [Fact]
