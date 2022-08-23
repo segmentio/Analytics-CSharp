@@ -28,7 +28,7 @@ namespace Tests.Utilities
             {
                 ["foo"] = "bar"
             }));
-            parent = "tmp";
+            parent = Guid.NewGuid().ToString();
             dir = parent + Path.DirectorySeparatorChar + "tmp";
             writeKey = "123";
             _manager = new EventsFileManager(dir, writeKey, 
@@ -37,7 +37,14 @@ namespace Tests.Utilities
 
         public void Dispose()
         {
-            Directory.Delete(parent, true);
+            try
+            {
+                Directory.Delete(parent, true);
+            }
+            catch
+            {
+                // ignored
+            }
         }
 
         [Fact]
