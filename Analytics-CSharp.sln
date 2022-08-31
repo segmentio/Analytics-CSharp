@@ -35,10 +35,10 @@ Global
 		{86FFFF37-9FB0-4632-8D44-E09202E158AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{86FFFF37-9FB0-4632-8D44-E09202E158AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{86FFFF37-9FB0-4632-8D44-E09202E158AF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{39FCFC71-411C-419E-97BB-7C4281764B10}.Debug|Any CPU.ActiveCfg = Debug|iPhoneSimulator
-		{39FCFC71-411C-419E-97BB-7C4281764B10}.Debug|Any CPU.Build.0 = Debug|iPhoneSimulator
 		{39FCFC71-411C-419E-97BB-7C4281764B10}.Release|Any CPU.ActiveCfg = Release|iPhoneSimulator
 		{39FCFC71-411C-419E-97BB-7C4281764B10}.Release|Any CPU.Build.0 = Release|iPhoneSimulator
+		{39FCFC71-411C-419E-97BB-7C4281764B10}.Debug|Any CPU.ActiveCfg = Debug|iPhoneSimulator
+		{39FCFC71-411C-419E-97BB-7C4281764B10}.Debug|Any CPU.Build.0 = Debug|iPhoneSimulator
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
