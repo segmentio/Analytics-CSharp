@@ -1,5 +1,4 @@
 using System.Runtime.Serialization;
-using Microsoft.Extensions.Logging;
 using Segment.Serialization;
 
 namespace Segment.Analytics

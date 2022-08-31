@@ -1,5 +1,4 @@
-﻿using System;
-
+﻿
 namespace Segment.Analytics
 {
     public class Configuration
@@ -20,8 +19,6 @@ namespace Segment.Analytics
         
         public Settings defaultSettings { get; }
 
-        public Microsoft.Extensions.Logging.ILogger logger { get; }
-
         public bool userSynchronizeDispatcher { get; }
         
         public Configuration(string writeKey,
@@ -32,8 +29,7 @@ namespace Segment.Analytics
             bool autoAddSegmentDestination = true,
             bool userSynchronizeDispatcher = false,
             string apiHost = null,
-            string cdnHost = null,
-            Microsoft.Extensions.Logging.ILogger logger = null)
+            string cdnHost = null)
         {
             this.writeKey = writeKey;
             this.persistentDataPath = persistentDataPath;
@@ -44,7 +40,6 @@ namespace Segment.Analytics
             this.userSynchronizeDispatcher = userSynchronizeDispatcher;
             this.apiHost = apiHost;
             this.cdnHost = cdnHost;
-            this.logger = logger;
         }
     }
 

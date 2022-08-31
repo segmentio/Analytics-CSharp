@@ -4,7 +4,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Segment.Serialization;
 
 namespace Segment.Analytics.Utilities
@@ -47,7 +46,7 @@ namespace Segment.Analytics.Utilities
             
             if (!response.IsSuccessStatusCode)
             {
-                Analytics.logger?.LogError("Error {Status} getting from settings url", response.StatusCode);
+                Analytics.logger?.LogError("Error " + response.StatusCode + " getting from settings url");
             }
             else
             {
@@ -66,7 +65,7 @@ namespace Segment.Analytics.Utilities
 
             if (!response.IsSuccessStatusCode)
             {
-                Analytics.logger?.LogError("Error {Status} uploading to url", response.StatusCode);
+                Analytics.logger?.LogError("Error " + response.StatusCode + " uploading to url");
                 var responseCode = (int)response.StatusCode;
                 response.Dispose();
 
