@@ -41,10 +41,12 @@ namespace Segment.Analytics
             {
                 await store.Dispatch<UserInfo.SetUserIdAndTraitsAction, UserInfo>(
                 new UserInfo.SetUserIdAndTraitsAction(userId, traits));
+                
+                // need to process in scope to prevent
+                // user id being overwritten when apply event data
+                var identifyEvent = new IdentifyEvent(userId, traits);
+                Process(identifyEvent);
             });
-
-            var identifyEvent = new IdentifyEvent(userId, traits);
-            Process(identifyEvent);
         }
         
         

@@ -10,9 +10,9 @@ namespace Segment.Analytics.Plugins
         private readonly AtomicBool _running = new AtomicBool(false);
         private readonly Queue<RawEvent> _queuedEvents = new Queue<RawEvent>();
 
-        internal override PluginType type => PluginType.Before;
+        public override PluginType type => PluginType.Before;
         
-        internal override void Configure(Analytics analytics)
+        public override void Configure(Analytics analytics)
         {
             base.Configure(analytics);
             analytics.analyticsScope.Launch(analytics.analyticsDispatcher, async () =>
@@ -21,7 +21,7 @@ namespace Segment.Analytics.Plugins
             });
         }
 
-        internal override RawEvent Execute(RawEvent incomingEvent)
+        public override RawEvent Execute(RawEvent incomingEvent)
         {
             if (!_running.Get() && incomingEvent != null)
             {

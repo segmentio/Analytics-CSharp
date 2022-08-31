@@ -1,0 +1,162 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:XamarinSample"
+             x:Class="XamarinSample.MainPage"
+             BackgroundColor="#1C0732">
+
+    <StackLayout>
+        <!-- Place new controls here -->
+        <Label Text="Analytics for Xamarin" 
+               HorizontalOptions="Center"
+               VerticalOptions="Start"
+               TextColor="White"
+               FontSize="36"
+               Margin="0, 40, 0, 20"/>
+        
+        <StackLayout Orientation="Horizontal"
+                     HorizontalOptions="Center">
+            <Button 
+                    x:Name="TrackButton"
+                    Text="TRACK"
+                    WidthRequest="180"
+                    FontSize="20"
+                    BackgroundColor="#52BD94"
+                    TextColor="White"
+                    Padding="5"
+                    Margin="0, 5"
+                    TextTransform="Uppercase"/>
+            <Button 
+                    x:Name="IdentifyButton"
+                    Text="IDENTIFY"
+                    WidthRequest="180"
+                    FontSize="20"
+                    BackgroundColor="#52BD94"
+                    TextColor="White"
+                    Padding="5"
+                    Margin="0, 5"
+                    TextTransform="Uppercase"/>
+        </StackLayout>
+        
+        <StackLayout Orientation="Horizontal"
+                     HorizontalOptions="Center">
+            <Button 
+                    x:Name="ScreenButton"
+                    Text="SCREEN"
+                    WidthRequest="180"
+                    FontSize="20"
+                    BackgroundColor="#52BD94"
+                    TextColor="White"
+                    Padding="5"
+                    Margin="0, 5"
+                    TextTransform="Uppercase"/>
+            <Button 
+                    x:Name="GroupButton"
+                    Text="GROUP"
+                    WidthRequest="180"
+                    FontSize="20"
+                    BackgroundColor="#52BD94"
+                    TextColor="White"
+                    Padding="5"
+                    Margin="0, 5"
+                    TextTransform="Uppercase"/>
+        </StackLayout>
+        <StackLayout Orientation="Horizontal"
+                     HorizontalOptions="Center">
+                <Button 
+                        x:Name="FlushButton"
+                        Text="FLUSH"
+                        WidthRequest="370"
+                        FontSize="20"
+                        BackgroundColor="#52BD94"
+                        TextColor="White"
+                        Padding="5"
+                        Margin="0, 5"
+                        TextTransform="Uppercase"/>
+        </StackLayout>
+        
+        <Label x:Name="EventLabel"
+               Text="Track Event" 
+               HorizontalOptions="Center"
+               VerticalOptions="Start"
+               TextColor="#52BD94"
+               FontSize="20"
+               Margin="0,10"
+               FontAttributes="Bold"/>
+        
+        <Editor 
+                x:Name="EventNameEditor"
+                Placeholder="Event Name"
+                BackgroundColor="Transparent"
+                PlaceholderColor="#52BD94"
+                TextColor="#52BD94"
+                FontSize="18"
+                Margin="10, 5"/>
+        
+        <Grid 
+              HorizontalOptions="CenterAndExpand"
+              VerticalOptions="Start"
+              Margin="0, 5">
+                <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="5*"></ColumnDefinition>
+                        <ColumnDefinition Width="5*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Editor 
+                        x:Name="PropertyEditor"
+                        Placeholder="Property"
+                        BackgroundColor="Transparent"
+                        PlaceholderColor="#52BD94"
+                        TextColor="#52BD94"
+                        FontSize="18"
+                        Margin="10, 5, 10, 5"
+                        WidthRequest="180"
+                        Grid.Column="0"/>
+        
+                <Editor 
+                        x:Name="ValueEditor"
+                        Placeholder="Value"
+                        BackgroundColor="Transparent"
+                        PlaceholderColor="#52BD94"
+                        TextColor="#52BD94"
+                        FontSize="18"
+                        Margin="0, 5"
+                        WidthRequest="180"
+                        Grid.Column="1"/>
+        </Grid>
+        
+        <StackLayout Orientation="Horizontal"
+                     HorizontalOptions="Center">
+                <Button 
+                        x:Name="SendEventButton"
+                        Text="send event"
+                        WidthRequest="370"
+                        FontSize="20"
+                        BackgroundColor="#52BD94"
+                        TextColor="White"
+                        Padding="5"
+                        Margin="0, 5"
+                        TextTransform="Uppercase"/>
+        </StackLayout>
+        
+        <Frame CornerRadius="5"  
+               BorderColor="#52BD94" 
+               Padding="0" 
+               BackgroundColor="Transparent"
+               VerticalOptions="StartAndExpand"
+               HeightRequest="200"
+               Margin="10, 10, 10, 30">
+                <ScrollView
+                        VerticalOptions="StartAndExpand">
+                        <Label
+                                x:Name="ConsoleLabel"
+                                TextColor="#52BD94"
+                                FontSize="16"
+                                Margin="5"
+                                BackgroundColor="Transparent"
+                                LineBreakMode="CharacterWrap"
+                                HeightRequest="1000"/>
+                </ScrollView>
+        </Frame>
+    </StackLayout>
+
+</ContentPage>
