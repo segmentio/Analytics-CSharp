@@ -1,5 +1,4 @@
 ﻿using System;
-using Microsoft.Extensions.Logging;
 using Segment.Sovran;
 using Segment.Serialization;
 using Segment.Analytics.Utilities;

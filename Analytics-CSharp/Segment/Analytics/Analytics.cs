@@ -8,7 +8,6 @@ using Segment.Sovran;
 
 using JsonUtility = Segment.Serialization.JsonUtility;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace Segment.Analytics
 {
@@ -25,12 +24,11 @@ namespace Segment.Analytics
         internal IDispatcher networkIODispatcher { get;}
         internal IDispatcher analyticsDispatcher { get;}
 
-        internal static Microsoft.Extensions.Logging.ILogger logger = null;
+        internal static ILogger logger = null;
 
         public Analytics(Configuration configuration)
         {
             this.configuration = configuration;
-            Analytics.logger = this.configuration.logger;
             analyticsScope = new Scope();
             if (configuration.userSynchronizeDispatcher)
             {
@@ -199,5 +197,11 @@ namespace Segment.Analytics
         
         #endregion
         
+    }
+
+    internal interface ILogger
+    {
+        void LogError(Exception exception, string message);
+        void LogError(string message);
     }
 }
