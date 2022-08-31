@@ -25,17 +25,17 @@ namespace Segment.Analytics
     // moves to C# v9. 
     public abstract class Plugin
     {
-        internal abstract PluginType type { get; }
-        internal virtual Analytics analytics { get; set; }
+        public abstract PluginType type { get; }
+        public virtual Analytics analytics { get; set; }
 
-        internal virtual void Configure(Analytics analytics)
+        public virtual void Configure(Analytics analytics)
         {
             this.analytics = analytics;
         }
         
-        internal virtual void Update(Settings settings, UpdateType type) { }
+        public virtual void Update(Settings settings, UpdateType type) { }
         
-        internal virtual RawEvent Execute(RawEvent incomingEvent)
+        public virtual RawEvent Execute(RawEvent incomingEvent)
         {
             return incomingEvent;
         }
@@ -59,7 +59,7 @@ namespace Segment.Analytics
 
         public virtual void Flush() {}
 
-        internal override RawEvent Execute(RawEvent incomingEvent)
+        public override RawEvent Execute(RawEvent incomingEvent)
         {
             switch (incomingEvent)
             {
@@ -81,7 +81,7 @@ namespace Segment.Analytics
 
     public abstract class DestinationPlugin : EventPlugin
     {
-        internal override PluginType type => PluginType.Destination;
+        public override PluginType type => PluginType.Destination;
         public abstract string key { get; }
 
         private bool _enabled = false;
@@ -100,7 +100,7 @@ namespace Segment.Analytics
             _timeline.Remove(plugin);
         }
 
-        internal override void Configure(Analytics analytics)
+        public override void Configure(Analytics analytics)
         {
             this.analytics = analytics;
             Apply(plugin => plugin.Configure(analytics));
@@ -118,7 +118,7 @@ namespace Segment.Analytics
             }
         }
 
-        internal override void Update(Settings settings, UpdateType type)
+        public override void Update(Settings settings, UpdateType type)
         {
             _enabled = settings.integrations?.ContainsKey(key) ?? false;
             _timeline.Apply(plugin =>
@@ -165,7 +165,7 @@ namespace Segment.Analytics
             return afterResult;
         }
 
-        internal override RawEvent Execute(RawEvent incomingEvent) => Process(incomingEvent);
+        public override RawEvent Execute(RawEvent incomingEvent) => Process(incomingEvent);
 
         internal bool IsDestinationEnabled(RawEvent @event)
         {

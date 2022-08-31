@@ -42,7 +42,7 @@ namespace Segment.Analytics.Plugins
             return screenEvent;
         }
 
-        internal override void Configure(Analytics analytics)
+        public override void Configure(Analytics analytics)
         {
             base.Configure(analytics);
             
@@ -59,7 +59,7 @@ namespace Segment.Analytics.Plugins
             _pipeline.Start();
         }
 
-        internal override void Update(Settings settings, UpdateType type)
+        public override void Update(Settings settings, UpdateType type)
         {
             base.Update(settings, type);
 

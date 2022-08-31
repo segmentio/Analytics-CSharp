@@ -4,7 +4,7 @@ namespace Segment.Analytics.Plugins
 {
     public class ContextPlugin : Plugin
     {
-        internal override PluginType type => PluginType.Before;
+        public override PluginType type => PluginType.Before;
 
         private JsonObject _library;
 
@@ -14,12 +14,12 @@ namespace Segment.Analytics.Plugins
 
         private const string LibraryVersionKey = "version";
 
-        internal override void Configure(Analytics analytics)
+        public override void Configure(Analytics analytics)
         {
             base.Configure(analytics);
             _library = new JsonObject
             {
-                [LibraryNameKey] = "analytics-csharp",
+                [LibraryNameKey] = "Analytics-CSharp",
                 [LibraryVersionKey] = Version.SegmentVersion
             };
         }
@@ -34,7 +34,7 @@ namespace Segment.Analytics.Plugins
             @event.context = context;
         }
 
-        internal override RawEvent Execute(RawEvent incomingEvent)
+        public override RawEvent Execute(RawEvent incomingEvent)
         {
             ApplyContextData(incomingEvent);
             return base.Execute(incomingEvent);
