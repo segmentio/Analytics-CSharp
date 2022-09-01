@@ -144,6 +144,25 @@ namespace Tests
         }
         
         [Fact]
+        public async Task TestIdentifyNoUserId()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            var actual = new List<IdentifyEvent>();
+            _plugin.Setup(o => o.Identify(Capture.In(actual)));
+
+            _analytics.Add(_plugin.Object);
+            _analytics.Identify(expected);
+            var actualUserId = await _analytics.UserIdAsync();
+            
+            Assert.NotEmpty(actual);
+            Assert.Equal(expected, actual[0].traits);
+            Assert.Null(actualUserId);
+        }
+        
+        [Fact]
         public async Task TestIdentifyT()
         {
             var expected = new FooBar();
@@ -174,6 +193,22 @@ namespace Tests
             Assert.NotEmpty(actual);
             Assert.True(actual[0].traits.count == 0);
             Assert.Equal(expectedUserId, actualUserId);
+        }
+        
+        [Fact]
+        public async Task TestIdentifyTNoUserId()
+        {
+            var expected = new FooBar();
+            var actual = new List<IdentifyEvent>();
+            _plugin.Setup(o => o.Identify(Capture.In(actual)));
+
+            _analytics.Add(_plugin.Object);
+            _analytics.Identify(expected);
+            var actualUserId = await _analytics.UserIdAsync();
+            
+            Assert.NotEmpty(actual);
+            Assert.Equal(expected.GetJsonObject(), actual[0].traits);
+            Assert.Null(actualUserId);
         }
 
         [Fact]

@@ -47,6 +47,23 @@ namespace Segment.Analytics
                 Process(identifyEvent);
             });
         }
+
+        public void Identify(JsonObject traits)
+        {
+            if (traits == null)
+            {
+                traits = new JsonObject();
+            }
+
+            analyticsScope.Launch(analyticsDispatcher, async () =>
+            {
+                await store.Dispatch<UserInfo.SetTraitsAction, UserInfo>(
+                    new UserInfo.SetTraitsAction(traits));
+
+                var identifyEvent = new IdentifyEvent(traits: traits);
+                Process(identifyEvent);
+            });
+        }
         
         
         public void Identify<T>(string userId, T traits = default) where T : ISerializable
@@ -59,6 +76,19 @@ namespace Segment.Analytics
             {
                 var json = JsonUtility.ToJson(traits);
                 Identify(userId, JsonUtility.FromJson<JsonObject>(json));
+            }
+        }
+
+        public void Identify<T>(T traits) where T : ISerializable
+        {
+            if (traits == null)
+            {
+                Identify(new JsonObject());
+            }
+            else
+            {
+                var json = JsonUtility.ToJson(traits);
+                Identify(JsonUtility.FromJson<JsonObject>(json));
             }
         }
 
