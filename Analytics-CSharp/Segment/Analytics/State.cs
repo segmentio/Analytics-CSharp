@@ -5,6 +5,14 @@ using Segment.Analytics.Utilities;
 
 namespace Segment.Analytics
 {
+    /// <summary>
+    /// Stores state related to the analytics system:
+    ///     <list type="bullet">
+    ///         <item><description>configuration used to initialize the client</description></item>
+    ///         <item><description>segment settings as a json map</description></item>
+    ///         <item><description>running state indicating the system has received settings</description></item>
+    ///     </list>
+    /// </summary>
     internal struct System: IState
     {
         internal Configuration configuration;
@@ -106,6 +114,14 @@ namespace Segment.Analytics
         }
     }
 
+    /// <summary>
+    /// Stores state related to the user:
+    ///     <list type="bullet">
+    ///         <item><description>anonymousId (string)</description></item>
+    ///         <item><description>userId (string)</description></item>
+    ///         <item><description>traits (<see cref="JsonObject"/>)</description></item>
+    ///     </list>
+    /// </summary>
     struct UserInfo : IState
     {
         internal string anonymousId;

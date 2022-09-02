@@ -4,6 +4,11 @@ using System.Linq;
 
 namespace Segment.Analytics
 {
+    /// <summary>
+    /// Platform abstraction for managing all plugins and their execution
+    /// Currently the execution follows
+    ///      Before -> Enrichment -> Destination -> After
+    /// </summary>
     public class Timeline
     {
         internal Dictionary<PluginType, Mediator> plugins;
@@ -20,7 +25,12 @@ namespace Segment.Analytics
             };
         }
         
-        internal RawEvent Process<TE>(TE incomingEvent) where TE : RawEvent
+        /// <summary>
+        /// initiate the event's lifecycle
+        /// </summary>
+        /// <param name="incomingEvent">event to be processed</param>
+        /// <returns>event after processing</returns>
+        internal RawEvent Process(RawEvent incomingEvent)
         {
             // Apply before and enrichment types first to start the timeline processing.
             var beforeResult = ApplyPlugins(PluginType.Before, incomingEvent);
@@ -37,6 +47,12 @@ namespace Segment.Analytics
             return afterResult;
         }
         
+        /// <summary>
+        /// Runs all registered plugins of a particular type on given payload
+        /// </summary>
+        /// <param name="type">type of <see cref="PluginType"/></param>
+        /// <param name="incomingEvent">event to be processed</param>
+        /// <returns>processed event</returns>
         internal RawEvent ApplyPlugins(PluginType type, RawEvent incomingEvent)
         {
             var returnEvent = incomingEvent;
@@ -50,6 +66,10 @@ namespace Segment.Analytics
 
         #region Plugin Support
 
+        /// <summary>
+        /// Applies a closure on all registered plugins
+        /// </summary>
+        /// <param name="closure">closure that applies to plugin</param>
         internal void Apply(Action<Plugin> closure)
         {
             foreach (var plugin in plugins.Select(item => item.Value).SelectMany(mediator => mediator.plugins))
@@ -58,12 +78,20 @@ namespace Segment.Analytics
             }
         }
 
+        /// <summary>
+        /// Register a new plugin
+        /// </summary>
+        /// <param name="plugin">plugin to be registered</param>
         internal void Add(Plugin plugin)
         {
             var mediator = plugins[plugin.type];
             mediator?.Add(plugin);
         }
 
+        /// <summary>
+        /// Remove a registered plugin
+        /// </summary>
+        /// <param name="plugin">plugin to be removed</param>
         internal void Remove(Plugin plugin)
         {
             // Remove all plugins with this name in every category
@@ -74,6 +102,11 @@ namespace Segment.Analytics
             }
         }
 
+        /// <summary>
+        /// Find a registered plugin of given type
+        /// </summary>
+        /// <typeparam name="T">type that inherits <see cref="Plugin"/></typeparam>
+        /// <returns>instance of given type registered in analytics</returns>
         public T Find<T>() where T : Plugin
         {
             foreach (var item in plugins)
@@ -88,6 +121,11 @@ namespace Segment.Analytics
             return default;
         }
         
+        /// <summary>
+        /// Find all registered plugins of given type, including subtypes
+        /// </summary>
+        /// <typeparam name="T">type that inherits <see cref="Plugin"/></typeparam>
+        /// <returns>list of instances of given type registered in analytics</returns>
         public IEnumerable<T> FindAll<T>() where T : Plugin
         {
             var result = new List<T>();
@@ -101,6 +139,11 @@ namespace Segment.Analytics
             return result;
         }
 
+        /// <summary>
+        /// Find a destination plugin by its key
+        /// </summary>
+        /// <param name="destination">key of <see cref="DestinationPlugin"/></param>
+        /// <returns>instance of destination plugin of given key</returns>
         public DestinationPlugin Find(string destination)
         {
             return plugins[PluginType.Destination]?.plugins?.Find(it =>

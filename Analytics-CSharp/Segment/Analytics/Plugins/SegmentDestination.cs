@@ -4,6 +4,15 @@ using NotImplementedException = System.NotImplementedException;
 
 namespace Segment.Analytics.Plugins
 {
+    /// <summary>
+    /// Segment Analytics plugin that is used to send events to Segment's tracking api, in the choice of region.
+    /// How it works:
+    /// <list type="number">
+    /// <item><description>Plugin receives <c>apiHost</c> settings</description></item>
+    /// <item><description>We store events into a file with the batch api format <see href="https://segment.com/docs/connections/sources/catalog/libraries/server/http-api/#batch" /></description></item>
+    /// <item><description>We upload events on a dedicated thread using the batch api</description></item>
+    /// </list>
+    /// </summary>
     public class SegmentDestination: DestinationPlugin
     {
         private EventPipeline _pipeline;
