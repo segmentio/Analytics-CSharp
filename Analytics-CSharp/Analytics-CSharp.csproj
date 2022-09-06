@@ -15,7 +15,10 @@
     <RepositoryUrl>https://github.com/segmentio/Analytics-CSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
-
+ 
+  <ItemGroup>
+    <None Include="..\LICENSE" Pack="true" PackagePath="LICENSE" />
+  </ItemGroup>
   <ItemGroup>
     <None Remove="Segment\" />
     <None Remove="Segment\Aanalytics\" />
