@@ -239,7 +239,7 @@ analytics.Add(yourPlugin)
 ```
 
 ### Example projects using Analytics-CSharp
-See how different platforms and languages use Analytics-Kotlin in different [example projects](https://github.com/segmentio/Analytics-CSharp/tree/main/Samples).
+See how different platforms and languages use Analytics-CSharp in different [example projects](https://github.com/segmentio/Analytics-CSharp/tree/main/Samples).
 
 ## Utility Methods
 The Analytics-CSharp utility methods help you work with plugins from the analytics timeline. They include:
@@ -273,7 +273,7 @@ analytics.Add(somePlugin);
 The Find method lets you find a registered plugin from the analytics timeline.
 
 ```c#
-var plugin = analytics.Find("SomePlugin");
+var plugin = analytics.Find<SomePlugin>();
 ```
 
 ### Remove
