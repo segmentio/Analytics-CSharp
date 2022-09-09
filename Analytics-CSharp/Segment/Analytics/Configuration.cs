@@ -1,4 +1,6 @@
 ﻿
+using Segment.Concurrent;
+
 namespace Segment.Analytics
 {
     public class Configuration
@@ -21,6 +23,8 @@ namespace Segment.Analytics
 
         public bool userSynchronizeDispatcher { get; }
         
+        public ICoroutineExceptionHandler exceptionHandler { get; }
+        
         /// <summary>
         /// Configuration that analytics can use
         /// </summary>
@@ -38,7 +42,8 @@ namespace Segment.Analytics
         /// <param name="autoAddSegmentDestination">automatically add SegmentDestination plugin, defaults to <c>true</c></param>
         /// <param name="userSynchronizeDispatcher">forcing everything to run synchronously, used for unit tests </param>
         /// <param name="apiHost">set a default apiHost to which Segment sends events, defaults to <c>api.segment.io/v1</c></param>
-        /// <param name="cdnHost">et a default cdnHost to which Segment fetches settings, defaults to <c>cdn-settings.segment.com/v1</c></param>
+        /// <param name="cdnHost">set a default cdnHost to which Segment fetches settings, defaults to <c>cdn-settings.segment.com/v1</c></param>
+        /// <param name="exceptionHandler">set a an exception handler to handle errors happened in async methods within the analytics scope</param>
         public Configuration(string writeKey,
             string persistentDataPath,
             int flushAt = 20,
@@ -47,7 +52,8 @@ namespace Segment.Analytics
             bool autoAddSegmentDestination = true,
             bool userSynchronizeDispatcher = false,
             string apiHost = null,
-            string cdnHost = null)
+            string cdnHost = null,
+            ICoroutineExceptionHandler exceptionHandler = null)
         {
             this.writeKey = writeKey;
             this.persistentDataPath = persistentDataPath;
@@ -58,6 +64,7 @@ namespace Segment.Analytics
             this.userSynchronizeDispatcher = userSynchronizeDispatcher;
             this.apiHost = apiHost;
             this.cdnHost = cdnHost;
+            this.exceptionHandler = exceptionHandler;
         }
     }
 
