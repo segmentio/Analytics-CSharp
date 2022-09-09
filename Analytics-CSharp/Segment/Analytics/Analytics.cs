@@ -49,7 +49,7 @@ namespace Segment.Analytics
             }
             
             store = new Store(configuration.userSynchronizeDispatcher, configuration.exceptionHandler);
-            storage = new Storage(store, configuration.writeKey, configuration.persistentDataPath, fileIODispatcher);
+            storage = new Storage(store, configuration.writeKey, configuration.persistentDataPath, fileIODispatcher, configuration.exceptionHandler);
             timeline = new Timeline();
             
             // Start everything
