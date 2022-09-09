@@ -40,6 +40,7 @@ To get started with the Analytics-CSharp library:
  | `defaultSettings`               | Default set to `{}`. <br> The settings object used as fallback in case of network failure. |
  | `flushAt`                       | Default set to `20`. <br> The count of events at which Segment flushes events. |
  | `flushInterval`                 | Default set to `30` (seconds). <br> The interval in seconds at which Segment flushes events. |
+| `exceptionHandler`                 | set a an exception handler to handle errors happened in async methods within the analytics scope |
 
 ## Tracking Methods
 
