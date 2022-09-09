@@ -4,6 +4,11 @@ using Segment.Sovran;
 
 namespace Segment.Analytics.Plugins
 {
+    /// <summary>
+    /// Analytics plugin to manage started state of analytics client
+    /// All events will be held in an in-memory queue until started state is enabled, and once enabled
+    /// events will be replayed into the analytics timeline
+    /// </summary>
     public class StartupQueue: Plugin, ISubscriber
     {
         private static int maxSize = 1000;

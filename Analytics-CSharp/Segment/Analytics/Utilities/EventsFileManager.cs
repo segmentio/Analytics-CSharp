@@ -8,6 +8,38 @@ using System.Threading.Tasks;
 
 namespace Segment.Analytics.Utilities
 {
+    /// <summary>
+    /// Responsible for storing events in a batch payload style.
+    ///
+    /// Contents format
+    /// <code>
+    /// {
+    ///     "batch": [
+    ///     ...
+    ///     ],
+    ///     "sentAt": "2021-04-30T22:06:11"
+    /// }
+    /// </code>
+    /// 
+    /// Each file stored is a batch of events. When uploading events the contents of the file can be
+    /// sent as-is to the Segment batch upload endpoint.
+    ///
+    /// Some terms:
+    /// <list type="bullet">
+    ///     <item><description>Current open file: the most recent temporary batch file that is being used to store events</description></item>
+    ///     <item><description>Closing the file: ending the batch payload, and renaming the temporary file to a permanent one</description></item>
+    ///     <item><description>Stored file paths: list of file paths that are not temporary and match the write-key of the manager</description></item>
+    /// </list>
+    /// 
+    /// How it works:
+    /// storeEvent() will store the event in the current open file, ensuring that batch size
+    /// does not go over the 475KB limit. It will close the current file and create new temp ones
+    /// when appropriate
+    ///
+    /// When read() is called the current file is closed, and a list of stored file paths is returned
+    ///
+    /// remove() will delete the file path specified
+    /// </summary>
     internal class EventsFileManager
     {
         private readonly DirectoryInfo _directory;
@@ -35,6 +67,12 @@ namespace Segment.Analytics.Utilities
             _fs = null;
         }
 
+        /// <summary>
+        /// closes existing file, if at capacity
+        /// opens a new file, if current file is full or uncreated
+        /// stores the event
+        /// </summary>
+        /// <param name="event">event to store</param>
         public async Task StoreEvent(string @event) => await WithLock(async () =>
             {
                 var newFile = false;
@@ -66,6 +104,10 @@ namespace Segment.Analytics.Utilities
                 await WriteToFile(contents.GetBytes(), file);
             });
 
+        /// <summary>
+        /// Returns a comma-separated list of file paths that are not yet uploaded
+        /// </summary>
+        /// <returns></returns>
         public List<string> Read()
         {
             return _directory.GetFiles()
@@ -74,6 +116,11 @@ namespace Segment.Analytics.Utilities
                         .ToList();
         }
 
+        /// <summary>
+        /// deletes the file at filePath
+        /// </summary>
+        /// <param name="filePath">path to the file to delete</param>
+        /// <returns>whether the operation succeeds</returns>
         public bool Remove(string filePath)
         {
             try
@@ -88,6 +135,10 @@ namespace Segment.Analytics.Utilities
             }
         }
 
+        /// <summary>
+        /// closes current file, and increase the index
+        /// so next write go to a new file
+        /// </summary>
         public async Task Rollover() => await WithLock(async () =>
             {
                 await Finish();

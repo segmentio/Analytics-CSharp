@@ -93,6 +93,12 @@ namespace Segment.Analytics.Utilities
             editor.Apply();
         }
         
+        /// <summary>
+        /// Direct writes to a new file, and close the current file.
+        /// This function is useful in cases such as `flush`, that
+        /// we want to finish writing the current file, and have it
+        /// flushed to server.
+        /// </summary>
         public virtual async Task Rollover()
         {
             await _eventsFile.Rollover();

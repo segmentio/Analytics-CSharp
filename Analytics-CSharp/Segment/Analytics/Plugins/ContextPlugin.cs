@@ -2,6 +2,10 @@ using Segment.Serialization;
 
 namespace Segment.Analytics.Plugins
 {
+    /// <summary>
+    /// Analytics plugin used to populate events with basic context data.
+    /// Auto-added to analytics client on construction
+    /// </summary>
     public class ContextPlugin : Plugin
     {
         public override PluginType type => PluginType.Before;

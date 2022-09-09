@@ -26,6 +26,10 @@ namespace Segment.Analytics
 
         internal static ILogger logger = null;
 
+        /// <summary>
+        /// Public constructor of Analytics.
+        /// </summary>
+        /// <param name="configuration">configuration that analytics can use</param>
         public Analytics(Configuration configuration)
         {
             this.configuration = configuration;
@@ -52,12 +56,10 @@ namespace Segment.Analytics
             Startup();
         }
 
-        /**
-         * <summary>
-         * Process a raw event through the system. Useful when one needs to queue and replay events at a later time.
-         * </summary>
-         * <param name="incomingEvent">An event conforming to RawEvent to be processed in the timeline.</param>
-         */
+        /// <summary>
+        /// Process a raw event through the system. Useful when one needs to queue and replay events at a later time.
+        /// </summary>
+        /// <param name="incomingEvent">An event conforming to RawEvent to be processed in the timeline</param>
         public void Process(RawEvent incomingEvent)
         {
             incomingEvent.ApplyBaseData();
@@ -71,6 +73,13 @@ namespace Segment.Analytics
         
         #region System Modifiers
 
+        /// <summary>
+        /// Retrieve the anonymousId in a blocking way.
+        /// 
+        /// Note: this method forces internal async methods to run in a synchronized way,
+        /// it's not recommended to be used in async method.
+        /// </summary>
+        /// <returns>Anonymous Id</returns>
         public string AnonymousId()
         {
             var task = AnonymousIdAsync();
@@ -78,12 +87,23 @@ namespace Segment.Analytics
             return task.Result;
         }
 
+        /// <summary>
+        /// Retrieve the anonymousId.
+        /// </summary>
+        /// <returns>Anonymous Id</returns>
         public async Task<string> AnonymousIdAsync()
         {
             var userInfo = await store.CurrentState<UserInfo>();
             return userInfo.anonymousId;
         }
 
+        /// <summary>
+        /// Retrieve the userId registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call in a blocking way.
+        /// 
+        /// Note: this method forces internal async methods to run in a synchronized way,
+        /// it's not recommended to be used in async method.
+        /// </summary>
+        /// <returns>User Id</returns>
         public string UserId()
         {
             var task = UserIdAsync();
@@ -91,12 +111,23 @@ namespace Segment.Analytics
             return task.Result;
         }
 
+        /// <summary>
+        /// Retrieve the userId registered by a previous `<see cref="Identify(string,Segment.Serialization.JsonObject)"/> call
+        /// </summary>
+        /// <returns>User Id</returns>
         public async Task<string> UserIdAsync()
         {
             var userInfo = await store.CurrentState<UserInfo>();
             return userInfo.userId;
         }
 
+        /// <summary>
+        /// Retrieve the traits registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call in a blocking way.
+        /// 
+        /// Note: this method forces internal async methods to run in a synchronized way,
+        /// it's not recommended to be used in async method.
+        /// </summary>
+        /// <returns><see cref="JsonObject"/> instance of Traits</returns>
         public JsonObject Traits()
         {
             var task = TraitsAsync();
@@ -104,18 +135,30 @@ namespace Segment.Analytics
             return task.Result;
         }
 
+        /// <summary>
+        /// Retrieve the traits registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call.
+        /// </summary>
+        /// <returns><see cref="JsonObject"/> instance of Traits</returns>
         public async Task<JsonObject> TraitsAsync()
         {
             var userInfo = await store.CurrentState<UserInfo>();
             return userInfo.traits;
         }
 
+        /// <summary>
+        /// Retrieve the traits registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call.
+        /// </summary>
+        /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
+        /// <returns>Traits</returns>
         public async Task<T> TraitsAsync<T>() where T : ISerializable
         {   
             var traits = await TraitsAsync();
             return traits != null ? JsonUtility.FromJson<T>(traits.ToString()) : default;
         }
 
+        /// <summary>
+        /// Force all the <see cref="EventPlugin"/> registered in analytics to flush
+        /// </summary>
         public void Flush() => Apply(plugin =>
         {
             if (plugin is EventPlugin eventPlugin)
@@ -125,6 +168,10 @@ namespace Segment.Analytics
         });
         
 
+        /// <summary>
+        /// Reset the user identity info and all the event plugins. Should be invoked when
+        /// user logs out
+        /// </summary>
         public void Reset()
         {
             analyticsScope.Launch(analyticsDispatcher, async () =>
@@ -141,6 +188,10 @@ namespace Segment.Analytics
 
         }
 
+        /// <summary>
+        /// Retrieve the version of this library in use.
+        /// </summary>
+        /// <returns>A string representing the version in "BREAKING.FEATURE.FIX" format.</returns>
         public string version => Version.SegmentVersion;
 
         #endregion
@@ -149,6 +200,13 @@ namespace Segment.Analytics
         
         #region Settings
 
+        /// <summary>
+        /// Retrieve the settings  in a blocking way.
+        /// 
+        /// Note: this method forces internal async methods to run in a synchronized way,
+        /// it's not recommended to be used in async method.
+        /// </summary>
+        /// <returns>Instance of <see cref="Settings"/></returns>
         public Settings? Settings()
         {
             var task = SettingsAsync();
@@ -156,6 +214,10 @@ namespace Segment.Analytics
             return task.Result;
         }
 
+        /// <summary>
+        /// Retrieve the settings.
+        /// </summary>
+        /// <returns>Instance of <see cref="Settings"/></returns>
         public async Task<Settings?> SettingsAsync()
         {
             Settings? returnSettings = null;
