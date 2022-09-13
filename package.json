@@ -1,0 +1,21 @@
+{
+  "name": "com.segment.analytics.unity",
+  "version": "1.0.0",
+  "displayName": "Analytics Unity",
+  "description": "The hassle-free way to add Segment analytics to your Unity app",
+  "unity": "2019.1",
+  "unityRelease": "0b5",
+  "documentationUrl": "https://github.com/segmentio/analytics-csharp",
+  "changelogUrl": "https://github.com/segmentio/Analytics-CSharp/releases",
+  "licensesUrl": "https://github.com/segmentio/analytics-unity/blob/main/LICENSE.md",
+ "keywords": [
+    "Analytics",
+    "Segment Analytics",
+    "Analytics Unity"
+  ],
+  "author": {
+    "name": "Segment",
+    "email": "wzeng@twilio.com",
+    "url": "https://www.twilio.com"
+  }
+}
