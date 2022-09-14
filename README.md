@@ -13,7 +13,7 @@ To get started with the Analytics-CSharp library:
    2. Search for **Xamarin** or **Unity** or **.NET** and click **Add source**.
 2. Add the Analytics dependency to your project.
     ```
-    dotnet add package Segment.Analytics.CSharp --version <LATEST_VERSION>
+    openupm add com.segment.analytics.csharp
     ```
    **Analytics-CSharp** is distributed via NuGet. Check other installation options [here](https://www.nuget.org/packages/Segment.Analytics.CSharp/). 
 3. Initialize and configure the client.
@@ -23,7 +23,7 @@ To get started with the Analytics-CSharp library:
         // for Xamarin use: Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
         // for Unity use: Application.persistentDataPath
         var configuration = new Configuration("<YOUR WRITE KEY>",
-                persistentDataPath: "<PATH TO STORE DATA>",
+                persistentDataPath: Application.persistentDataPath,
                 flushAt: 1,
                 flushInterval: 10);
         var analytics = new Analytics(configuration);
