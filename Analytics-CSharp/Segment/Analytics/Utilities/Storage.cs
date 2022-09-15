@@ -25,12 +25,12 @@ namespace Segment.Analytics.Utilities
 
         public const long MaxBatchSize = 475_000;
 
-        public Storage(Store store, string writeKey, string rootDir, IDispatcher ioDispatcher = default)
+        public Storage(Store store, string writeKey, string rootDir, IDispatcher ioDispatcher = default, ICoroutineExceptionHandler exceptionHandler = default)
         {
             _store = store;
             _writeKey = writeKey;
             _userPrefs = new UserPrefs(rootDir + Path.DirectorySeparatorChar + 
-                                       "segment.prefs" + Path.DirectorySeparatorChar + writeKey);
+                                       "segment.prefs" + Path.DirectorySeparatorChar + writeKey, exceptionHandler);
             _storageDirectory = rootDir + Path.DirectorySeparatorChar +
                                     "segment.data" + Path.DirectorySeparatorChar +
                                     writeKey + Path.DirectorySeparatorChar +

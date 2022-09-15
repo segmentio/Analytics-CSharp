@@ -37,7 +37,7 @@ namespace Tests
                 userSynchronizeDispatcher: true,
                 defaultSettings: _settings
             );
-            _storage = new Mock<Storage>(_store, "123", "tests", new SynchronizeDispatcher());
+            _storage = new Mock<Storage>(_store, "123", "tests", new SynchronizeDispatcher(), null);
         }
 
         [Fact]
@@ -137,7 +137,7 @@ namespace Tests
                 autoAddSegmentDestination: false,
                 userSynchronizeDispatcher: true
             );
-            _storage = new Mock<Storage>(_store, "123", "tests", new SynchronizeDispatcher());
+            _storage = new Mock<Storage>(_store, "123", "tests", new SynchronizeDispatcher(), null);
         }
 
         [Fact]

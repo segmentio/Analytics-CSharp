@@ -27,13 +27,13 @@ namespace Segment.Analytics
             )
         {
             this.configuration = configuration;
-            this.analyticsScope = analyticsScope ?? new Scope();
+            this.analyticsScope = analyticsScope ?? new Scope(configuration.exceptionHandler);
             IDispatcher dispatcher = new SynchronizeDispatcher();
             this.fileIODispatcher = fileIODispatcher ?? dispatcher;
             this.networkIODispatcher = networkIODispatcher ?? dispatcher;
             this.analyticsDispatcher = analyticsDispatcher ?? dispatcher;
-            this.store = store ?? new Store(true);
-            this.storage = storage ?? new Storage(this.store, configuration.writeKey, configuration.persistentDataPath, this.fileIODispatcher);
+            this.store = store ?? new Store(true, configuration.exceptionHandler);
+            this.storage = storage ?? new Storage(this.store, configuration.writeKey, configuration.persistentDataPath, this.fileIODispatcher, configuration.exceptionHandler);
             this.timeline = timeline ?? new Timeline();
             
             Startup(httpClient);

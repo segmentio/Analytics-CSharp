@@ -37,7 +37,7 @@ namespace Segment.Analytics.Utilities
 
         private readonly IDispatcher _dispatcher;
 
-        public UserPrefs(string file)
+        public UserPrefs(string file, ICoroutineExceptionHandler exceptionHandler = null)
         {
             cache = new Dictionary<string, object>();
             mutex = new object();
@@ -52,7 +52,7 @@ namespace Segment.Analytics.Utilities
             // uses a new scope for UserPrefs, so interruption does not propagate to analytics scope
             // in addition, file I/O in this class are all blocking. need to have its own threads
             // to prevent blocking analytics threads
-            _scope = new Scope();
+            _scope = new Scope(exceptionHandler);
             _dispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
             StartLoadFromDisk();
         }

@@ -45,7 +45,7 @@ namespace Tests.Utilities
                 .Setup(httpclient => httpclient.Upload(It.IsAny<string>()))
                 .ReturnsAsync(true);
 
-            _storage = new Mock<Storage>(new Store(true), "123", "tests", new SynchronizeDispatcher());
+            _storage = new Mock<Storage>(new Store(true), "123", "tests", new SynchronizeDispatcher(), null);
             _analytics = new Analytics(config,
                 httpClient: _mockHttpClient.Object,
                 storage: _storage.Object);
