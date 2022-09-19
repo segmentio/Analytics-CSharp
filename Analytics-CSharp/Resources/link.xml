@@ -1,0 +1,11 @@
+<linker>
+    <assembly fullname="Segment.Analytics.CSharp" preserve="all" />
+    <assembly fullname="Coroutine.NET" preserve="all" />
+    <assembly fullname="Newtonsoft.Json" preserve="all" />
+    <assembly fullname="Serialization.NET" preserve="all" />
+    <assembly fullname="Sovran.NET" preserve="all" />
+    <assembly fullname="System.Core">
+        <type fullname="System.Linq.Expressions.Interpreter.LightLambda" preserve="all" />
+    </assembly>
+</linker>
+
