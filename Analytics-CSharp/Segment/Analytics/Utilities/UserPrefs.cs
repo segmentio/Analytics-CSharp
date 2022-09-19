@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Segment.Concurrent;
+using Segment.Serialization;
 
 namespace Segment.Analytics.Utilities
 {
@@ -67,9 +67,9 @@ namespace Segment.Analytics.Utilities
                 
                 try
                 {
-                    ret = (int)cache[key];
+                    ret = Convert.ToInt32(cache[key]);
                 }
-                catch
+                catch 
                 {
                     ret = defaultValue;
                 }
@@ -88,7 +88,7 @@ namespace Segment.Analytics.Utilities
 
                 try
                 {
-                    ret = (float)cache[key];
+                    ret = float.Parse(Convert.ToString(cache[key]));
                 }
                 catch
                 {
@@ -109,7 +109,7 @@ namespace Segment.Analytics.Utilities
 
                 try
                 {
-                    ret = (string)cache[key];
+                    ret = Convert.ToString(cache[key]);
                 }
                 catch
                 {
@@ -195,21 +195,24 @@ namespace Segment.Analytics.Utilities
                 }
             }
 
+            FileStream fs = null;
             try
             {
-                var fs = _file.Open(FileMode.Create);
-                var serializer = new DataContractSerializer(cache.GetType());
-                serializer.WriteObject(fs, cache);
+                fs = _file.Open(FileMode.Create);
+                var json = JsonUtility.ToJson(cache);
+                var bytes = json.GetBytes();
+                fs.Write(bytes, 0, bytes.Length);
                 fs.Close();
-                
+
                 // successfully updated file, can safely delete backup and return
                 _backupFile.Delete();
                 diskEpoch = memoryEpoch;
-                
+
                 return;
             }
             catch (Exception e)
             {
+                fs?.Close();
                 Analytics.logger?.LogError(e, "Error encountered updating file.");
             }
 
@@ -263,30 +266,24 @@ namespace Segment.Analytics.Utilities
                 }
             }
 
-            FileStream fs = null;
             Dictionary<string, object> dict = null;
 
             try
             {
-                fs = _file.Open(FileMode.OpenOrCreate);
-                if (fs.Length == 0)
+                var json = File.ReadAllText(_file.FullName);
+                if (string.IsNullOrEmpty(json))
                 {
                     dict = new Dictionary<string, object>();
                 }
                 else
                 {
-                    var deserializer = new DataContractSerializer(cache.GetType());
-                    dict = (Dictionary<string, object>) deserializer.ReadObject(fs);
+                    dict = JsonUtility.FromJson<Dictionary<string, object>>(json);
                 }
             }
             catch (Exception e)
             {
                 Analytics.logger?.LogError(e, "Error on deserializing cached user prefs.");
                 thrown = e;
-            }
-            finally
-            {
-                fs?.Close();
             }
             
             lock (mutex)
