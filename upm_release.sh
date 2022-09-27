@@ -11,7 +11,7 @@ absolute_path() {
 
 # checking if a directory is provided
 if [ -z "$1" ] ; then
-  echo "Please provide a directory to setup the sandbox. The directory should be different than analytics-csharp's directory"
+  echo "Please provide a directory to setup the sandbox. The directory should be outside analytics-csharp's directory"
   echo "Usage: $0 <directory to setup sandbox>"
   exit 1
 fi
@@ -20,7 +20,7 @@ if ! [ -d "$1" ]; then
     exit 1
 fi
 if [[ "$(absolute_path "$1")" = $PWD* ]]; then
-    echo "Please provide a directory different than analytics-csharp's directory"
+    echo "Please provide a directory outside analytics-csharp's directory"
     exit 1
 fi
 cd "$1" || exit 
