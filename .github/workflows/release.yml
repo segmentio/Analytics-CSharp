@@ -7,6 +7,7 @@ on:
 
 jobs:
   release:
+    permissions: write-all
     runs-on: ubuntu-latest
     environment: deployment
 
@@ -15,6 +16,13 @@ jobs:
       - name: Get tag
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+      - name: Verify tag
+        run: |
+          VERSION=$(grep '<Version>' Analytics-CSharp.csproj | sed "s@.*<Version>\(.*\)</Version>.*@\1@")
+          if [ "${{ steps.vars.outputs.tag }}" != "$VERSION" ]; then {
+            echo "Tag ${{ steps.vars.outputs.tag }} does not match the package version ($VERSION)"
+            exit 1
+          } fi
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v2
         with:
