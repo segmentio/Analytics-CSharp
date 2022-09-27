@@ -21,4 +21,4 @@ jobs:
         with:
           args: |
             --file=Analytics-CSharp.sln
-            --fail-on=upgradable
+            --fail-on=patchable
