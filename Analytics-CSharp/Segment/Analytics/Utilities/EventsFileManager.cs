@@ -155,7 +155,7 @@ namespace Segment.Analytics.Utilities
             var file = CurrentFile();
             if (!file.Exists) return;
 
-            var contents = "],\"sentAt\":\"" + DateTime.UtcNow + "\",\"writeKey\":\"" + _writeKey + "\"}";
+            var contents = "],\"sentAt\":\"" + DateTime.UtcNow.ToString("o") + "\",\"writeKey\":\"" + _writeKey + "\"}";
             await WriteToFile(contents.GetBytes(), file);
             _fs.Close();
 
