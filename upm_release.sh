@@ -94,6 +94,8 @@ for dir in Analytics-CSharp/Plugins/*; do
     done
   fi
 done
+# remove Newtonsoft.json as it is satisfied through package.json
+rm -rf Analytics-CSharp/Plugins/Newtonsoft.Json.*
 
 echo "generating meta files ..."
 # launch unity to create a dummy head project
