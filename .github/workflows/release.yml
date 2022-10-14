@@ -18,7 +18,7 @@ jobs:
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
       - name: Verify tag
         run: |
-          VERSION=$(grep '<Version>' Analytics-CSharp.csproj | sed "s@.*<Version>\(.*\)</Version>.*@\1@")
+          VERSION=$(grep '<Version>' Analytics-CSharp/Analytics-CSharp.csproj | sed "s@.*<Version>\(.*\)</Version>.*@\1@")
           if [ "${{ steps.vars.outputs.tag }}" != "$VERSION" ]; then {
             echo "Tag ${{ steps.vars.outputs.tag }} does not match the package version ($VERSION)"
             exit 1

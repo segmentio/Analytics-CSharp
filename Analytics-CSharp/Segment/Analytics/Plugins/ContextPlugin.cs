@@ -30,7 +30,7 @@ namespace Segment.Analytics.Plugins
 
         private void ApplyContextData(RawEvent @event)
         {
-            var context = new JsonObject(@event.context?.content)
+            var context = new JsonObject(@event.context?.Content)
             {
                 [LibraryKey] = _library
             };

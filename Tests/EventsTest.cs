@@ -72,7 +72,7 @@ namespace Tests
             _analytics.Track(expectedEvent);
             
             Assert.NotEmpty(actual);
-            Assert.True(actual[0].properties.count == 0);
+            Assert.True(actual[0].properties.Count == 0);
             Assert.Equal(expectedEvent, actual[0].@event);
         }
         
@@ -103,7 +103,7 @@ namespace Tests
             _analytics.Track<FooBar>(expectedEvent);
             
             Assert.NotEmpty(actual);
-            Assert.True(actual[0].properties.count == 0);
+            Assert.True(actual[0].properties.Count == 0);
             Assert.Equal(expectedEvent, actual[0].@event);
         }
 
@@ -139,7 +139,7 @@ namespace Tests
             var actualUserId = await _analytics.UserIdAsync();
             
             Assert.NotEmpty(actual);
-            Assert.True(actual[0].traits.count == 0);
+            Assert.True(actual[0].traits.Count == 0);
             Assert.Equal(expectedUserId, actualUserId);
         }
         
@@ -192,7 +192,7 @@ namespace Tests
             var actualUserId = await _analytics.UserIdAsync();
             
             Assert.NotEmpty(actual);
-            Assert.True(actual[0].traits.count == 0);
+            Assert.True(actual[0].traits.Count == 0);
             Assert.Equal(expectedUserId, actualUserId);
         }
         
@@ -244,7 +244,7 @@ namespace Tests
             _analytics.Screen(null, null, null);
             
             Assert.NotEmpty(actual);
-            Assert.True(actual[0].properties.count == 0);
+            Assert.True(actual[0].properties.Count == 0);
             Assert.Null(actual[0].name);
             Assert.Null(actual[0].category);
         }
@@ -277,7 +277,7 @@ namespace Tests
             _analytics.Screen<FooBar>(null, null, null);
             
             Assert.NotEmpty(actual);
-            Assert.True(actual[0].properties.count == 0);
+            Assert.True(actual[0].properties.Count == 0);
             Assert.Null(actual[0].name);
             Assert.Null(actual[0].category);
         }
@@ -312,7 +312,7 @@ namespace Tests
             _analytics.Group(expectedGroupId);
             
             Assert.NotEmpty(actual);
-            Assert.True(actual[0].traits.count == 0);
+            Assert.True(actual[0].traits.Count == 0);
             Assert.Equal(expectedGroupId, actual[0].groupId);
         }
         
@@ -343,7 +343,7 @@ namespace Tests
             _analytics.Group<FooBar>(expectedGroupId);
             
             Assert.NotEmpty(actual);
-            Assert.True(actual[0].traits.count == 0);
+            Assert.True(actual[0].traits.Count == 0);
             Assert.Equal(expectedGroupId, actual[0].groupId);
         }
 
