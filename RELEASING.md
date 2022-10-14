@@ -1,6 +1,7 @@
 Update Version
 ==========
 * update `<Version>` value in `Analytics-CSharp.csproj`
+* update `SegmentVersion` value in `Segment/Analytics/Version.cs`
 
 Release to Nuget
 ==========
