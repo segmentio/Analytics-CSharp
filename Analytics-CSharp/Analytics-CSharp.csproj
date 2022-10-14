@@ -39,7 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Coroutine.NET" Version="1.0.0" />
-    <PackageReference Include="Serialization.NET" Version="0.1.0" />
+    <PackageReference Include="Serialization.NET" Version="1.0.0" />
     <PackageReference Include="Sovran.NET" Version="1.0.0" />
   </ItemGroup>
   <ItemGroup>
