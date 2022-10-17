@@ -2,6 +2,6 @@ namespace Segment.Analytics
 {
     internal static class Version
     {
-        internal const string SegmentVersion = "1.0.2";
+        internal const string SegmentVersion = "1.0.3";
     }
 }
