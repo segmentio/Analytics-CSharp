@@ -2,6 +2,19 @@
 
 The hassle-free way to add Segment analytics to your .Net app (Unity/Xamarin/.Net). Analytics helps you measure your users, product, and business. It unlocks insights into your app's funnel, core business metrics, and whether you have product-market fit.
 
+Analytics-CSharp is supported across the following platforms:
+* net/.net core/.net framework
+* mono
+* universal windows platform
+* xamarin
+    * ios
+    * mac
+    * android
+* unity
+    * ios
+    * android
+    * pc, mac, linux
+
 **NOTE: This project is currently only available in Pilot phase and is covered by Segment's [First Access & Beta Preview Terms](https://segment.com/legal/first-access-beta-preview/).  We encourage you to try out this new library. Please provide feedback via Github issues/PRs, and feel free to submit pull requests.**
 
 ## Getting Started
