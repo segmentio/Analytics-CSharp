@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using Segment.Concurrent;
 using Segment.Sovran;
 
@@ -13,7 +13,7 @@ namespace Segment.Analytics.Plugins
     {
         private static int maxSize = 1000;
         private readonly AtomicBool _running = new AtomicBool(false);
-        private readonly Queue<RawEvent> _queuedEvents = new Queue<RawEvent>();
+        private readonly ConcurrentQueue<RawEvent> _queuedEvents = new ConcurrentQueue<RawEvent>();
 
         public override PluginType type => PluginType.Before;
         
@@ -34,7 +34,7 @@ namespace Segment.Analytics.Plugins
                 if (_queuedEvents.Count >= maxSize)
                 {
                     // We've exceeded the max size and need to start dropping events
-                    _queuedEvents.Dequeue();
+                    _queuedEvents.TryDequeue(out _);
                 }
                 _queuedEvents.Enqueue(incomingEvent);
                 return null;
@@ -54,9 +54,12 @@ namespace Segment.Analytics.Plugins
 
         private void ReplayEvents()
         {
-            while (_queuedEvents.Count != 0)
+            while (!_queuedEvents.IsEmpty)
             {
-                analytics.Process(_queuedEvents.Dequeue());
+                if (_queuedEvents.TryDequeue(out var e))
+                {
+                    analytics.Process(e);
+                }
             }
         }
     }
