@@ -241,12 +241,22 @@ namespace Segment.Analytics
             Add(new StartupQueue());
             Add(new ContextPlugin());
 
+            // use Wait() for this coroutine to force completion,
+            // since Store must be setup before any event call happened.
+            // Note: Task.Wait() forces internal async methods to run in a synchronized way,
+            // we should avoid of doing it whenever possible.
             analyticsScope.Launch(analyticsDispatcher, async () =>
             {
                 await store.Provide(UserInfo.DefaultState(configuration, storage));
                 await store.Provide(System.DefaultState(configuration, storage));
                 await storage.SubscribeToStore();
-
+            }).Wait();
+            
+            // check settings over the network,
+            // we don't have to Wait() here, because events are piped in
+            // StartupQueue until settings is ready
+            analyticsScope.Launch(analyticsDispatcher, async () =>
+            {
                 if (configuration.autoAddSegmentDestination)
                 {
                     Add(new SegmentDestination());
