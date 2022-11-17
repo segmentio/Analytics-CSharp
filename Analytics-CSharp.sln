@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XamarinSample.Droid", "Samp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XamarinSample.iOS", "Samples\XamarinSample\XamarinSample.iOS\XamarinSample.iOS.csproj", "{39FCFC71-411C-419E-97BB-7C4281764B10}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleSample", "Samples\ConsoleSample\ConsoleSample.csproj", "{51261FC5-F6E0-478C-A466-A026A6CFC972}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,6 +38,9 @@ Global
 		{39FCFC71-411C-419E-97BB-7C4281764B10}.Release|Any CPU.ActiveCfg = Release|iPhoneSimulator
 		{39FCFC71-411C-419E-97BB-7C4281764B10}.Release|Any CPU.Build.0 = Release|iPhoneSimulator
 		{39FCFC71-411C-419E-97BB-7C4281764B10}.Debug|Any CPU.ActiveCfg = Debug|iPhoneSimulator
+		{51261FC5-F6E0-478C-A466-A026A6CFC972}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51261FC5-F6E0-478C-A466-A026A6CFC972}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51261FC5-F6E0-478C-A466-A026A6CFC972}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
