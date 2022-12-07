@@ -27,16 +27,7 @@ namespace Segment.Analytics
             this.timestamp = rawEvent.timestamp;
             this.context = rawEvent.context;
             this.integrations = rawEvent.integrations;
-        }
-
-        internal async Task ApplyRawEventData(Store store)
-        {
-            var userInfo = await store.CurrentState<UserInfo>();
-            if (userInfo.isNull) return;
-
-            this.anonymousId = userInfo.anonymousId;
-            this.userId = userInfo.userId;
-            this.integrations = new JsonObject();  
+            this.integrations = new JsonObject();
         }
 
         internal void ApplyBaseData()

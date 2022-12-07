@@ -66,7 +66,6 @@ namespace Segment.Analytics
             
             analyticsScope.Launch(analyticsDispatcher, async () =>
             {
-                await incomingEvent.ApplyRawEventData(store);
                 timeline.Process(incomingEvent); 
             });
         }
@@ -240,6 +239,7 @@ namespace Segment.Analytics
         {
             Add(new StartupQueue());
             Add(new ContextPlugin());
+            Add(new UserInfoPlugin());
 
             // use Wait() for this coroutine to force completion,
             // since Store must be setup before any event call happened.
