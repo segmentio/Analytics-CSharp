@@ -21,20 +21,21 @@ namespace Segment.Analytics.Plugins
 
         private void ApplyUserInfoData(RawEvent @event)
         {
-            var userInfoTask = store.CurrentState<UserInfo>();
-            userInfoTask.Wait();
-            var userInfo = userInfoTask.Result;
-
             if (@event is IdentifyEvent identifyEvent)
             {
+                analytics.userInfo.userId = identifyEvent.userId;
+                analytics.userInfo.anonymousId = identifyEvent.anonymousId;
+                analytics.userInfo.traits = identifyEvent.traits;
             }
             else if (@event is AliasEvent aliasEvent)
             {
+                analytics.userInfo.userId = aliasEvent.userId;
+                analytics.userInfo.anonymousId = aliasEvent.anonymousId;
             }
             else
             {
-                @event.anonymousId = userInfo.anonymousId;
-                @event.userId = userInfo.userId;
+                @event.anonymousId = analytics.userInfo.anonymousId;
+                @event.userId = analytics.userInfo.userId;
             }
         }
 

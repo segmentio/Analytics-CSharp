@@ -108,7 +108,7 @@ namespace Tests
         }
 
         [Fact]
-        public async Task TestIdentify()
+        public void TestIdentify()
         {
             var expected = new JsonObject
             {
@@ -120,7 +120,7 @@ namespace Tests
 
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId, expected);
-            var actualUserId = await _analytics.UserIdAsync();
+            var actualUserId = _analytics.UserId();
             
             Assert.NotEmpty(actual);
             Assert.Equal(expected, actual[0].traits);
@@ -128,7 +128,7 @@ namespace Tests
         }
         
         [Fact]
-        public async Task TestIdentifyNoTraits()
+        public void TestIdentifyNoTraits()
         {
             var expectedUserId = "newUserId";
             var actual = new List<IdentifyEvent>();
@@ -136,7 +136,7 @@ namespace Tests
 
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId);
-            var actualUserId = await _analytics.UserIdAsync();
+            var actualUserId = _analytics.UserId();
             
             Assert.NotEmpty(actual);
             Assert.True(actual[0].traits.Count == 0);
@@ -144,7 +144,7 @@ namespace Tests
         }
         
         [Fact]
-        public async Task TestIdentifyNoUserId()
+        public void TestIdentifyNoUserId()
         {
             var expected = new JsonObject
             {
@@ -152,11 +152,11 @@ namespace Tests
             };
             var actual = new List<IdentifyEvent>();
             _plugin.Setup(o => o.Identify(Capture.In(actual)));
-            var expectedUserId = await _analytics.UserIdAsync();
+            var expectedUserId = _analytics.UserId();
 
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expected);
-            var actualUserId = await _analytics.UserIdAsync();
+            var actualUserId = _analytics.UserId();
             
             Assert.NotEmpty(actual);
             Assert.Equal(expected, actual[0].traits);
@@ -164,7 +164,7 @@ namespace Tests
         }
         
         [Fact]
-        public async Task TestIdentifyT()
+        public void TestIdentifyT()
         {
             var expected = new FooBar();
             var expectedUserId = "newUserId";
@@ -173,7 +173,7 @@ namespace Tests
 
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId, expected);
-            var actualUserId = await _analytics.UserIdAsync();
+            var actualUserId = _analytics.UserId();
             
             Assert.NotEmpty(actual);
             Assert.Equal(expected.GetJsonObject(), actual[0].traits);
@@ -181,7 +181,7 @@ namespace Tests
         }
         
         [Fact]
-        public async Task TestIdentifyTNoTraits()
+        public void TestIdentifyTNoTraits()
         {
             var expectedUserId = "newUserId";
             var actual = new List<IdentifyEvent>();
@@ -189,7 +189,7 @@ namespace Tests
 
             _analytics.Add(_plugin.Object);
             _analytics.Identify<FooBar>(expectedUserId);
-            var actualUserId = await _analytics.UserIdAsync();
+            var actualUserId = _analytics.UserId();
             
             Assert.NotEmpty(actual);
             Assert.True(actual[0].traits.Count == 0);
@@ -197,16 +197,16 @@ namespace Tests
         }
         
         [Fact]
-        public async Task TestIdentifyTNoUserId()
+        public void TestIdentifyTNoUserId()
         {
             var expected = new FooBar();
             var actual = new List<IdentifyEvent>();
             _plugin.Setup(o => o.Identify(Capture.In(actual)));
-            var expectedUserId = await _analytics.UserIdAsync();
+            var expectedUserId = _analytics.UserId();
             
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expected);
-            var actualUserId = await _analytics.UserIdAsync();
+            var actualUserId = _analytics.UserId();
             
             Assert.NotEmpty(actual);
             Assert.Equal(expected.GetJsonObject(), actual[0].traits);

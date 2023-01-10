@@ -58,29 +58,12 @@ namespace Tests
         }
 
         [Fact]
-        public async Task TestAnonymousIdAsync()
-        {
-            var id = await _analytics.AnonymousIdAsync();
-            Assert.NotNull(id);
-        }
-
-        [Fact]
         public void TestUserId()
         {
             var expected = "test";
             _analytics.Identify(expected);
 
             var actual = _analytics.UserId();
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public async Task TestUserIdAsync()
-        {
-            var expected = "test";
-            _analytics.Identify(expected);
-
-            var actual = await _analytics.UserIdAsync();
             Assert.Equal(expected, actual);
         }
 
@@ -98,26 +81,12 @@ namespace Tests
         }
         
         [Fact]
-        public async Task TestTraitsAsync()
-        {
-            var expected = new JsonObject
-            {
-                ["foo"] = "bar"
-            };
-            _analytics.Identify("test", expected);
-
-            var actual = await _analytics.TraitsAsync();
-            Assert.Equal(expected.ToString(), actual.ToString());
-        }
-        
-        
-        [Fact]
-        public async Task TestTraitsAsyncT()
+        public void TestTraitsT()
         {
             var expected = new FooBar();
             _analytics.Identify("test", expected);
 
-            var actual = await _analytics.TraitsAsync<FooBar>();
+            var actual = _analytics.Traits<FooBar>();
             Assert.Equal(expected, actual);
         }
 
@@ -151,7 +120,7 @@ namespace Tests
             _analytics.Identify("test");
             _analytics.Reset();
 
-            var actual = await _analytics.UserIdAsync();
+            var actual = _analytics.UserId();
             plugin.Verify(o => o.Reset(), Times.Exactly(1));
             Assert.Null(actual);
         }
