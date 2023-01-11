@@ -107,7 +107,7 @@ namespace Tests
         }
 
         [Fact]
-        public async Task TestReset()
+        public void TestReset()
         {
             var plugin = new Mock<DestinationPlugin>
             {
