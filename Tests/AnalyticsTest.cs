@@ -53,7 +53,7 @@ namespace Tests
         [Fact]
         public void TestAnonymousId()
         {
-            var id = _analytics.AnonymousId();
+            var id = _analytics.AnonymousId;
             Assert.NotNull(id);
         }
 
@@ -63,7 +63,7 @@ namespace Tests
             var expected = "test";
             _analytics.Identify(expected);
 
-            var actual = _analytics.UserId();
+            var actual = _analytics.UserId;
             Assert.Equal(expected, actual);
         }
 
@@ -120,7 +120,7 @@ namespace Tests
             _analytics.Identify("test");
             _analytics.Reset();
 
-            var actual = _analytics.UserId();
+            var actual = _analytics.UserId;
             plugin.Verify(o => o.Reset(), Times.Exactly(1));
             Assert.Null(actual);
         }

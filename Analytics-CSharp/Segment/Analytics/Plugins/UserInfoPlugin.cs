@@ -23,14 +23,19 @@ namespace Segment.Analytics.Plugins
         {
             if (@event is IdentifyEvent identifyEvent)
             {
-                analytics.userInfo.userId = identifyEvent.userId;
-                analytics.userInfo.anonymousId = identifyEvent.anonymousId;
-                analytics.userInfo.traits = identifyEvent.traits;
+                if (identifyEvent.userId != null)
+                {
+                    analytics.userInfo.userId = identifyEvent.userId;
+                }
+                if (identifyEvent.traits != null)
+                {
+                    analytics.userInfo.traits = identifyEvent.traits;
+                }
             }
             else if (@event is AliasEvent aliasEvent)
             {
+                if (aliasEvent.userId != null)
                 analytics.userInfo.userId = aliasEvent.userId;
-                analytics.userInfo.anonymousId = aliasEvent.anonymousId;
             }
             else
             {

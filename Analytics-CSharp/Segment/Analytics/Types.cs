@@ -27,7 +27,6 @@ namespace Segment.Analytics
             this.timestamp = rawEvent.timestamp;
             this.context = rawEvent.context;
             this.integrations = rawEvent.integrations;
-            this.integrations = new JsonObject();
         }
 
         internal void ApplyBaseData()
@@ -35,6 +34,7 @@ namespace Segment.Analytics
             this.messageId = Guid.NewGuid().ToString();
             this.context = new JsonObject();
             this.timestamp = DateTime.UtcNow.ToString("o"); // iso8601
+            this.integrations = new JsonObject();
         }
     }
 

@@ -66,11 +66,7 @@ namespace Segment.Analytics
         public void Process(RawEvent incomingEvent)
         {
             incomingEvent.ApplyBaseData();
-
-            analyticsScope.Launch(analyticsDispatcher, async () =>
-            {
-                timeline.Process(incomingEvent);
-            });
+            timeline.Process(incomingEvent);
         }
 
         #region System Modifiers
@@ -82,10 +78,7 @@ namespace Segment.Analytics
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>Anonymous Id</returns>
-        public string AnonymousId()
-        {
-            return userInfo.anonymousId;
-        }
+        public string AnonymousId => userInfo.anonymousId;
 
         /// <summary>
         /// Retrieve the userId registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call in a blocking way.
@@ -94,10 +87,8 @@ namespace Segment.Analytics
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>User Id</returns>
-        public string UserId()
-        {
-            return userInfo.userId;
-        }
+        public string UserId => userInfo.userId;
+        
 
         /// <summary>
         /// Retrieve the traits registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call in a blocking way.
@@ -141,6 +132,10 @@ namespace Segment.Analytics
         /// </summary>
         public void Reset()
         {
+            userInfo.userId = null;
+            userInfo.anonymousId = null;
+            userInfo.traits = null;
+
             analyticsScope.Launch(analyticsDispatcher, async () =>
             {
                 await store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction());
@@ -217,7 +212,7 @@ namespace Segment.Analytics
             {
                 // load memory with initial value
                 userInfo = UserInfo.DefaultState(configuration, storage);
-                await store.Provide(UserInfo.DefaultState(configuration, storage));
+                await store.Provide(userInfo);
                 await store.Provide(System.DefaultState(configuration, storage));
                 await storage.SubscribeToStore();
             }).Wait();
