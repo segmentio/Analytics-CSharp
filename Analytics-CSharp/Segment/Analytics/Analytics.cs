@@ -8,6 +8,7 @@ using Segment.Sovran;
 
 using JsonUtility = Segment.Serialization.JsonUtility;
 using System.Threading.Tasks;
+using static Segment.Analytics.Utilities.Storage;
 
 namespace Segment.Analytics
 {
@@ -16,15 +17,17 @@ namespace Segment.Analytics
         public Timeline timeline { get; }
 
         internal Configuration configuration { get; }
-        internal Store store { get;}
-        internal Storage storage { get;}
+        internal Store store { get; }
+        internal Storage storage { get; }
 
-        internal Scope analyticsScope { get;}
-        internal IDispatcher fileIODispatcher { get;}
-        internal IDispatcher networkIODispatcher { get;}
-        internal IDispatcher analyticsDispatcher { get;}
+        internal Scope analyticsScope { get; }
+        internal IDispatcher fileIODispatcher { get; }
+        internal IDispatcher networkIODispatcher { get; }
+        internal IDispatcher analyticsDispatcher { get; }
 
         internal static ILogger logger = null;
+
+        internal UserInfo userInfo;
 
         /// <summary>
         /// Public constructor of Analytics.
@@ -47,11 +50,11 @@ namespace Segment.Analytics
                 networkIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(1));
                 analyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
             }
-            
+
             store = new Store(configuration.userSynchronizeDispatcher, configuration.exceptionHandler);
             storage = new Storage(store, configuration.writeKey, configuration.persistentDataPath, fileIODispatcher, configuration.exceptionHandler);
             timeline = new Timeline();
-            
+
             // Start everything
             Startup();
         }
@@ -62,15 +65,10 @@ namespace Segment.Analytics
         /// <param name="incomingEvent">An event conforming to RawEvent to be processed in the timeline</param>
         public void Process(RawEvent incomingEvent)
         {
-            incomingEvent.ApplyBaseData();
-            
-            analyticsScope.Launch(analyticsDispatcher, async () =>
-            {
-                await incomingEvent.ApplyRawEventData(store);
-                timeline.Process(incomingEvent); 
-            });
+            incomingEvent.ApplyRawEventData();
+            timeline.Process(incomingEvent);
         }
-        
+
         #region System Modifiers
 
         /// <summary>
@@ -82,20 +80,9 @@ namespace Segment.Analytics
         /// <returns>Anonymous Id</returns>
         public string AnonymousId()
         {
-            var task = AnonymousIdAsync();
-            task.Wait();
-            return task.Result;
-        }
-
-        /// <summary>
-        /// Retrieve the anonymousId.
-        /// </summary>
-        /// <returns>Anonymous Id</returns>
-        public async Task<string> AnonymousIdAsync()
-        {
-            var userInfo = await store.CurrentState<UserInfo>();
             return userInfo.anonymousId;
         }
+
 
         /// <summary>
         /// Retrieve the userId registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call in a blocking way.
@@ -106,20 +93,9 @@ namespace Segment.Analytics
         /// <returns>User Id</returns>
         public string UserId()
         {
-            var task = UserIdAsync();
-            task.Wait();
-            return task.Result;
-        }
-
-        /// <summary>
-        /// Retrieve the userId registered by a previous `<see cref="Identify(string,Segment.Serialization.JsonObject)"/> call
-        /// </summary>
-        /// <returns>User Id</returns>
-        public async Task<string> UserIdAsync()
-        {
-            var userInfo = await store.CurrentState<UserInfo>();
             return userInfo.userId;
         }
+        
 
         /// <summary>
         /// Retrieve the traits registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call in a blocking way.
@@ -130,31 +106,20 @@ namespace Segment.Analytics
         /// <returns><see cref="JsonObject"/> instance of Traits</returns>
         public JsonObject Traits()
         {
-            var task = TraitsAsync();
-            task.Wait();
-            return task.Result;
-        }
-
-        /// <summary>
-        /// Retrieve the traits registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call.
-        /// </summary>
-        /// <returns><see cref="JsonObject"/> instance of Traits</returns>
-        public async Task<JsonObject> TraitsAsync()
-        {
-            var userInfo = await store.CurrentState<UserInfo>();
             return userInfo.traits;
         }
+
 
         /// <summary>
         /// Retrieve the traits registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call.
         /// </summary>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
         /// <returns>Traits</returns>
-        public async Task<T> TraitsAsync<T>() where T : ISerializable
-        {   
-            var traits = await TraitsAsync();
-            return traits != null ? JsonUtility.FromJson<T>(traits.ToString()) : default;
+        public T Traits<T>() where T : ISerializable
+        {
+            return userInfo.traits != null ? JsonUtility.FromJson<T>(userInfo.traits.ToString()) : default;
         }
+
 
         /// <summary>
         /// Force all the <see cref="EventPlugin"/> registered in analytics to flush
@@ -166,7 +131,7 @@ namespace Segment.Analytics
                 eventPlugin.Flush();
             }
         });
-        
+
 
         /// <summary>
         /// Reset the user identity info and all the event plugins. Should be invoked when
@@ -174,6 +139,10 @@ namespace Segment.Analytics
         /// </summary>
         public void Reset()
         {
+            userInfo.userId = null;
+            userInfo.anonymousId = null;
+            userInfo.traits = null;
+
             analyticsScope.Launch(analyticsDispatcher, async () =>
             {
                 await store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction());
@@ -196,8 +165,8 @@ namespace Segment.Analytics
 
         #endregion
 
-        
-        
+
+
         #region Settings
 
         /// <summary>
@@ -229,10 +198,10 @@ namespace Segment.Analytics
 
             return returnSettings;
         }
-        
+
         #endregion
-        
-        
+
+
 
         #region Startup
 
@@ -240,6 +209,7 @@ namespace Segment.Analytics
         {
             Add(new StartupQueue());
             Add(new ContextPlugin());
+            Add(new UserInfoPlugin());
 
             // use Wait() for this coroutine to force completion,
             // since Store must be setup before any event call happened.
@@ -247,11 +217,13 @@ namespace Segment.Analytics
             // we should avoid of doing it whenever possible.
             analyticsScope.Launch(analyticsDispatcher, async () =>
             {
-                await store.Provide(UserInfo.DefaultState(configuration, storage));
+                // load memory with initial value
+                userInfo = UserInfo.DefaultState(configuration, storage);
+                await store.Provide(userInfo);
                 await store.Provide(System.DefaultState(configuration, storage));
                 await storage.SubscribeToStore();
             }).Wait();
-            
+
             // check settings over the network,
             // we don't have to Wait() here, because events are piped in
             // StartupQueue until settings is ready
@@ -266,9 +238,9 @@ namespace Segment.Analytics
                 // TODO: Add lifecycle events to call CheckSettings when app is brought to foreground (not launched)
             });
         }
-        
+
         #endregion
-        
+
     }
 
     internal interface ILogger

@@ -29,21 +29,12 @@ namespace Segment.Analytics
             this.integrations = rawEvent.integrations;
         }
 
-        internal async Task ApplyRawEventData(Store store)
-        {
-            var userInfo = await store.CurrentState<UserInfo>();
-            if (userInfo.isNull) return;
-
-            this.anonymousId = userInfo.anonymousId;
-            this.userId = userInfo.userId;
-            this.integrations = new JsonObject();  
-        }
-
-        internal void ApplyBaseData()
+        internal void ApplyRawEventData()
         {
             this.messageId = Guid.NewGuid().ToString();
             this.context = new JsonObject();
             this.timestamp = DateTime.UtcNow.ToString("o"); // iso8601
+            this.integrations = new JsonObject();
         }
     }
 
