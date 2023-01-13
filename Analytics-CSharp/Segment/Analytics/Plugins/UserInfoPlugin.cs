@@ -11,31 +11,21 @@ namespace Segment.Analytics.Plugins
     {
         public override PluginType type => PluginType.Before;
 
-        private Store store;
-
         public override void Configure(Analytics analytics)
         {
             base.Configure(analytics);
-            store = analytics.store;
         }
 
         private void ApplyUserInfoData(RawEvent @event)
         {
             if (@event is IdentifyEvent identifyEvent)
             {
-                if (identifyEvent.userId != null)
-                {
-                    analytics.userInfo.userId = identifyEvent.userId;
-                }
-                if (identifyEvent.traits != null)
-                {
-                    analytics.userInfo.traits = identifyEvent.traits;
-                }
+                analytics.userInfo.userId = identifyEvent.userId ?? analytics.userInfo.userId;
+                analytics.userInfo.traits = identifyEvent.traits ?? analytics.userInfo.traits;
             }
             else if (@event is AliasEvent aliasEvent)
             {
-                if (aliasEvent.userId != null)
-                analytics.userInfo.userId = aliasEvent.userId;
+                analytics.userInfo.userId = aliasEvent.userId ?? analytics.userInfo.userId;
             }
             else
             {

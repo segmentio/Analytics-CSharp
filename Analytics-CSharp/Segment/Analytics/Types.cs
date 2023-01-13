@@ -29,7 +29,7 @@ namespace Segment.Analytics
             this.integrations = rawEvent.integrations;
         }
 
-        internal void ApplyBaseData()
+        internal void ApplyRawEventData()
         {
             this.messageId = Guid.NewGuid().ToString();
             this.context = new JsonObject();

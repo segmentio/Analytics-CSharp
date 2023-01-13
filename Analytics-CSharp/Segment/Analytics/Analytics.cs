@@ -65,7 +65,7 @@ namespace Segment.Analytics
         /// <param name="incomingEvent">An event conforming to RawEvent to be processed in the timeline</param>
         public void Process(RawEvent incomingEvent)
         {
-            incomingEvent.ApplyBaseData();
+            incomingEvent.ApplyRawEventData();
             timeline.Process(incomingEvent);
         }
 
@@ -78,7 +78,11 @@ namespace Segment.Analytics
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>Anonymous Id</returns>
-        public string AnonymousId => userInfo.anonymousId;
+        public string AnonymousId()
+        {
+            return userInfo.anonymousId;
+        }
+
 
         /// <summary>
         /// Retrieve the userId registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call in a blocking way.
@@ -87,7 +91,10 @@ namespace Segment.Analytics
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>User Id</returns>
-        public string UserId => userInfo.userId;
+        public string UserId()
+        {
+            return userInfo.userId;
+        }
         
 
         /// <summary>

@@ -120,7 +120,7 @@ namespace Tests
 
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId, expected);
-            var actualUserId = _analytics.UserId;
+            var actualUserId = _analytics.UserId();
             
             Assert.NotEmpty(actual);
             Assert.Equal(expected, actual[0].traits);
@@ -136,7 +136,7 @@ namespace Tests
 
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId);
-            var actualUserId = _analytics.UserId;
+            var actualUserId = _analytics.UserId();
             
             Assert.NotEmpty(actual);
             Assert.True(actual[0].traits.Count == 0);
@@ -152,11 +152,11 @@ namespace Tests
             };
             var actual = new List<IdentifyEvent>();
             _plugin.Setup(o => o.Identify(Capture.In(actual)));
-            var expectedUserId = _analytics.UserId;
+            var expectedUserId = _analytics.UserId();
 
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expected);
-            var actualUserId = _analytics.UserId;
+            var actualUserId = _analytics.UserId();
             
             Assert.NotEmpty(actual);
             Assert.Equal(expected, actual[0].traits);
@@ -173,7 +173,7 @@ namespace Tests
 
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId, expected);
-            var actualUserId = _analytics.UserId;
+            var actualUserId = _analytics.UserId();
             
             Assert.NotEmpty(actual);
             Assert.Equal(expected.GetJsonObject(), actual[0].traits);
@@ -189,7 +189,7 @@ namespace Tests
 
             _analytics.Add(_plugin.Object);
             _analytics.Identify<FooBar>(expectedUserId);
-            var actualUserId = _analytics.UserId;
+            var actualUserId = _analytics.UserId();
             
             Assert.NotEmpty(actual);
             Assert.True(actual[0].traits.Count == 0);
@@ -202,11 +202,11 @@ namespace Tests
             var expected = new FooBar();
             var actual = new List<IdentifyEvent>();
             _plugin.Setup(o => o.Identify(Capture.In(actual)));
-            var expectedUserId = _analytics.UserId;
+            var expectedUserId = _analytics.UserId();
             
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expected);
-            var actualUserId = _analytics.UserId;
+            var actualUserId = _analytics.UserId();
             
             Assert.NotEmpty(actual);
             Assert.Equal(expected.GetJsonObject(), actual[0].traits);
