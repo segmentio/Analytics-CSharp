@@ -24,7 +24,7 @@ namespace Segment.Analytics.Utilities
 
         private readonly HTTPClient _httpClient;
 
-        private readonly Storage _storage;
+        private readonly IStorage _storage;
         
         internal string apiHost { get; set; }
         
@@ -91,7 +91,7 @@ namespace Segment.Analytics.Utilities
                 {
                     try
                     {
-                        await _storage.Write(Storage.Constants.Events, e);
+                        await _storage.Write(Constants.Events, e);
                     }
                     catch (Exception exception)
                     {
@@ -118,18 +118,18 @@ namespace Segment.Analytics.Utilities
                     await _storage.Rollover();
                 });
 
-                var fileUrlList = _storage.Read(Storage.Constants.Events).Split(',').ToList();
+                var fileUrlList = _storage.Read(Constants.Events).Split(',').ToList();
                 foreach (var url in fileUrlList)
                 {
                     if (string.IsNullOrEmpty(url)) continue;
-                    
-                    var file = new FileInfo(url);
-                    if (!file.Exists) continue;
+
+                    var data = _storage.ReadAsBytes(url);
+                    if (data == null) continue;
 
                     var shouldCleanup = true;
                     try
                     {
-                        shouldCleanup = await _httpClient.Upload(url);
+                        shouldCleanup = await _httpClient.Upload(data);
                     }
                     catch (Exception e)
                     {

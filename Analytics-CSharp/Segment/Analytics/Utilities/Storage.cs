@@ -7,7 +7,99 @@ using Segment.Sovran;
 
 namespace Segment.Analytics.Utilities
 {
-    internal class Storage : ISubscriber
+    
+    #region Storage Constants
+
+    public readonly struct Constants
+    {
+        public string value { get; }
+
+        private Constants(string value)
+        {
+            this.value = value;
+        }
+
+        public override string ToString()
+        {
+            return value;
+        }
+
+        public static implicit operator string(Constants constant) => constant.value;
+
+        // backing fields that holds the actual string representation
+        // needed for switch statement, has to be compile time available
+        public const string _UserId = "segment.userId";
+        public const string _Traits = "segment.traits";
+        public const string _AnonymousId = "segment.anonymousId";
+        public const string _Settings = "segment.settings";
+        public const string _Events = "segment.events";
+            
+        // enum alternatives
+        public static readonly Constants UserId = new Constants(_UserId);
+        public static readonly Constants Traits = new Constants(_Traits);
+        public static readonly Constants AnonymousId = new Constants(_AnonymousId);
+        public static readonly Constants Settings = new Constants(_Settings);
+        public static readonly Constants Events = new Constants(_Events);
+    }
+
+    #endregion
+    
+    public interface IStorage
+    {
+        Task SubscribeToStore();
+
+        Task Write(Constants key, string value);
+
+        void WritePrefs(Constants key, string value);
+
+        Task Rollover();
+
+        string Read(Constants key);
+
+        bool Remove(Constants key);
+
+        bool RemoveFile(string filePath);
+
+        byte[] ReadAsBytes(string source);
+    }
+
+    public interface IStorageProvider
+    {
+        IStorage CreateStorage(params object[] parameters);
+    }
+
+    public class DefaultStorageProvider : IStorageProvider
+    {
+        public IStorage CreateStorage(params object[] parameters)
+        {
+            if (!(parameters.Length == 1 && parameters[0] is Analytics))
+            {
+                throw new ArgumentException(
+                    "Invalid parameters for DefaultStorageProvider. DefaultStorageProvider only accepts 1 parameter and it has to be an instance of Analytics");
+            }
+
+            var analytics = (Analytics)parameters[0];
+            var config = analytics.configuration;
+            return new Storage(analytics.store, config.writeKey, config.persistentDataPath, analytics.fileIODispatcher, config.exceptionHandler);   
+        }
+    }
+    
+    public class InMemoryStorageProvider : IStorageProvider
+    {
+        public IStorage CreateStorage(params object[] parameters)
+        {
+            if (!(parameters.Length == 1 && parameters[0] is Analytics))
+            {
+                throw new ArgumentException(
+                    "Invalid parameters for InMemoryStorageProvider. InMemoryStorageProvider only accepts 1 parameter and it has to be an instance of Analytics");
+            }
+
+            var analytics = (Analytics)parameters[0];
+            return new InMemoryStorage(analytics.configuration.writeKey);   
+        }
+    }
+
+    internal class Storage : IStorage, ISubscriber
     {
         private readonly Store _store;
         
@@ -134,6 +226,12 @@ namespace Segment.Analytics.Utilities
             return _eventsFile.Remove(filePath);
         }
 
+        public byte[] ReadAsBytes(string source)
+        {   
+            var file = new FileInfo(source);
+            return file.Exists ? File.ReadAllBytes(source) : null;
+        }
+
         #region State Subscriptions
 
         public void UserInfoUpdate(IState state)
@@ -159,41 +257,52 @@ namespace Segment.Analytics.Utilities
         }
 
         #endregion
-        
-        #region Storage Constants
-
-        public readonly struct Constants
+    }
+    
+    internal class InMemoryStorage : IStorage
+    {
+        public InMemoryStorage(string writeKey)
         {
-            public string value { get; }
-
-            private Constants(string value)
-            {
-                this.value = value;
-            }
-
-            public override string ToString()
-            {
-                return value;
-            }
-
-            public static implicit operator string(Constants constant) => constant.value;
-
-            // backing fields that holds the actual string representation
-            // needed for switch statement, has to be compile time available
-            public const string _UserId = "segment.userId";
-            public const string _Traits = "segment.traits";
-            public const string _AnonymousId = "segment.anonymousId";
-            public const string _Settings = "segment.settings";
-            public const string _Events = "segment.events";
-            
-            // enum alternatives
-            public static readonly Constants UserId = new Constants(_UserId);
-            public static readonly Constants Traits = new Constants(_Traits);
-            public static readonly Constants AnonymousId = new Constants(_AnonymousId);
-            public static readonly Constants Settings = new Constants(_Settings);
-            public static readonly Constants Events = new Constants(_Events);
         }
 
-        #endregion
+        public Task SubscribeToStore()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task Write(Constants key, string value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void WritePrefs(Constants key, string value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task Rollover()
+        {
+            throw new NotImplementedException();
+        }
+
+        public string Read(Constants key)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Remove(Constants key)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool RemoveFile(string filePath)
+        {
+            throw new NotImplementedException();
+        }
+
+        public byte[] ReadAsBytes(string source)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

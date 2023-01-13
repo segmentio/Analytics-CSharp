@@ -58,10 +58,10 @@ namespace Segment.Analytics.Utilities
             return result;
         }
 
-        public virtual async Task<bool> Upload(string file)
+        public virtual async Task<bool> Upload(byte[] data)
         {
             var uploadURL = SegmentURL(_apiHost, "/b");
-            var response =  await DoUpload(uploadURL, file);
+            var response =  await DoPost(uploadURL, data);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -105,12 +105,6 @@ namespace Segment.Analytics.Utilities
             request.Content = new ByteArrayContent(data);
 
             return await _httpClient.SendAsync(request);
-        }
-
-        private async Task<HttpResponseMessage> DoUpload(string url, string file)
-        {
-            var data = File.ReadAllBytes(file);
-            return await DoPost(url, data);
         }
 
         private string AuthorizationHeader(string writeKey)

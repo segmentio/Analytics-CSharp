@@ -1,4 +1,5 @@
 ﻿
+using Segment.Analytics.Utilities;
 using Segment.Concurrent;
 
 namespace Segment.Analytics
@@ -25,6 +26,8 @@ namespace Segment.Analytics
         
         public ICoroutineExceptionHandler exceptionHandler { get; }
         
+        public IStorageProvider storageProvider { get; }
+        
         /// <summary>
         /// Configuration that analytics can use
         /// </summary>
@@ -43,7 +46,8 @@ namespace Segment.Analytics
         /// <param name="userSynchronizeDispatcher">forcing everything to run synchronously, used for unit tests </param>
         /// <param name="apiHost">set a default apiHost to which Segment sends events, defaults to <c>api.segment.io/v1</c></param>
         /// <param name="cdnHost">set a default cdnHost to which Segment fetches settings, defaults to <c>cdn-settings.segment.com/v1</c></param>
-        /// <param name="exceptionHandler">set a an exception handler to handle errors happened in async methods within the analytics scope</param>
+        /// <param name="exceptionHandler">set an exception handler to handle errors happened in async methods within the analytics scope</param>
+        /// <param name="storageProvider">set a storage provide to tell the analytics where to store your data</param>
         public Configuration(string writeKey,
             string persistentDataPath,
             int flushAt = 20,
@@ -53,7 +57,8 @@ namespace Segment.Analytics
             bool userSynchronizeDispatcher = false,
             string apiHost = null,
             string cdnHost = null,
-            ICoroutineExceptionHandler exceptionHandler = null)
+            ICoroutineExceptionHandler exceptionHandler = null,
+            IStorageProvider storageProvider = default)
         {
             this.writeKey = writeKey;
             this.persistentDataPath = persistentDataPath;
@@ -65,6 +70,7 @@ namespace Segment.Analytics
             this.apiHost = apiHost;
             this.cdnHost = cdnHost;
             this.exceptionHandler = exceptionHandler;
+            this.storageProvider = storageProvider ?? new DefaultStorageProvider();
         }
     }
 
