@@ -220,7 +220,7 @@ namespace Segment.Analytics
                 userInfo = UserInfo.DefaultState(configuration, storage);
                 await store.Provide(userInfo);
                 await store.Provide(System.DefaultState(configuration, storage));
-                await storage.SubscribeToStore();
+                await storage.Initialize();
             }).Wait();
 
             // check settings over the network,
