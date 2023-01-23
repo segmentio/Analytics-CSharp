@@ -18,7 +18,7 @@ namespace Segment.Analytics
         internal Analytics(Configuration configuration,
             Timeline timeline = null,
             Store store = null,
-            Storage storage = null,
+            IStorage storage = null,
             Scope analyticsScope = null, 
             IDispatcher fileIODispatcher = null,
             IDispatcher networkIODispatcher = null,
@@ -33,7 +33,7 @@ namespace Segment.Analytics
             this.networkIODispatcher = networkIODispatcher ?? dispatcher;
             this.analyticsDispatcher = analyticsDispatcher ?? dispatcher;
             this.store = store ?? new Store(true, configuration.exceptionHandler);
-            this.storage = storage ?? new Storage(this.store, configuration.writeKey, configuration.persistentDataPath, this.fileIODispatcher, configuration.exceptionHandler);
+            this.storage = storage ?? new DefaultStorageProvider().CreateStorage(this);
             this.timeline = timeline ?? new Timeline();
             
             Startup(httpClient);

@@ -31,7 +31,7 @@ namespace Segment.Analytics
             Settings settings;
             try
             {
-                var cache = storage.Read(Constants.Settings) ?? "";
+                var cache = storage.Read(StorageConstants.Settings) ?? "";
                 settings = JsonUtility.FromJson<Settings>(cache);
             }
             catch (Exception e)
@@ -142,9 +142,9 @@ namespace Segment.Analytics
 
         internal static UserInfo DefaultState(Configuration configuration, IStorage storage)
         {
-            var userId = storage.Read(Constants.UserId);
-            var anonymousId = storage.Read(Constants.AnonymousId) ?? Guid.NewGuid().ToString();
-            var traitsStr = storage.Read(Constants.Traits) ?? "{}";
+            var userId = storage.Read(StorageConstants.UserId);
+            var anonymousId = storage.Read(StorageConstants.AnonymousId) ?? Guid.NewGuid().ToString();
+            var traitsStr = storage.Read(StorageConstants.Traits) ?? "{}";
 
             JsonObject traits;
             try

@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Segment.Concurrent;
@@ -91,7 +90,7 @@ namespace Segment.Analytics.Utilities
                 {
                     try
                     {
-                        await _storage.Write(Constants.Events, e);
+                        await _storage.Write(StorageConstants.Events, e);
                     }
                     catch (Exception exception)
                     {
@@ -118,7 +117,7 @@ namespace Segment.Analytics.Utilities
                     await _storage.Rollover();
                 });
 
-                var fileUrlList = _storage.Read(Constants.Events).Split(',').ToList();
+                var fileUrlList = _storage.Read(StorageConstants.Events).Split(',').ToList();
                 foreach (var url in fileUrlList)
                 {
                     if (string.IsNullOrEmpty(url)) continue;

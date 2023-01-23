@@ -1,27 +1,26 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
 using Moq;
 using Segment.Analytics;
 using Segment.Analytics.Utilities;
-using Segment.Concurrent;
 using Segment.Serialization;
-using Segment.Sovran;
 using Xunit;
 
 namespace Tests.Utilities
 {
-    public class EventPipelineTest : IDisposable
+    public class EventPipelineTest
     {
         private EventPipeline _eventPipeline;
 
         private Analytics _analytics;
 
-        private Mock<Storage> _storage;
+        private Mock<IStorage> _storage;
 
         private Mock<HTTPClient> _mockHttpClient;
 
         private string file;
+
+        private byte[] _bytes;
 
         public EventPipelineTest()
         {
@@ -42,10 +41,10 @@ namespace Tests.Utilities
                 .Setup(httpClient => httpClient.Settings())
                 .ReturnsAsync(settings);
             _mockHttpClient
-                .Setup(httpclient => httpclient.Upload(It.IsAny<string>()))
+                .Setup(httpclient => httpclient.Upload(It.IsAny<byte[]>()))
                 .ReturnsAsync(true);
 
-            _storage = new Mock<Storage>(new Store(true), "123", "tests", new SynchronizeDispatcher(), null);
+            _storage = new Mock<IStorage>();
             _analytics = new Analytics(config,
                 httpClient: _mockHttpClient.Object,
                 storage: _storage.Object);
@@ -60,18 +59,13 @@ namespace Tests.Utilities
             );
             
             file = Guid.NewGuid().ToString();
+            _bytes = file.GetBytes();
             _storage
-                .Setup(o => o.Read(Storage.Constants.Events))
+                .Setup(o => o.Read(StorageConstants.Events))
                 .Returns(file);
-            // since we can't mock static api, we have to actually create the file
-            // the the flushing flow continues
-            File.Create(file);
-        }
-
-        public void Dispose()
-        {
-            // clean up
-            File.Delete(file);
+            _storage
+                .Setup(o => o.ReadAsBytes(It.IsAny<string>()))
+                .Returns(_bytes);
         }
 
         [Fact]
@@ -82,7 +76,7 @@ namespace Tests.Utilities
 
             await Task.Delay(1000);
             
-            _storage.Verify(o => o.Write(Storage.Constants.Events, It.IsAny<string>()), Times.Exactly(1));
+            _storage.Verify(o => o.Write(StorageConstants.Events, It.IsAny<string>()), Times.Exactly(1));
         }
         
         [Fact]
@@ -95,8 +89,8 @@ namespace Tests.Utilities
             await Task.Delay(1000);
             
             _storage.Verify(o => o.Rollover(), Times.Exactly(1));
-            _storage.Verify(o => o.Read(Storage.Constants.Events), Times.Exactly(1));
-            _mockHttpClient.Verify(o => o.Upload(file), Times.Exactly(1));
+            _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
+            _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(1));
             _storage.Verify(o => o.RemoveFile(file), Times.Exactly(1));
         }
 
@@ -124,8 +118,8 @@ namespace Tests.Utilities
             await Task.Delay(1000);
             
             _storage.Verify(o => o.Rollover(), Times.Exactly(1));
-            _storage.Verify(o => o.Read(Storage.Constants.Events), Times.Exactly(1));
-            _mockHttpClient.Verify(o => o.Upload(file), Times.Exactly(1));
+            _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
+            _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(1));
             _storage.Verify(o => o.RemoveFile(file), Times.Exactly(1));
         }
 
@@ -147,8 +141,8 @@ namespace Tests.Utilities
             await Task.Delay(1500);
             
             _storage.Verify(o => o.Rollover(), Times.Exactly(2));
-            _storage.Verify(o => o.Read(Storage.Constants.Events), Times.Exactly(2));
-            _mockHttpClient.Verify(o => o.Upload(file), Times.Exactly(2));
+            _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(2));
+            _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(2));
             _storage.Verify(o => o.RemoveFile(file), Times.Exactly(2));
         }
         
@@ -156,7 +150,9 @@ namespace Tests.Utilities
         public async Task TestFlushInterruptedWhenNoFileExist()
         {
             // make sure the file does not exist
-            File.Delete(file);
+            _storage
+                .Setup(o => o.ReadAsBytes(It.IsAny<string>()))
+                .Returns((byte[]) null);
             
             _eventPipeline.Start();
             _eventPipeline.Flush();
@@ -164,8 +160,8 @@ namespace Tests.Utilities
             await Task.Delay(1000);
             
             _storage.Verify(o => o.Rollover(), Times.Exactly(1));
-            _storage.Verify(o => o.Read(Storage.Constants.Events), Times.Exactly(1));
-            _mockHttpClient.Verify(o => o.Upload(file), Times.Exactly(0));
+            _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
+            _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(0));
             _storage.Verify(o => o.RemoveFile(file), Times.Exactly(0));
         }
     }

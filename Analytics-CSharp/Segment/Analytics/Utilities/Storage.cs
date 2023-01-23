@@ -13,11 +13,11 @@ namespace Segment.Analytics.Utilities
     
     #region Storage Constants
 
-    public readonly struct Constants
+    public readonly struct StorageConstants
     {
         public string value { get; }
 
-        private Constants(string value)
+        private StorageConstants(string value)
         {
             this.value = value;
         }
@@ -27,7 +27,7 @@ namespace Segment.Analytics.Utilities
             return value;
         }
 
-        public static implicit operator string(Constants constant) => constant.value;
+        public static implicit operator string(StorageConstants storageConstant) => storageConstant.value;
 
         // backing fields that holds the actual string representation
         // needed for switch statement, has to be compile time available
@@ -38,11 +38,11 @@ namespace Segment.Analytics.Utilities
         public const string _Events = "segment.events";
             
         // enum alternatives
-        public static readonly Constants UserId = new Constants(_UserId);
-        public static readonly Constants Traits = new Constants(_Traits);
-        public static readonly Constants AnonymousId = new Constants(_AnonymousId);
-        public static readonly Constants Settings = new Constants(_Settings);
-        public static readonly Constants Events = new Constants(_Events);
+        public static readonly StorageConstants UserId = new StorageConstants(_UserId);
+        public static readonly StorageConstants Traits = new StorageConstants(_Traits);
+        public static readonly StorageConstants AnonymousId = new StorageConstants(_AnonymousId);
+        public static readonly StorageConstants Settings = new StorageConstants(_Settings);
+        public static readonly StorageConstants Events = new StorageConstants(_Events);
     }
 
     #endregion
@@ -51,15 +51,15 @@ namespace Segment.Analytics.Utilities
     {
         Task Initialize();
 
-        Task Write(Constants key, string value);
+        Task Write(StorageConstants key, string value);
 
-        void WritePrefs(Constants key, string value);
+        void WritePrefs(StorageConstants key, string value);
 
         Task Rollover();
 
-        string Read(Constants key);
+        string Read(StorageConstants key);
 
-        bool Remove(Constants key);
+        bool Remove(StorageConstants key);
 
         bool RemoveFile(string filePath);
 
@@ -145,33 +145,35 @@ namespace Segment.Analytics.Utilities
     ///
     /// remove() will delete the file path specified
     /// </summary>
-    internal class Storage : IStorage, ISubscriber
+    public class Storage : IStorage, ISubscriber
     {
         private readonly Store _store;
         
         private readonly string _writeKey;
 
-        private readonly IPreferences _userPrefs;
+        internal readonly IPreferences _userPrefs;
 
-        private readonly IEventStream _eventStream;
+        internal readonly IEventStream _eventStream;
 
         private readonly IDispatcher _ioDispatcher;
 
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        private readonly string _fileIndexKey;
+        internal readonly string _fileIndexKey;
         
-        private string Begin => "{\"batch\":[";
+        internal string Begin => "{\"batch\":[";
         
-        private string End => "],\"sentAt\":\"" + DateTime.UtcNow.ToString("o") + "\",\"writeKey\":\"" + _writeKey + "\"}";
+        internal string End => "],\"sentAt\":\"" + DateTime.UtcNow.ToString("o") + "\",\"writeKey\":\"" + _writeKey + "\"}";
         
-        private string CurrentFile => _writeKey + "-" + _userPrefs.GetInt(_fileIndexKey, 0) + ".tmp";
+        private string CurrentFile => _writeKey + "-" + _userPrefs.GetInt(_fileIndexKey, 0);
 
         public const long MaxPayloadSize = 32_000;
 
         public const long MaxBatchSize = 475_000;
         
-        private const long MaxFileSize = 475_000;
+        public const long MaxFileSize = 475_000;
+
+        private const string FileExtension = "json";
 
         public Storage(IPreferences userPrefs, IEventStream eventStream, Store store, string writeKey, IDispatcher ioDispatcher = default)
         {
@@ -200,11 +202,11 @@ namespace Segment.Analytics.Utilities
         /// <param name="key">the type of value being written</param>
         /// <param name="value">the value being written</param>
         /// <exception cref="Exception">exception that captures the failure of writing an event to disk</exception>
-        public virtual async Task Write(Constants key, string value)
+        public virtual async Task Write(StorageConstants key, string value)
         {
             switch (key)
             {
-                case Constants._Events:
+                case StorageConstants._Events:
                     if (value.Length < MaxPayloadSize)
                     {
                         await StoreEvent(value);
@@ -230,7 +232,7 @@ namespace Segment.Analytics.Utilities
         /// </para>
         /// <param name="key">the type of value being written</param>
         /// <param name="value">the value being written</param>
-        public void WritePrefs(Constants key, string value)
+        public void WritePrefs(StorageConstants key, string value)
         {
             _userPrefs.Put(key, value);
         }
@@ -246,24 +248,24 @@ namespace Segment.Analytics.Utilities
             await PerformRollover();
         });
         
-        public virtual string Read(Constants key)
+        public virtual string Read(StorageConstants key)
         {
             switch (key)
             {
-                case Constants._Events:
+                case StorageConstants._Events:
                     return string.Join(",", 
                         _eventStream.Read()
-                            .Where(f => !f.EndsWith(".tmp")));
+                            .Where(f => f.EndsWith(FileExtension)));
                 default:
                     return _userPrefs.GetString(key, null);
             }
         }
 
-        public bool Remove(Constants key)
+        public bool Remove(StorageConstants key)
         {
             switch (key)
             {
-                case Constants._Events:
+                case StorageConstants._Events:
                     return true;
                 default:
                     _userPrefs.Remove(key);
@@ -295,23 +297,23 @@ namespace Segment.Analytics.Utilities
         public void UserInfoUpdate(IState state)
         {   
             var userInfo = (UserInfo) state;
-            WritePrefs(Constants.AnonymousId, userInfo.anonymousId);
+            WritePrefs(StorageConstants.AnonymousId, userInfo.anonymousId);
             
             if (userInfo.userId != null)
             {
-                WritePrefs(Constants.UserId, userInfo.userId);
+                WritePrefs(StorageConstants.UserId, userInfo.userId);
             }
 
             if (userInfo.traits != null)
             {
-                WritePrefs(Constants.Traits, JsonUtility.ToJson(userInfo.traits));
+                WritePrefs(StorageConstants.Traits, JsonUtility.ToJson(userInfo.traits));
             }
         }
 
         public void SystemUpdate(IState state)
         {
             var system = (System) state;
-            WritePrefs(Constants.Settings, JsonUtility.ToJson(system.settings));
+            WritePrefs(StorageConstants.Settings, JsonUtility.ToJson(system.settings));
         }
 
         #endregion
@@ -359,7 +361,7 @@ namespace Segment.Analytics.Utilities
             if (!_eventStream.IsOpened) return;
 
             await _eventStream.Write(End);
-            _eventStream.Close();
+            _eventStream.FinishAndClose(FileExtension);
             
             IncrementFileIndex();
         }

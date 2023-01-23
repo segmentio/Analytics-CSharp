@@ -22,6 +22,8 @@ namespace Segment.Analytics.Utilities
         void Remove(string file);
         
         void Close();
+
+        void FinishAndClose(string extension = default);
         
         byte[] ReadAsBytes(string source);
     }
@@ -39,6 +41,13 @@ namespace Segment.Analytics.Utilities
         
         public void OpenOrCreate(string file, out bool newFile)
         {
+            if (_file != null && !_file.Name.Equals(file))
+            {
+                // the given file is different than the current one
+                // close the current one first
+                Close();
+            }
+            
             newFile = false;
             if (_file == null)
             {
@@ -51,7 +60,7 @@ namespace Segment.Analytics.Utilities
 
         public Task Write(string content)
         {
-            _file.Write(content);
+            _file?.Write(content);
             return Task.CompletedTask;
         }
 
@@ -64,9 +73,25 @@ namespace Segment.Analytics.Utilities
 
         public void Close()
         {
-            var nameWithoutExtension = Path.GetFileNameWithoutExtension(_file.Name);
-            _directory.Remove(_file.Name);
-            _directory[nameWithoutExtension] = _file;
+            _file = null;
+        }
+
+
+        /// <summary>
+        /// This method closes and adds an extension to the opening file.
+        /// The file will no longer be available to modified once this method is called.
+        /// </summary>
+        /// <param name="extension">extension without dot</param>
+        public void FinishAndClose(string extension = default)
+        {
+            if (_file == null) return;
+            
+            if (extension != null)
+            {
+                var nameWithExtension = _file.Name + '.' + extension;
+                _directory.Remove(_file.Name);
+                _directory[nameWithExtension] = _file;
+            }
 
             _file = null;
         }
@@ -107,26 +132,47 @@ namespace Segment.Analytics.Utilities
         
         public long Length => _file?.Length ?? 0;
 
+        public bool IsOpened => _file != null && _fs != null;
+
         public FileEventStream(string directory)
         {   
             _directory = Directory.CreateDirectory(directory);
         }
         
+        /// <summary>
+        /// This method appends a `.tmp` extension to the give file, which
+        /// means we only operate on an unfinished file. Once a file is
+        /// finished, it is no longer available to modified.
+        /// </summary>
+        /// <param name="file">filename</param>
+        /// <param name="newFile">result that indicate whether the file is a new file</param>
         public void OpenOrCreate(string file, out bool newFile)
         {
+            if (_file != null && !_file.FullName.EndsWith(file))
+            {
+                // the given file is different than the current one
+                // close the current one first
+                Close();
+            }
+            
             if (_file == null)
             {
                 _file = new FileInfo(_directory.FullName + Path.DirectorySeparatorChar + file);
             }
-
             newFile = !_file.Exists;
-            _fs = _file.Open(FileMode.OpenOrCreate);
+
+            if (_fs == null)
+            {
+                _fs = _file.Open(FileMode.OpenOrCreate);
+                _fs.Seek(0, SeekOrigin.End);
+            }
+            _file.Refresh();
         }
 
-        public bool IsOpened => _file != null && _file.Exists && _fs != null;
-
         public async Task Write(string content)
-        {   
+        {
+            if (_fs == null || _file == null) return;
+            
             await _fs.WriteAsync(content.GetBytes(), 0, content.Length);
             await _fs.FlushAsync();
             _file.Refresh();
@@ -144,12 +190,28 @@ namespace Segment.Analytics.Utilities
 
         public void Close()
         {
-            _fs.Close();
-
-            var nameWithoutExtension = _file.FullName.Remove(_file.FullName.Length - _file.Extension.Length);
-            _file.MoveTo(nameWithoutExtension);
-            
+            _fs?.Close();
             _fs = null;
+            _file = null;
+        }
+
+        /// <summary>
+        /// This method closes and adds an extension to the opening file.
+        /// The file will no longer be available to modified once this method is called.
+        /// </summary>
+        /// <param name="extension">extension without dot</param>
+        public void FinishAndClose(string extension = default)
+        {
+            _fs?.Close();
+            _fs = null;
+
+            
+            if (_file != null && extension != null)
+            {
+                var nameWithExtension = _file.FullName + '.' + extension;
+                _file.MoveTo(nameWithExtension);
+            }
+
             _file = null;
         }
 
