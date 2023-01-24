@@ -8,7 +8,6 @@ using Segment.Sovran;
 
 using JsonUtility = Segment.Serialization.JsonUtility;
 using System.Threading.Tasks;
-using static Segment.Analytics.Utilities.Storage;
 
 namespace Segment.Analytics
 {
@@ -17,8 +16,8 @@ namespace Segment.Analytics
         public Timeline timeline { get; }
 
         internal Configuration configuration { get; }
-        internal Store store { get; }
-        internal Storage storage { get; }
+        internal Store store { get;}
+        internal IStorage storage { get;}
 
         internal Scope analyticsScope { get; }
         internal IDispatcher fileIODispatcher { get; }
@@ -52,7 +51,7 @@ namespace Segment.Analytics
             }
 
             store = new Store(configuration.userSynchronizeDispatcher, configuration.exceptionHandler);
-            storage = new Storage(store, configuration.writeKey, configuration.persistentDataPath, fileIODispatcher, configuration.exceptionHandler);
+            storage = configuration.storageProvider.CreateStorage(this);
             timeline = new Timeline();
 
             // Start everything
@@ -221,7 +220,7 @@ namespace Segment.Analytics
                 userInfo = UserInfo.DefaultState(configuration, storage);
                 await store.Provide(userInfo);
                 await store.Provide(System.DefaultState(configuration, storage));
-                await storage.SubscribeToStore();
+                await storage.Initialize();
             }).Wait();
 
             // check settings over the network,

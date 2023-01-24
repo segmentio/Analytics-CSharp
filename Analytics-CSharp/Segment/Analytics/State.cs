@@ -26,12 +26,12 @@ namespace Segment.Analytics
             this.running = running;
         }
         
-        internal static System DefaultState(Configuration configuration, Storage storage)
+        internal static System DefaultState(Configuration configuration, IStorage storage)
         {
             Settings settings;
             try
             {
-                var cache = storage.Read(Storage.Constants.Settings) ?? "";
+                var cache = storage.Read(StorageConstants.Settings) ?? "";
                 settings = JsonUtility.FromJson<Settings>(cache);
             }
             catch (Exception e)
@@ -140,11 +140,11 @@ namespace Segment.Analytics
             userId == default &&
             traits == default;
 
-        internal static UserInfo DefaultState(Configuration configuration, Storage storage)
+        internal static UserInfo DefaultState(Configuration configuration, IStorage storage)
         {
-            var userId = storage.Read(Storage.Constants.UserId);
-            var anonymousId = storage.Read(Storage.Constants.AnonymousId) ?? Guid.NewGuid().ToString();
-            var traitsStr = storage.Read(Storage.Constants.Traits) ?? "{}";
+            var userId = storage.Read(StorageConstants.UserId);
+            var anonymousId = storage.Read(StorageConstants.AnonymousId) ?? Guid.NewGuid().ToString();
+            var traitsStr = storage.Read(StorageConstants.Traits) ?? "{}";
 
             JsonObject traits;
             try

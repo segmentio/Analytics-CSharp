@@ -1,5 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Segment.Concurrent;
 using Segment.Serialization;
@@ -7,39 +10,182 @@ using Segment.Sovran;
 
 namespace Segment.Analytics.Utilities
 {
-    internal class Storage : ISubscriber
+    
+    #region Storage Constants
+
+    public readonly struct StorageConstants
+    {
+        public string value { get; }
+
+        private StorageConstants(string value)
+        {
+            this.value = value;
+        }
+
+        public override string ToString()
+        {
+            return value;
+        }
+
+        public static implicit operator string(StorageConstants storageConstant) => storageConstant.value;
+
+        // backing fields that holds the actual string representation
+        // needed for switch statement, has to be compile time available
+        public const string _UserId = "segment.userId";
+        public const string _Traits = "segment.traits";
+        public const string _AnonymousId = "segment.anonymousId";
+        public const string _Settings = "segment.settings";
+        public const string _Events = "segment.events";
+            
+        // enum alternatives
+        public static readonly StorageConstants UserId = new StorageConstants(_UserId);
+        public static readonly StorageConstants Traits = new StorageConstants(_Traits);
+        public static readonly StorageConstants AnonymousId = new StorageConstants(_AnonymousId);
+        public static readonly StorageConstants Settings = new StorageConstants(_Settings);
+        public static readonly StorageConstants Events = new StorageConstants(_Events);
+    }
+
+    #endregion
+    
+    public interface IStorage
+    {
+        Task Initialize();
+
+        Task Write(StorageConstants key, string value);
+
+        void WritePrefs(StorageConstants key, string value);
+
+        Task Rollover();
+
+        string Read(StorageConstants key);
+
+        bool Remove(StorageConstants key);
+
+        bool RemoveFile(string filePath);
+
+        byte[] ReadAsBytes(string source);
+    }
+
+    public interface IStorageProvider
+    {
+        IStorage CreateStorage(params object[] parameters);
+    }
+
+    public class DefaultStorageProvider : IStorageProvider
+    {
+        public IStorage CreateStorage(params object[] parameters)
+        {
+            if (!(parameters.Length == 1 && parameters[0] is Analytics))
+            {
+                throw new ArgumentException(
+                    "Invalid parameters for DefaultStorageProvider. DefaultStorageProvider only accepts 1 parameter and it has to be an instance of Analytics");
+            }
+
+            var analytics = (Analytics)parameters[0];
+            var config = analytics.configuration;
+            var rootDir = config.persistentDataPath;
+            var storageDirectory = rootDir + Path.DirectorySeparatorChar +
+                                   "segment.data" + Path.DirectorySeparatorChar +
+                                   config.writeKey + Path.DirectorySeparatorChar +
+                                   "events";
+            
+            var userPrefs = new UserPrefs(rootDir + Path.DirectorySeparatorChar + 
+                                       "segment.prefs" + Path.DirectorySeparatorChar + config.writeKey, config.exceptionHandler);
+            var eventStream = new FileEventStream(storageDirectory);
+            return new Storage(userPrefs, eventStream, analytics.store, config.writeKey, analytics.fileIODispatcher);   
+        }
+    }
+    
+    public class InMemoryStorageProvider : IStorageProvider
+    {
+        public IStorage CreateStorage(params object[] parameters)
+        {
+            if (!(parameters.Length == 1 && parameters[0] is Analytics))
+            {
+                throw new ArgumentException(
+                    "Invalid parameters for InMemoryStorageProvider. InMemoryStorageProvider only accepts 1 parameter and it has to be an instance of Analytics");
+            }
+
+            var analytics = (Analytics)parameters[0];
+            var userPrefs = new InMemoryPrefs();
+            var eventStream = new InMemoryEventStream();
+            return new Storage(userPrefs, eventStream, analytics.store, analytics.configuration.writeKey, analytics.fileIODispatcher); 
+        }
+    }
+
+    /// <summary>
+    /// Responsible for storing events in a batch payload style.
+    ///
+    /// Contents format
+    /// <code>
+    /// {
+    ///     "batch": [
+    ///     ...
+    ///     ],
+    ///     "sentAt": "2021-04-30T22:06:11"
+    /// }
+    /// </code>
+    /// 
+    /// Each file stored is a batch of events. When uploading events the contents of the file can be
+    /// sent as-is to the Segment batch upload endpoint.
+    ///
+    /// Some terms:
+    /// <list type="bullet">
+    ///     <item><description>Current open file: the most recent temporary batch file that is being used to store events</description></item>
+    ///     <item><description>Closing the file: ending the batch payload, and renaming the temporary file to a permanent one</description></item>
+    ///     <item><description>Stored file paths: list of file paths that are not temporary and match the write-key of the manager</description></item>
+    /// </list>
+    /// 
+    /// How it works:
+    /// storeEvent() will store the event in the current open file, ensuring that batch size
+    /// does not go over the 475KB limit. It will close the current file and create new temp ones
+    /// when appropriate
+    ///
+    /// When read() is called the current file is closed, and a list of stored file paths is returned
+    ///
+    /// remove() will delete the file path specified
+    /// </summary>
+    public class Storage : IStorage, ISubscriber
     {
         private readonly Store _store;
         
-        private string _writeKey;
-        
-        private readonly string _storageDirectory;
+        private readonly string _writeKey;
 
-        private readonly UserPrefs _userPrefs;
+        internal readonly IPreferences _userPrefs;
 
-        private readonly EventsFileManager _eventsFile;
+        internal readonly IEventStream _eventStream;
 
         private readonly IDispatcher _ioDispatcher;
+
+        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
+
+        internal readonly string _fileIndexKey;
+        
+        internal string Begin => "{\"batch\":[";
+        
+        internal string End => "],\"sentAt\":\"" + DateTime.UtcNow.ToString("o") + "\",\"writeKey\":\"" + _writeKey + "\"}";
+        
+        private string CurrentFile => _writeKey + "-" + _userPrefs.GetInt(_fileIndexKey, 0);
 
         public const long MaxPayloadSize = 32_000;
 
         public const long MaxBatchSize = 475_000;
+        
+        public const long MaxFileSize = 475_000;
 
-        public Storage(Store store, string writeKey, string rootDir, IDispatcher ioDispatcher = default, ICoroutineExceptionHandler exceptionHandler = default)
+        private const string FileExtension = "json";
+
+        public Storage(IPreferences userPrefs, IEventStream eventStream, Store store, string writeKey, IDispatcher ioDispatcher = default)
         {
+            _userPrefs = userPrefs;
+            _eventStream = eventStream;
             _store = store;
             _writeKey = writeKey;
-            _userPrefs = new UserPrefs(rootDir + Path.DirectorySeparatorChar + 
-                                       "segment.prefs" + Path.DirectorySeparatorChar + writeKey, exceptionHandler);
-            _storageDirectory = rootDir + Path.DirectorySeparatorChar +
-                                    "segment.data" + Path.DirectorySeparatorChar +
-                                    writeKey + Path.DirectorySeparatorChar +
-                                    "events";
-            _eventsFile = new EventsFileManager(_storageDirectory, writeKey, _userPrefs);
+            _fileIndexKey = "segment.events.file.index." + writeKey;
             _ioDispatcher = ioDispatcher;
         }
 
-        public async Task SubscribeToStore()
+        public async Task Initialize()
         {
             await _store.Subscribe<UserInfo>(this, UserInfoUpdate, true, _ioDispatcher);
             await _store.Subscribe<System>(this, SystemUpdate, true, _ioDispatcher);
@@ -56,14 +202,14 @@ namespace Segment.Analytics.Utilities
         /// <param name="key">the type of value being written</param>
         /// <param name="value">the value being written</param>
         /// <exception cref="Exception">exception that captures the failure of writing an event to disk</exception>
-        public virtual async Task Write(Constants key, string value)
+        public virtual async Task Write(StorageConstants key, string value)
         {
             switch (key)
             {
-                case Constants._Events:
+                case StorageConstants._Events:
                     if (value.Length < MaxPayloadSize)
                     {
-                        await _eventsFile.StoreEvent(value);
+                        await StoreEvent(value);
                     }
                     else
                     {
@@ -86,11 +232,9 @@ namespace Segment.Analytics.Utilities
         /// </para>
         /// <param name="key">the type of value being written</param>
         /// <param name="value">the value being written</param>
-        public void WritePrefs(Constants key, string value)
+        public void WritePrefs(StorageConstants key, string value)
         {
-            var editor = _userPrefs.Edit();
-            editor.PutString(key, value);
-            editor.Apply();
+            _userPrefs.Put(key, value);
         }
         
         /// <summary>
@@ -99,39 +243,53 @@ namespace Segment.Analytics.Utilities
         /// we want to finish writing the current file, and have it
         /// flushed to server.
         /// </summary>
-        public virtual async Task Rollover()
+        public virtual async Task Rollover() => await WithLock(async () =>
         {
-            await _eventsFile.Rollover();
-        }
+            await PerformRollover();
+        });
         
-        public virtual string Read(Constants key)
+        public virtual string Read(StorageConstants key)
         {
             switch (key)
             {
-                case Constants._Events:
-                    return string.Join(",", _eventsFile.Read());
+                case StorageConstants._Events:
+                    return string.Join(",", 
+                        _eventStream.Read()
+                            .Where(f => f.EndsWith(FileExtension)));
                 default:
                     return _userPrefs.GetString(key, null);
             }
         }
 
-        public bool Remove(Constants key)
+        public bool Remove(StorageConstants key)
         {
             switch (key)
             {
-                case Constants._Events:
+                case StorageConstants._Events:
                     return true;
                 default:
-                    var editor = _userPrefs.Edit();
-                    editor.Remove(key);
-                    editor.Apply();
+                    _userPrefs.Remove(key);
                     return true;
             }
         }
 
         public virtual bool RemoveFile(string filePath)
+        {   
+            try
+            {
+                _eventStream.Remove(filePath);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Analytics.logger?.LogError(e, "Failed to remove file path.");
+                return false;
+            }
+        }
+
+        public byte[] ReadAsBytes(string source)
         {
-            return _eventsFile.Remove(filePath);
+            return _eventStream.ReadAsBytes(source);
         }
 
         #region State Subscriptions
@@ -139,59 +297,101 @@ namespace Segment.Analytics.Utilities
         public void UserInfoUpdate(IState state)
         {   
             var userInfo = (UserInfo) state;
-            WritePrefs(Constants.AnonymousId, userInfo.anonymousId);
+            WritePrefs(StorageConstants.AnonymousId, userInfo.anonymousId);
             
             if (userInfo.userId != null)
             {
-                WritePrefs(Constants.UserId, userInfo.userId);
+                WritePrefs(StorageConstants.UserId, userInfo.userId);
             }
 
             if (userInfo.traits != null)
             {
-                WritePrefs(Constants.Traits, JsonUtility.ToJson(userInfo.traits));
+                WritePrefs(StorageConstants.Traits, JsonUtility.ToJson(userInfo.traits));
             }
         }
 
         public void SystemUpdate(IState state)
         {
             var system = (System) state;
-            WritePrefs(Constants.Settings, JsonUtility.ToJson(system.settings));
+            WritePrefs(StorageConstants.Settings, JsonUtility.ToJson(system.settings));
         }
 
         #endregion
+
         
-        #region Storage Constants
+        #region File operation
 
-        public readonly struct Constants
+        /// <summary>
+        /// closes existing file, if at capacity
+        /// opens a new file, if current file is full or uncreated
+        /// stores the event
+        /// </summary>
+        /// <param name="event">event to store</param>
+        private async Task StoreEvent(string @event) => await WithLock(async () =>
         {
-            public string value { get; }
-
-            private Constants(string value)
+            _eventStream.OpenOrCreate(CurrentFile, out var newFile);
+            if (newFile)
             {
-                this.value = value;
+                await _eventStream.Write(Begin);
             }
 
-            public override string ToString()
+            // check if file is at capacity
+            if (_eventStream.Length > MaxFileSize)
             {
-                return value;
+                await PerformRollover();
+
+                // open the next file
+                _eventStream.OpenOrCreate(CurrentFile, out newFile);
+                await _eventStream.Write(Begin);
             }
 
-            public static implicit operator string(Constants constant) => constant.value;
+            var contents = new StringBuilder();
+            if (!newFile)
+            {
+                contents.Append(',');
+            }
 
-            // backing fields that holds the actual string representation
-            // needed for switch statement, has to be compile time available
-            public const string _UserId = "segment.userId";
-            public const string _Traits = "segment.traits";
-            public const string _AnonymousId = "segment.anonymousId";
-            public const string _Settings = "segment.settings";
-            public const string _Events = "segment.events";
+            contents.Append(@event);
+            await _eventStream.Write(contents.ToString());
+        });
+        
+        
+        private async Task PerformRollover()
+        {
+            if (!_eventStream.IsOpened) return;
+
+            await _eventStream.Write(End);
+            _eventStream.FinishAndClose(FileExtension);
             
-            // enum alternatives
-            public static readonly Constants UserId = new Constants(_UserId);
-            public static readonly Constants Traits = new Constants(_Traits);
-            public static readonly Constants AnonymousId = new Constants(_AnonymousId);
-            public static readonly Constants Settings = new Constants(_Settings);
-            public static readonly Constants Events = new Constants(_Events);
+            IncrementFileIndex();
+        }
+
+        private bool IncrementFileIndex()
+        {
+            var index = _userPrefs.GetInt(_fileIndexKey, 0) + 1;
+            try
+            {
+                _userPrefs.Put(_fileIndexKey, index);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Analytics.logger?.LogError(e, "Error editing preference file.");
+                return false;
+            }
+        }
+        
+        private async Task WithLock(Func<Task> block)
+        {
+            await _semaphore.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                await block();
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
         }
 
         #endregion

@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Moq;
 using Segment.Analytics;
 using Segment.Analytics.Utilities;
-using Segment.Concurrent;
 using Segment.Serialization;
 using Segment.Sovran;
 using Xunit;
@@ -18,7 +17,7 @@ namespace Tests
 
         private Configuration _configuration;
 
-        private Mock<Storage> _storage;
+        private Mock<IStorage> _storage;
 
         public SystemTest()
         {
@@ -37,7 +36,7 @@ namespace Tests
                 userSynchronizeDispatcher: true,
                 defaultSettings: _settings
             );
-            _storage = new Mock<Storage>(_store, "123", "tests", new SynchronizeDispatcher(), null);
+            _storage = new Mock<IStorage>();
         }
 
         [Fact]
@@ -47,7 +46,7 @@ namespace Tests
                 "{\"integrations\":{\"Segment.io\":{\"apiKey\":\"1vNgUqwJeCHmqgI9S1sOm9UHCyfYqbaQ\"}},\"plan\":{},\"edgeFunction\":{}}";
             var settings = JsonUtility.FromJson<Settings>(settingsStr);
             _storage
-                .Setup(o => o.Read(It.IsAny<Storage.Constants>()))
+                .Setup(o => o.Read(It.IsAny<StorageConstants>()))
                 .Returns(settingsStr);
 
             var actual = Segment.Analytics.System.DefaultState(_configuration, _storage.Object);
@@ -61,7 +60,7 @@ namespace Tests
         public void TestSystemDefaultStateException()
         {
             _storage
-                .Setup(o => o.Read(It.IsAny<Storage.Constants>()))
+                .Setup(o => o.Read(It.IsAny<StorageConstants>()))
                 .Throws<Exception>();
 
             var actual = Segment.Analytics.System.DefaultState(_configuration, _storage.Object);
@@ -120,7 +119,7 @@ namespace Tests
 
         private Configuration _configuration;
 
-        private Mock<Storage> _storage;
+        private Mock<IStorage> _storage;
 
         public UserInfoTest()
         {
@@ -137,7 +136,7 @@ namespace Tests
                 autoAddSegmentDestination: false,
                 userSynchronizeDispatcher: true
             );
-            _storage = new Mock<Storage>(_store, "123", "tests", new SynchronizeDispatcher(), null);
+            _storage = new Mock<IStorage>();
         }
 
         [Fact]
@@ -147,13 +146,13 @@ namespace Tests
             var expectedUserId = "bar";
             var expectedTraits = new JsonObject {["foo"] = "bar"};
             _storage
-                .Setup(o => o.Read(Storage.Constants.UserId))
+                .Setup(o => o.Read(StorageConstants.UserId))
                 .Returns(expectedUserId);
             _storage
-                .Setup(o => o.Read(Storage.Constants.AnonymousId))
+                .Setup(o => o.Read(StorageConstants.AnonymousId))
                 .Returns(expectedAnonymousId);
             _storage
-                .Setup(o => o.Read(Storage.Constants.Traits))
+                .Setup(o => o.Read(StorageConstants.Traits))
                 .Returns(JsonUtility.ToJson(expectedTraits));
 
             var actual = UserInfo.DefaultState(_configuration, _storage.Object);
@@ -170,13 +169,13 @@ namespace Tests
             var expectedUserId = "bar";
             var badTraits = "{";
             _storage
-                .Setup(o => o.Read(Storage.Constants.UserId))
+                .Setup(o => o.Read(StorageConstants.UserId))
                 .Returns(expectedUserId);
             _storage
-                .Setup(o => o.Read(Storage.Constants.AnonymousId))
+                .Setup(o => o.Read(StorageConstants.AnonymousId))
                 .Returns(expectedAnonymousId);
             _storage
-                .Setup(o => o.Read(Storage.Constants.Traits))
+                .Setup(o => o.Read(StorageConstants.Traits))
                 .Returns(badTraits);
 
             var actual = UserInfo.DefaultState(_configuration, _storage.Object);

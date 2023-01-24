@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -8,12 +9,112 @@ using Segment.Serialization;
 
 namespace Segment.Analytics.Utilities
 {
+    public interface IPreferences
+    {
+        int GetInt(string key, int defaultValue = -1);
+        
+        float GetFloat(string key, float defaultValue = -1.0f);
+
+        string GetString(string key, string defaultValue = null);
+
+        bool Contains(string key);
+
+        void Put(string key, int value);
+
+        void Put(string key, float value);
+
+        void Put(string key, string value);
+
+        void Remove(string key);
+    }
+
+    /// <summary>
+    /// InMemoryPrefs does not persists user prefs. This is designed for stateless server.
+    /// </summary>
+    public class InMemoryPrefs : IPreferences
+    {
+        private readonly IDictionary<string, object> _cache = new ConcurrentDictionary<string, object>();
+
+        public int GetInt(string key, int defaultValue = -1)
+        {
+            int ret;
+            
+            try
+            {
+                ret = Convert.ToInt32(_cache[key]);
+            }
+            catch 
+            {
+                ret = defaultValue;
+            }
+
+            return ret;
+        }
+
+        public float GetFloat(string key, float defaultValue = -1)
+        {   
+            float ret;
+            
+            try
+            {
+                ret = float.Parse(Convert.ToString(_cache[key]));;
+            }
+            catch 
+            {
+                ret = defaultValue;
+            }
+
+            return ret;
+        }
+
+        public string GetString(string key, string defaultValue = null)
+        {   
+            string ret;
+            
+            try
+            {
+                ret = Convert.ToString(_cache[key]);
+            }
+            catch 
+            {
+                ret = defaultValue;
+            }
+
+            return ret;
+        }
+
+        public bool Contains(string key)
+        {
+            return _cache.ContainsKey(key);
+        }
+
+        public void Put(string key, int value)
+        {
+            _cache[key] = value;
+        }
+
+        public void Put(string key, float value)
+        {
+            _cache[key] = value;
+        }
+
+        public void Put(string key, string value)
+        {
+            _cache[key] = value;
+        }
+
+        public void Remove(string key)
+        {
+            _cache.Remove(key);
+        }
+    }
+    
     /**
      * This UserPrefs is a translation of the Android SharedPreference.
      * Refer to <see cref="https://android.googlesource.com/platform/frameworks/base.git/+/master/core/java/android/app/SharedPreferencesImpl.java"/>
      * for the original implementation.
      */
-    public class UserPrefs
+    public class UserPrefs : IPreferences
     {
         internal Dictionary<string, object> cache;
 
@@ -128,6 +229,57 @@ namespace Segment.Analytics.Utilities
             {
                 return cache.ContainsKey(key);
             }
+        }
+
+        /// <summary>
+        /// Use for one shot key-value update. If you need to update multiple values at once, try <see cref="Edit"/>
+        /// to get an Editor and apply the changes all at once for better performance.
+        /// </summary>
+        /// <param name="key">key</param>
+        /// <param name="value">value</param>
+        public void Put(string key, int value)
+        {   
+            var editor = Edit();
+            editor.PutInt(key, value);
+            editor.Apply();
+        }
+
+        /// <summary>
+        /// Use for one shot key-value update. If you need to update multiple values at once, try <see cref="Edit"/>
+        /// to get an Editor and apply the changes all at once for better performance.
+        /// </summary>
+        /// <param name="key">key</param>
+        /// <param name="value">value</param>
+        public void Put(string key, float value)
+        {
+            var editor = Edit();
+            editor.PutFloat(key, value);
+            editor.Apply();
+        }
+
+        /// <summary>
+        /// Use for one shot key-value update. If you need to update multiple values at once, try <see cref="Edit"/>
+        /// to get an Editor and apply the changes all at once for better performance.
+        /// </summary>
+        /// <param name="key">key</param>
+        /// <param name="value">value</param>
+        public void Put(string key, string value)
+        {   
+            var editor = Edit();
+            editor.PutString(key, value);
+            editor.Apply();
+        }
+
+        /// <summary>
+        /// Use for one shot key-value update. If you need to update multiple values at once, try <see cref="Edit"/>
+        /// to get an Editor and apply the changes all at once for better performance.
+        /// </summary>
+        /// <param name="key">key</param>
+        public void Remove(string key)
+        {   
+            var editor = Edit();
+            editor.Remove(key);
+            editor.Apply();
         }
 
         public Editor Edit()
