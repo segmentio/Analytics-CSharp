@@ -47,7 +47,12 @@ namespace Segment.Analytics
         /// <param name="apiHost">set a default apiHost to which Segment sends events, defaults to <c>api.segment.io/v1</c></param>
         /// <param name="cdnHost">set a default cdnHost to which Segment fetches settings, defaults to <c>cdn-settings.segment.com/v1</c></param>
         /// <param name="exceptionHandler">set an exception handler to handle errors happened in async methods within the analytics scope</param>
-        /// <param name="storageProvider">set a storage provide to tell the analytics where to store your data</param>
+        /// <param name="storageProvider">set a storage provide to tell the analytics where to store your data:
+        ///     <list type="bullet">
+        ///         <item><description><see cref="InMemoryStorageProvider"/> stores data only in memory</description></item>
+        ///         <item><description><see cref="DefaultStorageProvider"/> persists data in local disk. This is used by default</description></item>
+        ///     </list>
+        /// </param>
         public Configuration(string writeKey,
             string persistentDataPath,
             int flushAt = 20,
