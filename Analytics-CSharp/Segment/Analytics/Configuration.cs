@@ -1,4 +1,6 @@
 ﻿
+using System;
+using System.IO;
 using Segment.Analytics.Utilities;
 using Segment.Concurrent;
 
@@ -33,11 +35,12 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="writeKey">the Segment writeKey</param>
         /// <param name="persistentDataPath"> 
-        /// path where analytics stores data. for example:
+        /// path where analytics stores data when using a storage provider that writes to disk. for example:
         ///     <list type="bullet">
         ///         <item><description>Xamarin: <c>Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)</c></description></item>
         ///         <item><description>Unity: <c>Application.persistentDataPath</c></description></item>
         ///     </list>
+        ///     defaults to Local Application Data
         /// </param>
         /// <param name="flushAt">count of events at which we flush events, defaults to <c>20</c></param>
         /// <param name="flushInterval">interval in seconds at which we flush events, defaults to <c>30 seconds</c></param>
@@ -49,12 +52,13 @@ namespace Segment.Analytics
         /// <param name="exceptionHandler">set an exception handler to handle errors happened in async methods within the analytics scope</param>
         /// <param name="storageProvider">set a storage provide to tell the analytics where to store your data:
         ///     <list type="bullet">
-        ///         <item><description><see cref="InMemoryStorageProvider"/> stores data only in memory</description></item>
+        ///         <item><description><see cref="InMemoryStorageProvider"/> stores data only in memory and ignores the persistentDataPath</description></item>
         ///         <item><description><see cref="DefaultStorageProvider"/> persists data in local disk. This is used by default</description></item>
         ///     </list>
+        ///     defaults to DefaultStorageProvider on Unity (Mono) and Xamarin, or to InMemoryStorageProvider on .Net Core
         /// </param>
         public Configuration(string writeKey,
-            string persistentDataPath,
+            string persistentDataPath = null,
             int flushAt = 20,
             int flushInterval = 30,
             Settings defaultSettings = new Settings(),
@@ -65,8 +69,10 @@ namespace Segment.Analytics
             ICoroutineExceptionHandler exceptionHandler = null,
             IStorageProvider storageProvider = default)
         {
+            var systeminfo = SystemInfo.get();
+
             this.writeKey = writeKey;
-            this.persistentDataPath = persistentDataPath;
+            this.persistentDataPath = persistentDataPath ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             this.flushAt = flushAt;
             this.flushInterval = flushInterval;
             this.defaultSettings = defaultSettings;
@@ -75,7 +81,19 @@ namespace Segment.Analytics
             this.apiHost = apiHost;
             this.cdnHost = cdnHost;
             this.exceptionHandler = exceptionHandler;
-            this.storageProvider = storageProvider ?? new DefaultStorageProvider();
+
+            if (storageProvider != null)
+            {
+                this.storageProvider = storageProvider;
+            }
+            else if (systeminfo.Contains("Mono") || systeminfo.Contains("Xamarin"))
+            {
+                this.storageProvider = new DefaultStorageProvider();
+            }
+            else
+            {
+                this.storageProvider = new InMemoryStorageProvider();
+            }
         }
     }
 
