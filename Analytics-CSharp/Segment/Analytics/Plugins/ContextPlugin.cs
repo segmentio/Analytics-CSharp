@@ -19,6 +19,8 @@ namespace Segment.Analytics.Plugins
 
         private const string LibraryVersionKey = "version";
 
+        private const string OSKey = "os";
+
         private const string PlatformKey = "platform";
 
         public override void Configure(Analytics analytics)
@@ -35,8 +37,9 @@ namespace Segment.Analytics.Plugins
         {
             var context = new JsonObject(@event.context?.Content)
             {
-                [LibraryKey] = _library
-                [PlatformKey] = SystemInfo.get()
+                [LibraryKey] = _library,
+                [OSKey] = SystemInfo.getOS(),
+                [PlatformKey] = SystemInfo.getPlatform()
             };
 
             @event.context = context;

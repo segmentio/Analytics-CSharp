@@ -69,7 +69,7 @@ namespace Segment.Analytics
             ICoroutineExceptionHandler exceptionHandler = null,
             IStorageProvider storageProvider = default)
         {
-            var systeminfo = SystemInfo.get();
+            var platform = SystemInfo.getPlatform();
 
             this.writeKey = writeKey;
             this.persistentDataPath = persistentDataPath ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -86,7 +86,7 @@ namespace Segment.Analytics
             {
                 this.storageProvider = storageProvider;
             }
-            else if (systeminfo.Contains("Mono") || systeminfo.Contains("Xamarin"))
+            else if (platform.Contains("Mono") || platform.Contains("Xamarin"))
             {
                 this.storageProvider = new DefaultStorageProvider();
             }

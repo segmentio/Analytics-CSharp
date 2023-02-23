@@ -7,12 +7,20 @@ namespace Tests.Utilities
     {
 
         [Fact]
-        public void GetTest()
+        public void GetPlatformTest()
         {
-            var sysinfo = SystemInfo.get();
+            var sysinfo = SystemInfo.getPlatform();
 
             Assert.NotNull(sysinfo);
             Assert.Contains(".NET", sysinfo);
+        }
+
+        [Fact]
+        public void GetOSTest()
+        {
+            var sysinfo = SystemInfo.getOS();
+
+            Assert.NotNull(sysinfo);
         }
     }
 }

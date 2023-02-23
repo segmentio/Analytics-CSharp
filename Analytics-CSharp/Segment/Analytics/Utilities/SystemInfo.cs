@@ -3,23 +3,32 @@ using System.Runtime.InteropServices;
 
 namespace Segment.Analytics.Utilities
 {
-	public class SystemInfo
-	{
-        public static string get()
-		{
+    public class SystemInfo
+    {
+        public static string getPlatform()
+        {
             var type = "";
 
             if (Type.GetType("Xamarin.Forms.Device") != null)
             {
                 type = "Xamarin";
             }
+            else if (Type.GetType("UnityEngine.Device.SystemInfo, UnityEngine") != null)
+            {
+                type = "Unity";
+            }
             else
             {
                 var descr = RuntimeInformation.FrameworkDescription;
                 var platf = descr.Substring(0, descr.LastIndexOf(' '));
+
                 type = platf;
             }
+            return type;
+        }
 
+        public static string getOS()
+        {
             OperatingSystem os = Environment.OSVersion;
             var vs = os.Version;
 
@@ -52,8 +61,8 @@ namespace Segment.Analytics.Utilities
                 default:
                     break;
             }
-            return type + "; " + operatingSystem + " - " + vs.Major + "." + vs.Minor;
+            return operatingSystem + " - " + vs.Major + "." + vs.Minor;
         }
-	}
+    }
 }
 
