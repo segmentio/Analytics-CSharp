@@ -72,7 +72,7 @@ namespace Segment.Analytics
             var platform = SystemInfo.getPlatform();
 
             this.writeKey = writeKey;
-            this.persistentDataPath = persistentDataPath ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            this.persistentDataPath = persistentDataPath ?? SystemInfo.getAppFolder();
             this.flushAt = flushAt;
             this.flushInterval = flushInterval;
             this.defaultSettings = defaultSettings;

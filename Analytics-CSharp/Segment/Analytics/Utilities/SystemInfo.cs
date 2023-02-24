@@ -5,6 +5,18 @@ namespace Segment.Analytics.Utilities
 {
     public class SystemInfo
     {
+        public static string getAppFolder()
+        {
+            var type = Type.GetType("UnityEngine.Application, UnityEngine");
+            string unityPath = type?.GetProperty("persistentDataPath").GetValue(null,null).ToString();
+            if(unityPath != null)
+            {
+                return unityPath;
+            }
+
+            return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        }
+
         public static string getPlatform()
         {
             var type = "";

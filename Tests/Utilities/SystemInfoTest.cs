@@ -1,4 +1,5 @@
-﻿using Segment.Analytics.Utilities;
+﻿using System;
+using Segment.Analytics.Utilities;
 using Xunit;
 
 namespace Tests.Utilities
@@ -21,6 +22,14 @@ namespace Tests.Utilities
             var sysinfo = SystemInfo.getOS();
 
             Assert.NotNull(sysinfo);
+        }
+
+        [Fact]
+        public void GetAppFolderTest()
+        {
+            var path = SystemInfo.getAppFolder();
+
+            Assert.Equal(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), path);
         }
     }
 }
