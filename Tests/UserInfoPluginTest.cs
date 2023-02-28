@@ -47,7 +47,7 @@ namespace Tests
             TrackEvent trackEvent = new TrackEvent("eventname",null);
             userInfoPlugin.Execute(trackEvent);
 
-            Assert.Equal("bob", trackEvent.userId);
+            Assert.Equal("bob", trackEvent.UserId);
 		}
 
 
@@ -63,7 +63,7 @@ namespace Tests
             TrackEvent trackEvent = new TrackEvent("eventname", null);
             userInfoPlugin.Execute(trackEvent);
 
-            Assert.Equal("steve", trackEvent.userId);
+            Assert.Equal("steve", trackEvent.UserId);
         }
     }
 }

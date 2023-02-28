@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using Segment.Serialization;
-
 namespace Segment.Analytics
 {
-    public enum PluginType: int
+    using global::System;
+    using global::System.Collections.Generic;
+    using Segment.Serialization;
+
+    public enum PluginType : int
     {
         Before = 0, // Executed before event processing begins
         Enrichment, // Executed as the first level of event processing
@@ -24,26 +24,20 @@ namespace Segment.Analytics
     /// </summary>
     public abstract class Plugin
     {
-        public abstract PluginType type { get; }
-        public virtual Analytics analytics { get; set; }
+        public abstract PluginType Type { get; }
+        public virtual Analytics Analytics { get; set; }
 
         /// <summary>
         /// A simple setup function that's executed when plugin is attached to analytics
         /// If overridden, ensure that <c>base.Configure()</c> is invoked
         /// </summary>
         /// <param name="analytics"></param>
-        public virtual void Configure(Analytics analytics)
-        {
-            this.analytics = analytics;
-        }
-        
+        public virtual void Configure(Analytics analytics) => this.Analytics = analytics;
+
         public virtual void Update(Settings settings, UpdateType type) { }
-        
-        public virtual RawEvent Execute(RawEvent incomingEvent)
-        {
-            return incomingEvent;
-        }
-        
+
+        public virtual RawEvent Execute(RawEvent incomingEvent) => incomingEvent;
+
         public virtual void Shutdown() { }
     }
 
@@ -62,24 +56,24 @@ namespace Segment.Analytics
 
         public virtual ScreenEvent Screen(ScreenEvent screenEvent) => screenEvent;
 
-        public virtual void Reset() {}
+        public virtual void Reset() { }
 
-        public virtual void Flush() {}
+        public virtual void Flush() { }
 
         public override RawEvent Execute(RawEvent incomingEvent)
         {
             switch (incomingEvent)
             {
                 case IdentifyEvent e:
-                    return Identify(e);
+                    return this.Identify(e);
                 case TrackEvent e:
-                    return Track(e);
+                    return this.Track(e);
                 case ScreenEvent e:
-                    return Screen(e);
+                    return this.Screen(e);
                 case AliasEvent e:
-                    return Alias(e);
+                    return this.Alias(e);
                 case GroupEvent e:
-                    return Group(e);
+                    return this.Group(e);
                 default:
                     return incomingEvent;
             }
@@ -91,40 +85,37 @@ namespace Segment.Analytics
     /// </summary>
     public abstract class DestinationPlugin : EventPlugin
     {
-        public override PluginType type => PluginType.Destination;
-        public abstract string key { get; }
+        public override PluginType Type => PluginType.Destination;
+        public abstract string Key { get; }
 
         private bool _enabled = false;
-        
+
         private readonly Timeline _timeline = new Timeline();
 
         public Plugin Add(Plugin plugin)
         {
-            plugin.analytics = analytics;
-            _timeline.Add(plugin);
+            plugin.Analytics = this.Analytics;
+            this._timeline.Add(plugin);
             return plugin;
         }
 
-        public void Remove(Plugin plugin)
-        {
-            _timeline.Remove(plugin);
-        }
+        public void Remove(Plugin plugin) => this._timeline.Remove(plugin);
 
         public override void Configure(Analytics analytics)
         {
-            this.analytics = analytics;
-            Apply(plugin => plugin.Configure(analytics));
+            this.Analytics = analytics;
+            this.Apply(plugin => plugin.Configure(analytics));
         }
 
         public void Apply(Action<Plugin> closure)
         {
             try
             {
-                _timeline.Apply(closure);
+                this._timeline.Apply(closure);
             }
             catch (Exception e)
             {
-                Analytics.logger?.LogError(e, "Error applying event in timeline.");
+                Analytics.s_logger?.LogError(e, "Error applying event in timeline.");
             }
         }
 
@@ -136,11 +127,8 @@ namespace Segment.Analytics
         /// <param name="type">value of <see cref="UpdateType"/>. is the update an initialization or refreshment</param>
         public override void Update(Settings settings, UpdateType type)
         {
-            _enabled = settings.integrations?.ContainsKey(key) ?? false;
-            _timeline.Apply(plugin =>
-            {
-                plugin.Update(settings, type);
-            });
+            this._enabled = settings.Integrations?.ContainsKey(this.Key) ?? false;
+            this._timeline.Apply(plugin => plugin.Update(settings, type));
         }
 
         /// <summary>
@@ -150,64 +138,64 @@ namespace Segment.Analytics
         /// <returns>event after processing</returns>
         public RawEvent Process(RawEvent @event)
         {
-            if (!IsDestinationEnabled(@event))
+            if (!this.IsDestinationEnabled(@event))
             {
                 return null;
             }
-            
-            var beforeResult = _timeline.ApplyPlugins(PluginType.Before, @event);
-            var enrichmentResult = _timeline.ApplyPlugins(PluginType.Enrichment, beforeResult);
+
+            var beforeResult = this._timeline.ApplyPlugins(PluginType.Before, @event);
+            var enrichmentResult = this._timeline.ApplyPlugins(PluginType.Enrichment, beforeResult);
 
             RawEvent destinationResult;
-            switch(enrichmentResult)
+            switch (enrichmentResult)
             {
                 case AliasEvent e:
-                    destinationResult = Alias(e);
+                    destinationResult = this.Alias(e);
                     break;
                 case GroupEvent e:
-                    destinationResult = Group(e);
+                    destinationResult = this.Group(e);
                     break;
                 case IdentifyEvent e:
-                    destinationResult = Identify(e);
+                    destinationResult = this.Identify(e);
                     break;
                 case ScreenEvent e:
-                    destinationResult = Screen(e);
+                    destinationResult = this.Screen(e);
                     break;
                 case TrackEvent e:
-                    destinationResult = Track(e);
+                    destinationResult = this.Track(e);
                     break;
                 default:
                     destinationResult = enrichmentResult;
                     break;
             };
 
-            var afterResult = _timeline.ApplyPlugins(PluginType.After, destinationResult);
+            var afterResult = this._timeline.ApplyPlugins(PluginType.After, destinationResult);
 
             return afterResult;
         }
 
-        public override RawEvent Execute(RawEvent incomingEvent) => Process(incomingEvent);
+        public override RawEvent Execute(RawEvent incomingEvent) => this.Process(incomingEvent);
 
         internal bool IsDestinationEnabled(RawEvent @event)
         {
             // if event payload has integration marked false then its disabled by customer
             // default to true when missing
-            var customerEnabled = @event?.integrations?.GetBool(key, true) ?? true;
-            
-            return _enabled && customerEnabled;
+            var customerEnabled = @event?.Integrations?.GetBool(this.Key, true) ?? true;
+
+            return this._enabled && customerEnabled;
         }
     }
 
     public abstract class UtilityPlugin : Plugin { }
-    
+
     public partial class Analytics
-    {   
+    {
         /// <summary>
         /// Apply a closure to all plugins registered to the analytics client. Ideal for invoking
         /// functions for Utility plugins
         /// </summary>
         /// <param name="closure">Closure of what should be applied</param>
-        public void Apply(Action<Plugin> closure) => timeline.Apply(closure);
+        public void Apply(Action<Plugin> closure) => this.Timeline.Apply(closure);
 
         /// <summary>
         /// Register a plugin to the analytics timeline
@@ -217,7 +205,7 @@ namespace Segment.Analytics
         public Plugin Add(Plugin plugin)
         {
             plugin.Configure(this);
-            timeline.Add(plugin);
+            this.Timeline.Add(plugin);
             return plugin;
         }
 
@@ -225,10 +213,7 @@ namespace Segment.Analytics
         /// Remove a plugin from the analytics timeline
         /// </summary>
         /// <param name="plugin">the plugin to be removed</param>
-        public void Remove(Plugin plugin)
-        {
-            timeline.Remove(plugin);
-        }
+        public void Remove(Plugin plugin) => this.Timeline.Remove(plugin);
 
         /// <summary>
         /// Retrieve the first match of registered plugin. It finds
@@ -237,7 +222,7 @@ namespace Segment.Analytics
         /// </summary>
         /// <typeparam name="T">Type that implements <see cref="Plugin"/></typeparam>
         /// <returns>The plugin instance of given type T</returns>
-        public T Find<T>() where T : Plugin => timeline.Find<T>();
+        public T Find<T>() where T : Plugin => this.Timeline.Find<T>();
 
         /// <summary>
         /// Retrieve all matches of registered plugins. It finds
@@ -246,13 +231,13 @@ namespace Segment.Analytics
         /// </summary>
         /// <typeparam name="T">Type that implements <see cref="Plugin"/></typeparam>
         /// <returns>A collection of plugins of the given type T</returns>
-        public IEnumerable<T> FindAll<T>() where T : Plugin => timeline.FindAll<T>();
+        public IEnumerable<T> FindAll<T>() where T : Plugin => this.Timeline.FindAll<T>();
 
         /// <summary>
         /// Retrieve the first match of registered destination plugin by key. It finds
         /// </summary>
         /// <param name="destinationKey">the key of <see cref="DestinationPlugin"/></param>
         /// <returns></returns>
-        public DestinationPlugin Find(string destinationKey) => timeline.Find(destinationKey);
+        public DestinationPlugin Find(string destinationKey) => this.Timeline.Find(destinationKey);
     }
 }

@@ -1,9 +1,9 @@
-using Segment.Serialization;
-using Segment.Analytics.Utilities;
-using NotImplementedException = System.NotImplementedException;
-
 namespace Segment.Analytics.Plugins
 {
+    using Segment.Analytics.Utilities;
+    using Segment.Serialization;
+    using NotImplementedException = global::System.NotImplementedException;
+
     /// <summary>
     /// Segment Analytics plugin that is used to send events to Segment's tracking api, in the choice of region.
     /// How it works:
@@ -13,89 +13,83 @@ namespace Segment.Analytics.Plugins
     /// <item><description>We upload events on a dedicated thread using the batch api</description></item>
     /// </list>
     /// </summary>
-    public class SegmentDestination: DestinationPlugin
+    public class SegmentDestination : DestinationPlugin
     {
         private EventPipeline _pipeline;
-        
-        public override string key => "Segment.io";
-        
+
+        public override string Key => "Segment.io";
+
         internal const string ApiHost = "apiHost";
 
         public override IdentifyEvent Identify(IdentifyEvent identifyEvent)
         {
-            Enqueue(identifyEvent);
+            this.Enqueue(identifyEvent);
             return identifyEvent;
         }
 
         public override TrackEvent Track(TrackEvent trackEvent)
         {
-            Enqueue(trackEvent);
+            this.Enqueue(trackEvent);
             return trackEvent;
         }
 
         public override GroupEvent Group(GroupEvent groupEvent)
         {
-            Enqueue(groupEvent);
+            this.Enqueue(groupEvent);
             return groupEvent;
         }
 
         public override AliasEvent Alias(AliasEvent aliasEvent)
         {
-            Enqueue(aliasEvent);
+            this.Enqueue(aliasEvent);
             return aliasEvent;
         }
 
         public override ScreenEvent Screen(ScreenEvent screenEvent)
         {
-            Enqueue(screenEvent);
+            this.Enqueue(screenEvent);
             return screenEvent;
         }
 
         public override void Configure(Analytics analytics)
         {
             base.Configure(analytics);
-            
+
             // TODO: Add DestinationMetadata enrichment plugin
 
-            _pipeline = new EventPipeline(
+            this._pipeline = new EventPipeline(
                     analytics,
-                    key,
-                    analytics.configuration.writeKey,
-                    analytics.configuration.flushAt,
-                    analytics.configuration.flushInterval * 1000L,
-                    analytics.configuration.apiHost
+                    this.Key,
+                    analytics.Configuration.WriteKey,
+                    analytics.Configuration.FlushAt,
+                    analytics.Configuration.FlushInterval * 1000L,
+                    analytics.Configuration.ApiHost
                 );
-            _pipeline.Start();
+            this._pipeline.Start();
         }
 
         public override void Update(Settings settings, UpdateType type)
         {
             base.Update(settings, type);
 
-            var segmentInfo = settings.integrations?.GetJsonObject(key);
+            var segmentInfo = settings.Integrations?.GetJsonObject(this.Key);
             var apiHost = segmentInfo?.GetString(ApiHost);
             if (apiHost != null)
             {
-                _pipeline.apiHost = apiHost;
+                this._pipeline.ApiHost = apiHost;
             }
         }
 
-        public override void Reset()
-        {
-            throw new NotImplementedException();
-        }
+        public override void Reset() => throw new NotImplementedException();
 
-        public override void Flush()
-        {
-            _pipeline.Flush();
-        }
+        public override void Flush() => this._pipeline.Flush();
 
         private void Enqueue<T>(T payload) where T : RawEvent
         {
             // TODO: filter out empty userid and traits values
-            
+
             var str = JsonUtility.ToJson(payload);
-            _pipeline.Put(str);
+            this._pipeline.Put(str);
         }
     }
 }

@@ -1,18 +1,18 @@
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Segment.Analytics.Utilities
 {
+    using global::System.Collections.Concurrent;
+    using global::System.Collections.Generic;
+    using global::System.IO;
+    using global::System.Linq;
+    using global::System.Text;
+    using global::System.Threading.Tasks;
+
     public interface IEventStream
-    {   
+    {
         long Length { get; }
 
         bool IsOpened { get; }
-        
+
         void OpenOrCreate(string file, out bool newFile);
 
         Task Write(string content);
@@ -20,11 +20,11 @@ namespace Segment.Analytics.Utilities
         IEnumerable<string> Read();
 
         void Remove(string file);
-        
+
         void Close();
 
         void FinishAndClose(string extension = default);
-        
+
         byte[] ReadAsBytes(string source);
     }
 
@@ -35,46 +35,40 @@ namespace Segment.Analytics.Utilities
 
         private InMemoryFile _file;
 
-        public long Length => _file?.Length ?? 0;
+        public long Length => this._file?.Length ?? 0;
 
-        public bool IsOpened => _file != null;
-        
+        public bool IsOpened => this._file != null;
+
         public void OpenOrCreate(string file, out bool newFile)
         {
-            if (_file != null && !_file.Name.Equals(file))
+            if (this._file != null && !this._file.Name.Equals(file))
             {
                 // the given file is different than the current one
                 // close the current one first
-                Close();
-            }
-            
-            newFile = false;
-            if (_file == null)
-            {
-                newFile = !_directory.ContainsKey(file);
-                _file = newFile ? new InMemoryFile(file) : _directory[file];
+                this.Close();
             }
 
-            _directory[file] = _file;
+            newFile = false;
+            if (this._file == null)
+            {
+                newFile = !this._directory.ContainsKey(file);
+                this._file = newFile ? new InMemoryFile(file) : this._directory[file];
+            }
+
+            this._directory[file] = this._file;
         }
 
         public Task Write(string content)
         {
-            _file?.Write(content);
+            this._file?.Write(content);
             return Task.CompletedTask;
         }
 
-        public IEnumerable<string> Read() => _directory.Keys;
+        public IEnumerable<string> Read() => this._directory.Keys;
 
-        public void Remove(string file)
-        {
-            _directory.Remove(file);
-        }
+        public void Remove(string file) => this._directory.Remove(file);
 
-        public void Close()
-        {
-            _file = null;
-        }
+        public void Close() => this._file = null;
 
 
         /// <summary>
@@ -84,61 +78,58 @@ namespace Segment.Analytics.Utilities
         /// <param name="extension">extension without dot</param>
         public void FinishAndClose(string extension = default)
         {
-            if (_file == null) return;
-            
-            if (extension != null)
+            if (this._file == null)
             {
-                var nameWithExtension = _file.Name + '.' + extension;
-                _directory.Remove(_file.Name);
-                _directory[nameWithExtension] = _file;
+                return;
             }
 
-            _file = null;
+            if (extension != null)
+            {
+                var nameWithExtension = this._file.Name + '.' + extension;
+                _ = this._directory.Remove(this._file.Name);
+                this._directory[nameWithExtension] = this._file;
+            }
+
+            this._file = null;
         }
 
-        public byte[] ReadAsBytes(string source)
-        {
-            return _directory.ContainsKey(source) ? _directory[source].ToBytes() : null;
-        }
-        
+        public byte[] ReadAsBytes(string source) => this._directory.ContainsKey(source) ? this._directory[source].ToBytes() : null;
+
         public class InMemoryFile
         {
             public StringBuilder FileStream { get; }
-            
+
             public string Name { get; }
 
-            public int Length => FileStream.Length;
+            public int Length => this.FileStream.Length;
 
             public InMemoryFile(string name)
             {
-                Name = name;
-                FileStream = new StringBuilder();
+                this.Name = name;
+                this.FileStream = new StringBuilder();
             }
 
-            public void Write(string content) => FileStream.Append(content);
+            public void Write(string content) => this.FileStream.Append(content);
 
-            public byte[] ToBytes() => FileStream.ToString().GetBytes();
+            public byte[] ToBytes() => this.FileStream.ToString().GetBytes();
         }
     }
-    
+
     public class FileEventStream : IEventStream
     {
-        
+
         private readonly DirectoryInfo _directory;
-        
+
         private FileStream _fs;
 
         private FileInfo _file;
-        
-        public long Length => _file?.Length ?? 0;
 
-        public bool IsOpened => _file != null && _fs != null;
+        public long Length => this._file?.Length ?? 0;
 
-        public FileEventStream(string directory)
-        {   
-            _directory = Directory.CreateDirectory(directory);
-        }
-        
+        public bool IsOpened => this._file != null && this._fs != null;
+
+        public FileEventStream(string directory) => this._directory = Directory.CreateDirectory(directory);
+
         /// <summary>
         /// This method appends a `.tmp` extension to the give file, which
         /// means we only operate on an unfinished file. Once a file is
@@ -148,51 +139,48 @@ namespace Segment.Analytics.Utilities
         /// <param name="newFile">result that indicate whether the file is a new file</param>
         public void OpenOrCreate(string file, out bool newFile)
         {
-            if (_file != null && !_file.FullName.EndsWith(file))
+            if (this._file != null && !this._file.FullName.EndsWith(file))
             {
                 // the given file is different than the current one
                 // close the current one first
-                Close();
+                this.Close();
             }
-            
-            if (_file == null)
-            {
-                _file = new FileInfo(_directory.FullName + Path.DirectorySeparatorChar + file);
-            }
-            newFile = !_file.Exists;
 
-            if (_fs == null)
+            if (this._file == null)
             {
-                _fs = _file.Open(FileMode.OpenOrCreate);
-                _fs.Seek(0, SeekOrigin.End);
+                this._file = new FileInfo(this._directory.FullName + Path.DirectorySeparatorChar + file);
             }
-            _file.Refresh();
+            newFile = !this._file.Exists;
+
+            if (this._fs == null)
+            {
+                this._fs = this._file.Open(FileMode.OpenOrCreate);
+                _ = this._fs.Seek(0, SeekOrigin.End);
+            }
+            this._file.Refresh();
         }
 
         public async Task Write(string content)
         {
-            if (_fs == null || _file == null) return;
-            
-            await _fs.WriteAsync(content.GetBytes(), 0, content.Length);
-            await _fs.FlushAsync();
-            _file.Refresh();
+            if (this._fs == null || this._file == null)
+            {
+                return;
+            }
+
+            await this._fs.WriteAsync(content.GetBytes(), 0, content.Length);
+            await this._fs.FlushAsync();
+            this._file.Refresh();
         }
 
-        public IEnumerable<string>  Read()
-        {
-            return _directory.GetFiles().Select(f => f.FullName);
-        }
+        public IEnumerable<string> Read() => this._directory.GetFiles().Select(f => f.FullName);
 
-        public void Remove(string file)
-        {
-            File.Delete(file);
-        }
+        public void Remove(string file) => File.Delete(file);
 
         public void Close()
         {
-            _fs?.Close();
-            _fs = null;
-            _file = null;
+            this._fs?.Close();
+            this._fs = null;
+            this._file = null;
         }
 
         /// <summary>
@@ -202,21 +190,21 @@ namespace Segment.Analytics.Utilities
         /// <param name="extension">extension without dot</param>
         public void FinishAndClose(string extension = default)
         {
-            _fs?.Close();
-            _fs = null;
+            this._fs?.Close();
+            this._fs = null;
 
-            
-            if (_file != null && extension != null)
+
+            if (this._file != null && extension != null)
             {
-                var nameWithExtension = _file.FullName + '.' + extension;
-                _file.MoveTo(nameWithExtension);
+                var nameWithExtension = this._file.FullName + '.' + extension;
+                this._file.MoveTo(nameWithExtension);
             }
 
-            _file = null;
+            this._file = null;
         }
 
         public byte[] ReadAsBytes(string source)
-        {   
+        {
             var file = new FileInfo(source);
             return file.Exists ? File.ReadAllBytes(source) : null;
         }

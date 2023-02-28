@@ -24,7 +24,7 @@ namespace Tests
             _store = new Store(true);
             _settings = new Settings
             {
-                integrations = new JsonObject
+                Integrations = new JsonObject
                 {
                     ["foo"] = "bar"
                 }
@@ -51,9 +51,9 @@ namespace Tests
 
             var actual = Segment.Analytics.System.DefaultState(_configuration, _storage.Object);
             
-            Assert.Equal(_configuration, actual.configuration);
-            Assert.Equal(settings.integrations.ToString(), actual.settings.integrations.ToString());
-            Assert.False(actual.running);
+            Assert.Equal(_configuration, actual._configuration);
+            Assert.Equal(settings.Integrations.ToString(), actual._settings.Integrations.ToString());
+            Assert.False(actual._running);
         }
         
         [Fact]
@@ -65,9 +65,9 @@ namespace Tests
 
             var actual = Segment.Analytics.System.DefaultState(_configuration, _storage.Object);
             
-            Assert.Equal(_configuration, actual.configuration);
-            Assert.Equal(_settings.integrations.ToString(), actual.settings.integrations.ToString());
-            Assert.False(actual.running);
+            Assert.Equal(_configuration, actual._configuration);
+            Assert.Equal(_settings.Integrations.ToString(), actual._settings.Integrations.ToString());
+            Assert.False(actual._running);
         }
 
         [Fact]
@@ -79,8 +79,8 @@ namespace Tests
 
             var actual = await _store.CurrentState<Segment.Analytics.System>();
             
-            Assert.Equal(_settings.integrations.ToString(), actual.settings.integrations.ToString());
-            Assert.False(actual.running);
+            Assert.Equal(_settings.Integrations.ToString(), actual._settings.Integrations.ToString());
+            Assert.False(actual._running);
         }
         
         [Fact]
@@ -92,8 +92,8 @@ namespace Tests
 
             var actual = await _store.CurrentState<Segment.Analytics.System>();
             
-            Assert.Equal(_settings.integrations.ToString(), actual.settings.integrations.ToString());
-            Assert.True(actual.running);
+            Assert.Equal(_settings.Integrations.ToString(), actual._settings.Integrations.ToString());
+            Assert.True(actual._running);
         }
         
         [Fact]
@@ -106,8 +106,8 @@ namespace Tests
 
             var actual = await _store.CurrentState<Segment.Analytics.System>();
             
-            Assert.True(actual.settings.integrations.GetBool(expectedKey));
-            Assert.False(actual.running);
+            Assert.True(actual._settings.Integrations.GetBool(expectedKey));
+            Assert.False(actual._running);
         }
     }
 
@@ -126,9 +126,9 @@ namespace Tests
             _store = new Store(true);
             _userInfo = new UserInfo()
             {
-                anonymousId = "foo",
-                userId = "bar",
-                traits = new JsonObject { ["baz"] = "qux" }
+                _anonymousId = "foo",
+                _userId = "bar",
+                _traits = new JsonObject { ["baz"] = "qux" }
             };
             _configuration = new Configuration(
                 writeKey: "123",
@@ -155,11 +155,11 @@ namespace Tests
                 .Setup(o => o.Read(StorageConstants.Traits))
                 .Returns(JsonUtility.ToJson(expectedTraits));
 
-            var actual = UserInfo.DefaultState(_configuration, _storage.Object);
+            var actual = UserInfo.DefaultState(_storage.Object);
             
-            Assert.Equal(expectedAnonymousId, actual.anonymousId);
-            Assert.Equal(expectedUserId, actual.userId);
-            Assert.Equal(expectedTraits.ToString(), actual.traits.ToString());
+            Assert.Equal(expectedAnonymousId, actual._anonymousId);
+            Assert.Equal(expectedUserId, actual._userId);
+            Assert.Equal(expectedTraits.ToString(), actual._traits.ToString());
         }
         
         [Fact]
@@ -178,11 +178,11 @@ namespace Tests
                 .Setup(o => o.Read(StorageConstants.Traits))
                 .Returns(badTraits);
 
-            var actual = UserInfo.DefaultState(_configuration, _storage.Object);
+            var actual = UserInfo.DefaultState(_storage.Object);
             
-            Assert.Equal(expectedAnonymousId, actual.anonymousId);
-            Assert.Equal(expectedUserId, actual.userId);
-            Assert.Empty(actual.traits);
+            Assert.Equal(expectedAnonymousId, actual._anonymousId);
+            Assert.Equal(expectedUserId, actual._userId);
+            Assert.Empty(actual._traits);
         }
 
         [Fact]
@@ -193,9 +193,9 @@ namespace Tests
 
             var actual = await _store.CurrentState<UserInfo>();
             
-            Assert.NotEqual(_userInfo.anonymousId, actual.anonymousId);
-            Assert.Null(actual.userId);
-            Assert.Null(actual.traits);
+            Assert.NotEqual(_userInfo._anonymousId, actual._anonymousId);
+            Assert.Null(actual._userId);
+            Assert.Null(actual._traits);
         }
 
         [Fact]
@@ -208,9 +208,9 @@ namespace Tests
 
             var actual = await _store.CurrentState<UserInfo>();
             
-            Assert.Equal(_userInfo.anonymousId, actual.anonymousId);
-            Assert.Equal(expectedUserId, actual.userId);
-            Assert.Equal(_userInfo.traits.ToString(), actual.traits.ToString());
+            Assert.Equal(_userInfo._anonymousId, actual._anonymousId);
+            Assert.Equal(expectedUserId, actual._userId);
+            Assert.Equal(_userInfo._traits.ToString(), actual._traits.ToString());
         }
         
         [Fact]
@@ -223,9 +223,9 @@ namespace Tests
 
             var actual = await _store.CurrentState<UserInfo>();
             
-            Assert.Equal(_userInfo.anonymousId, actual.anonymousId);
-            Assert.Equal(_userInfo.userId, actual.userId);
-            Assert.Equal(expectedTraits.ToString(), actual.traits.ToString());
+            Assert.Equal(_userInfo._anonymousId, actual._anonymousId);
+            Assert.Equal(_userInfo._userId, actual._userId);
+            Assert.Equal(expectedTraits.ToString(), actual._traits.ToString());
         }
         
         
@@ -240,9 +240,9 @@ namespace Tests
 
             var actual = await _store.CurrentState<UserInfo>();
             
-            Assert.Equal(_userInfo.anonymousId, actual.anonymousId);
-            Assert.Equal(expectedUserId, actual.userId);
-            Assert.Equal(expectedTraits.ToString(), actual.traits.ToString());
+            Assert.Equal(_userInfo._anonymousId, actual._anonymousId);
+            Assert.Equal(expectedUserId, actual._userId);
+            Assert.Equal(expectedTraits.ToString(), actual._traits.ToString());
         }
         
         [Fact]
@@ -255,9 +255,9 @@ namespace Tests
 
             var actual = await _store.CurrentState<UserInfo>();
             
-            Assert.Equal(expectedAnonymousId, actual.anonymousId);
-            Assert.Equal(_userInfo.userId, actual.userId);
-            Assert.Equal(_userInfo.traits.ToString(), actual.traits.ToString());
+            Assert.Equal(expectedAnonymousId, actual._anonymousId);
+            Assert.Equal(_userInfo._userId, actual._userId);
+            Assert.Equal(_userInfo._traits.ToString(), actual._traits.ToString());
         }
     }
 }

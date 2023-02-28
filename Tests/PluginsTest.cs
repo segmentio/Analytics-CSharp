@@ -39,7 +39,7 @@ namespace Tests
         [Fact]
         public void TestApply()
         {
-            var expected = _analytics.timeline.plugins.Sum(o => o.Value.plugins.Count);
+            var expected = _analytics.Timeline._plugins.Sum(o => o.Value._plugins.Count);
             
             var actual = 0;
             _analytics.Apply(_ =>
@@ -57,18 +57,18 @@ namespace Tests
 
             _analytics.Add(plugin);
             
-            Assert.Equal(_analytics, plugin.analytics);
-            Assert.Contains(plugin, _analytics.timeline.plugins[PluginType.Before].plugins);
+            Assert.Equal(_analytics, plugin.Analytics);
+            Assert.Contains(plugin, _analytics.Timeline._plugins[PluginType.Before]._plugins);
         }
 
         [Fact]
         public void TestRemove()
         {
-            var plugin = _analytics.timeline.plugins[PluginType.Before].plugins[0];
+            var plugin = _analytics.Timeline._plugins[PluginType.Before]._plugins[0];
             
             _analytics.Remove(plugin);
             
-            Assert.DoesNotContain(plugin, _analytics.timeline.plugins[PluginType.Before].plugins);
+            Assert.DoesNotContain(plugin, _analytics.Timeline._plugins[PluginType.Before]._plugins);
         }
 
         [Fact]
@@ -101,7 +101,7 @@ namespace Tests
             var expected = new SegmentDestination();
             _analytics.Add(expected);
 
-            var actual = _analytics.Find(expected.key);
+            var actual = _analytics.Find(expected.Key);
             
             Assert.Equal(expected, actual);
         }

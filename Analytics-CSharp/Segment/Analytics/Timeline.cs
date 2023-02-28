@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Segment.Analytics
 {
+    using global::System;
+    using global::System.Collections.Generic;
+    using global::System.Linq;
+
     /// <summary>
     /// Platform abstraction for managing all plugins and their execution
     /// Currently the execution follows
@@ -11,11 +11,9 @@ namespace Segment.Analytics
     /// </summary>
     public class Timeline
     {
-        internal Dictionary<PluginType, Mediator> plugins;
+        internal Dictionary<PluginType, Mediator> _plugins;
 
-        public Timeline()
-        {
-            plugins = new Dictionary<PluginType, Mediator>()
+        public Timeline() => this._plugins = new Dictionary<PluginType, Mediator>()
             {
                 { PluginType.Before, new Mediator() },
                 { PluginType.Enrichment, new Mediator() },
@@ -23,8 +21,7 @@ namespace Segment.Analytics
                 { PluginType.After, new Mediator() },
                 { PluginType.Utility, new Mediator() }
             };
-        }
-        
+
         /// <summary>
         /// initiate the event's lifecycle
         /// </summary>
@@ -33,20 +30,20 @@ namespace Segment.Analytics
         internal RawEvent Process(RawEvent incomingEvent)
         {
             // Apply before and enrichment types first to start the timeline processing.
-            var beforeResult = ApplyPlugins(PluginType.Before, incomingEvent);
+            var beforeResult = this.ApplyPlugins(PluginType.Before, incomingEvent);
             // Enrichment is like middleware, a chance to update the event across the board before going to destinations.
-            var enrichmentResult = ApplyPlugins(PluginType.Enrichment, beforeResult);
-            
+            var enrichmentResult = this.ApplyPlugins(PluginType.Enrichment, beforeResult);
+
             // Make sure not to update the events during this next cycle. Since each destination may want different 
             // data than other destinations we don't want them conflicting and changing what a real result should be
-            ApplyPlugins(PluginType.Destination, enrichmentResult);
-            
+            _ = this.ApplyPlugins(PluginType.Destination, enrichmentResult);
+
             // Finally end with after plugins
-            var afterResult = ApplyPlugins(PluginType.After, enrichmentResult);
-            
+            var afterResult = this.ApplyPlugins(PluginType.After, enrichmentResult);
+
             return afterResult;
         }
-        
+
         /// <summary>
         /// Runs all registered plugins of a particular type on given payload
         /// </summary>
@@ -56,7 +53,7 @@ namespace Segment.Analytics
         internal RawEvent ApplyPlugins(PluginType type, RawEvent incomingEvent)
         {
             var returnEvent = incomingEvent;
-            var mediator = plugins[type];
+            var mediator = this._plugins[type];
             if (returnEvent != null)
             {
                 returnEvent = mediator.Execute(returnEvent);
@@ -72,7 +69,7 @@ namespace Segment.Analytics
         /// <param name="closure">closure that applies to plugin</param>
         internal void Apply(Action<Plugin> closure)
         {
-            foreach (var plugin in plugins.Select(item => item.Value).SelectMany(mediator => mediator.plugins))
+            foreach (var plugin in this._plugins.Select(item => item.Value).SelectMany(mediator => mediator._plugins))
             {
                 closure(plugin);
             }
@@ -84,7 +81,7 @@ namespace Segment.Analytics
         /// <param name="plugin">plugin to be registered</param>
         internal void Add(Plugin plugin)
         {
-            var mediator = plugins[plugin.type];
+            var mediator = this._plugins[plugin.Type];
             mediator?.Add(plugin);
         }
 
@@ -95,7 +92,7 @@ namespace Segment.Analytics
         internal void Remove(Plugin plugin)
         {
             // Remove all plugins with this name in every category
-            foreach (var item in plugins.ToList())
+            foreach (var item in this._plugins.ToList())
             {
                 var mediator = item.Value;
                 mediator.Remove(plugin);
@@ -109,7 +106,7 @@ namespace Segment.Analytics
         /// <returns>instance of given type registered in analytics</returns>
         public T Find<T>() where T : Plugin
         {
-            foreach (var item in plugins)
+            foreach (var item in this._plugins)
             {
                 var found = item.Value.Find<T>();
                 if (found != null)
@@ -120,7 +117,7 @@ namespace Segment.Analytics
 
             return default;
         }
-        
+
         /// <summary>
         /// Find all registered plugins of given type, including subtypes
         /// </summary>
@@ -129,8 +126,8 @@ namespace Segment.Analytics
         public IEnumerable<T> FindAll<T>() where T : Plugin
         {
             var result = new List<T>();
-            
-            foreach (var item in plugins)
+
+            foreach (var item in this._plugins)
             {
                 var found = item.Value.FindAll<T>();
                 result.AddRange(found);
@@ -144,27 +141,24 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="destination">key of <see cref="DestinationPlugin"/></param>
         /// <returns>instance of destination plugin of given key</returns>
-        public DestinationPlugin Find(string destination)
-        {
-            return plugins[PluginType.Destination]?.plugins?.Find(it =>
-                it is DestinationPlugin plugin && plugin.key.Equals(destination)) as DestinationPlugin;
-        }
-        
+        public DestinationPlugin Find(string destination) => this._plugins[PluginType.Destination]?._plugins?.Find(it =>
+                                                                          it is DestinationPlugin plugin && plugin.Key.Equals(destination)) as DestinationPlugin;
+
         #endregion
     }
 
     internal class Mediator
     {
-        internal List<Plugin> plugins = new List<Plugin>();
+        internal List<Plugin> _plugins = new List<Plugin>();
 
         internal void Add(Plugin plugin)
         {
-            plugins.Add(plugin);
+            this._plugins.Add(plugin);
 
-            var analytics = plugin.analytics;
-            analytics.analyticsScope.Launch(analytics.analyticsDispatcher, async () =>
+            var analytics = plugin.Analytics;
+            _ = analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () =>
             {
-                var settings = await plugin.analytics.SettingsAsync();
+                var settings = await plugin.Analytics.SettingsAsync();
                 if (settings.HasValue)
                 {
                     plugin.Update(settings.Value, UpdateType.Initial);
@@ -172,19 +166,16 @@ namespace Segment.Analytics
             });
         }
 
-        internal void Remove(Plugin plugin)
-        {
-            plugins.RemoveAll(tempPlugin => tempPlugin == plugin);
-        }
-        
+        internal void Remove(Plugin plugin) => this._plugins.RemoveAll(tempPlugin => tempPlugin == plugin);
+
         internal RawEvent Execute(RawEvent incomingEvent)
         {
-            RawEvent result = incomingEvent;
-            foreach (var plugin in plugins.Where(plugin => result != null))
+            var result = incomingEvent;
+            foreach (var plugin in this._plugins.Where(plugin => result != null))
             {
                 if (plugin is DestinationPlugin)
                 {
-                    plugin.Execute(result);
+                    _ = plugin.Execute(result);
                 }
                 else
                 {
@@ -194,14 +185,8 @@ namespace Segment.Analytics
             return result;
         }
 
-        public T Find<T>() where T : Plugin
-        {
-            return (T) plugins.FirstOrDefault(typeof(T).IsInstanceOfType);
-        }
+        public T Find<T>() where T : Plugin => (T)this._plugins.FirstOrDefault(typeof(T).IsInstanceOfType);
 
-        public IEnumerable<T> FindAll<T>() where T : Plugin
-        {
-            return plugins.Where(typeof(T).IsInstanceOfType).Cast<T>();
-        }
+        public IEnumerable<T> FindAll<T>() where T : Plugin => this._plugins.Where(typeof(T).IsInstanceOfType).Cast<T>();
     }
 }

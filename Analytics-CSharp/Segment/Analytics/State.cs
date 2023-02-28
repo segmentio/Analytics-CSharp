@@ -1,10 +1,10 @@
-﻿using System;
-using Segment.Sovran;
-using Segment.Serialization;
-using Segment.Analytics.Utilities;
-
 namespace Segment.Analytics
 {
+    using global::System;
+    using Segment.Analytics.Utilities;
+    using Segment.Serialization;
+    using Segment.Sovran;
+
     /// <summary>
     /// Stores state related to the analytics system:
     ///     <list type="bullet">
@@ -13,19 +13,19 @@ namespace Segment.Analytics
     ///         <item><description>running state indicating the system has received settings</description></item>
     ///     </list>
     /// </summary>
-    internal struct System: IState
+    internal struct System : IState
     {
-        internal Configuration configuration;
-        internal Settings settings;
-        internal bool running;
+        internal Configuration _configuration;
+        internal Settings _settings;
+        internal bool _running;
 
-        System(Configuration configuration, Settings settings, bool running)
+        private System(Configuration configuration, Settings settings, bool running)
         {
-            this.configuration = configuration;
-            this.settings = settings;
-            this.running = running;
+            this._configuration = configuration;
+            this._settings = settings;
+            this._running = running;
         }
-        
+
         internal static System DefaultState(Configuration configuration, IStorage storage)
         {
             Settings settings;
@@ -36,8 +36,8 @@ namespace Segment.Analytics
             }
             catch (Exception e)
             {
-                Analytics.logger?.LogError(e, "Failed to load settings from storage. Switch to default settings provided through configuration.");
-                settings = configuration.defaultSettings;
+                Analytics.s_logger?.LogError(e, "Failed to load settings from storage. Switch to default settings provided through configuration.");
+                settings = configuration.DefaultSettings;
             }
 
             return new System(configuration, settings, false);
@@ -45,54 +45,45 @@ namespace Segment.Analytics
 
         internal struct UpdateSettingsAction : IAction
         {
-            Settings settings;
+            private Settings _settings;
 
-            public UpdateSettingsAction(Settings settings)
-            {
-                this.settings = settings;
-            }
+            public UpdateSettingsAction(Settings settings) => this._settings = settings;
 
             public IState Reduce(IState state)
             {
                 IState result = null;
                 if (state is System systemState)
                 {
-                    result = new System(systemState.configuration, settings, systemState.running);                    
+                    result = new System(systemState._configuration, this._settings, systemState._running);
                 }
-                
+
                 return result;
             }
         }
 
-        internal struct ToggleRunningAction : IAction
+        internal readonly struct ToggleRunningAction : IAction
         {
-            private bool running;
+            private readonly bool _running;
 
-            public ToggleRunningAction(bool running)
-            {
-                this.running = running;
-            }
+            public ToggleRunningAction(bool running) => this._running = running;
 
             public IState Reduce(IState state)
             {
                 IState result = null;
                 if (state is System systemState)
                 {
-                    result = new System(systemState.configuration, systemState.settings, running);                    
+                    result = new System(systemState._configuration, systemState._settings, this._running);
                 }
-                
+
                 return result;
             }
         }
 
-        internal struct AddDestinationToSettingsAction : IAction
+        internal readonly struct AddDestinationToSettingsAction : IAction
         {
-            private string key;
+            private readonly string _key;
 
-            public AddDestinationToSettingsAction(string key)
-            {
-                this.key = key;
-            }
+            public AddDestinationToSettingsAction(string key) => this._key = key;
 
             public IState Reduce(IState state)
             {
@@ -101,14 +92,14 @@ namespace Segment.Analytics
                 if (state is System systemState)
                 {
                     // Check if the settings have this destination
-                    Settings settings = systemState.settings;
-                    var integrations = settings.integrations;
-                    integrations[key] = true;
-                    settings.integrations = integrations;
-                    
-                    result = new System(systemState.configuration, settings,systemState.running);                    
+                    var settings = systemState._settings;
+                    var integrations = settings.Integrations;
+                    integrations[this._key] = true;
+                    settings.Integrations = integrations;
+
+                    result = new System(systemState._configuration, settings, systemState._running);
                 }
-                
+
                 return result;
             }
         }
@@ -122,25 +113,25 @@ namespace Segment.Analytics
     ///         <item><description>traits (<see cref="JsonObject"/>)</description></item>
     ///     </list>
     /// </summary>
-    struct UserInfo : IState
+    internal struct UserInfo : IState
     {
-        internal string anonymousId;
-        internal string userId;
-        internal JsonObject traits;
+        internal string _anonymousId;
+        internal string _userId;
+        internal JsonObject _traits;
 
-        UserInfo(string anonymousId, string userId, JsonObject traits)
+        private UserInfo(string anonymousId, string userId, JsonObject traits)
         {
-            this.anonymousId = anonymousId;
-            this.userId = userId;
-            this.traits = traits;
+            this._anonymousId = anonymousId;
+            this._userId = userId;
+            this._traits = traits;
         }
 
-        public bool isNull =>
-            anonymousId == default &&
-            userId == default &&
-            traits == default;
+        public bool IsNull =>
+            this._anonymousId == default &&
+            this._userId == default &&
+            this._traits == default;
 
-        internal static UserInfo DefaultState(Configuration configuration, IStorage storage)
+        internal static UserInfo DefaultState(IStorage storage)
         {
             var userId = storage.Read(StorageConstants.UserId);
             var anonymousId = storage.Read(StorageConstants.AnonymousId) ?? Guid.NewGuid().ToString();
@@ -153,10 +144,10 @@ namespace Segment.Analytics
             }
             catch (Exception e)
             {
-                Analytics.logger?.LogError(e, "Failed to load cached traits from storage, creating an empty traits");
+                Analytics.s_logger?.LogError(e, "Failed to load cached traits from storage, creating an empty traits");
                 traits = new JsonObject();
             }
-            
+
             return new UserInfo(anonymousId, userId, traits);
         }
 
@@ -165,66 +156,61 @@ namespace Segment.Analytics
             public IState Reduce(IState state)
             {
                 IState result = null;
-                if (state is UserInfo userState)
+
+                if (state is UserInfo)
                 {
-                    result = new UserInfo(Guid.NewGuid().ToString(), null, null);                    
+                    result = new UserInfo(Guid.NewGuid().ToString(), null, null);
                 }
-                
+
                 return result;
             }
         }
-        
-        internal struct SetUserIdAction : IAction
-        {
-            private string userId;
 
-            public SetUserIdAction(string userId)
-            {
-                this.userId = userId;
-            }
+        internal readonly struct SetUserIdAction : IAction
+        {
+            private readonly string _userId;
+
+            public SetUserIdAction(string userId) => this._userId = userId;
 
             public IState Reduce(IState state)
             {
                 IState result = null;
                 if (state is UserInfo userState)
                 {
-                    result = new UserInfo(userState.anonymousId, userId, userState.traits);                    
+                    result = new UserInfo(userState._anonymousId, this._userId, userState._traits);
                 }
-                
+
                 return result;
             }
         }
 
-        internal struct SetTraitsAction : IAction
+        internal readonly struct SetTraitsAction : IAction
         {
-            private JsonObject traits;
+            private readonly JsonObject _traits;
 
-            public SetTraitsAction(JsonObject traits)
-            {
-                this.traits = traits;
-            }
+            public SetTraitsAction(JsonObject traits) => this._traits = traits;
 
             public IState Reduce(IState state)
             {
                 IState result = null;
                 if (state is UserInfo userState)
                 {
-                    result = new UserInfo(userState.anonymousId, userState.userId, traits);
+                    result = new UserInfo(userState._anonymousId, userState._userId, this._traits);
                 }
-                
+
                 return result;
             }
         }
-        
-        internal struct SetUserIdAndTraitsAction : IAction
+
+        internal readonly struct SetUserIdAndTraitsAction : IAction
         {
-            private string userId;
-            private JsonObject traits;
+            private readonly string _userId;
+            private readonly JsonObject _traits;
 
             public SetUserIdAndTraitsAction(string userId, JsonObject traits)
             {
-                this.userId = userId;
-                this.traits = traits;
+                this._userId = userId;
+                this._traits = traits;
             }
 
             public IState Reduce(IState state)
@@ -232,30 +218,27 @@ namespace Segment.Analytics
                 IState result = null;
                 if (state is UserInfo userState)
                 {
-                    result = new UserInfo(userState.anonymousId, userId, traits);
+                    result = new UserInfo(userState._anonymousId, this._userId, this._traits);
                 }
-                
+
                 return result;
             }
         }
-        
-        internal struct SetAnonymousIdAction : IAction
-        {
-            private string anonymousId;
 
-            public SetAnonymousIdAction(string anonymousId)
-            {
-                this.anonymousId = anonymousId;
-            }
+        internal readonly struct SetAnonymousIdAction : IAction
+        {
+            private readonly string _anonymousId;
+
+            public SetAnonymousIdAction(string anonymousId) => this._anonymousId = anonymousId;
 
             public IState Reduce(IState state)
             {
                 IState result = null;
                 if (state is UserInfo userState)
                 {
-                    result = new UserInfo(anonymousId, userState.userId, userState.traits);
+                    result = new UserInfo(this._anonymousId, userState._userId, userState._traits);
                 }
-                
+
                 return result;
             }
         }

@@ -42,12 +42,12 @@ namespace Tests
             var actual = new TrackEvent("test", new JsonObject());
             _analytics.Process(actual);
 
-            Assert.NotNull(actual.messageId);
-            Assert.NotNull(actual.context);
-            Assert.NotNull(actual.timestamp);
+            Assert.NotNull(actual.MessageId);
+            Assert.NotNull(actual.Context);
+            Assert.NotNull(actual.Timestamp);
             
-            Assert.True(actual.userId != null || actual.anonymousId != null);
-            Assert.NotNull(actual.integrations);
+            Assert.True(actual.UserId != null || actual.AnonymousId != null);
+            Assert.NotNull(actual.Integrations);
         }
 
         [Fact]
@@ -128,7 +128,7 @@ namespace Tests
         [Fact]
         public void TestVersion()
         {
-            Assert.Equal(Version.SegmentVersion, _analytics.version);
+            Assert.Equal(Version.SegmentVersion, _analytics.Version);
         }
 
         [Fact]

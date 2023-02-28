@@ -1,33 +1,33 @@
-﻿
-using Segment.Analytics.Utilities;
-using Segment.Concurrent;
-
 namespace Segment.Analytics
 {
+
+    using Segment.Analytics.Utilities;
+    using Segment.Concurrent;
+
     public class Configuration
     {
-        public string writeKey { get; }
-        
-        public string persistentDataPath { get; }
-        
-        public int flushAt { get; }
-        
-        public int flushInterval { get; }
-        
-        public bool autoAddSegmentDestination { get; }
-        
-        public string apiHost { get; }
-        
-        public string cdnHost { get; }
-        
-        public Settings defaultSettings { get; }
+        public string WriteKey { get; }
 
-        public bool userSynchronizeDispatcher { get; }
-        
-        public ICoroutineExceptionHandler exceptionHandler { get; }
-        
-        public IStorageProvider storageProvider { get; }
-        
+        public string PersistentDataPath { get; }
+
+        public int FlushAt { get; }
+
+        public int FlushInterval { get; }
+
+        public bool AutoAddSegmentDestination { get; }
+
+        public string ApiHost { get; }
+
+        public string CdnHost { get; }
+
+        public Settings DefaultSettings { get; }
+
+        public bool UserSynchronizeDispatcher { get; }
+
+        public ICoroutineExceptionHandler ExceptionHandler { get; }
+
+        public IStorageProvider StorageProvider { get; }
+
         /// <summary>
         /// Configuration that analytics can use
         /// </summary>
@@ -65,17 +65,17 @@ namespace Segment.Analytics
             ICoroutineExceptionHandler exceptionHandler = null,
             IStorageProvider storageProvider = default)
         {
-            this.writeKey = writeKey;
-            this.persistentDataPath = persistentDataPath;
-            this.flushAt = flushAt;
-            this.flushInterval = flushInterval;
-            this.defaultSettings = defaultSettings;
-            this.autoAddSegmentDestination = autoAddSegmentDestination;
-            this.userSynchronizeDispatcher = userSynchronizeDispatcher;
-            this.apiHost = apiHost;
-            this.cdnHost = cdnHost;
-            this.exceptionHandler = exceptionHandler;
-            this.storageProvider = storageProvider ?? new DefaultStorageProvider();
+            this.WriteKey = writeKey;
+            this.PersistentDataPath = persistentDataPath;
+            this.FlushAt = flushAt;
+            this.FlushInterval = flushInterval;
+            this.DefaultSettings = defaultSettings;
+            this.AutoAddSegmentDestination = autoAddSegmentDestination;
+            this.UserSynchronizeDispatcher = userSynchronizeDispatcher;
+            this.ApiHost = apiHost;
+            this.CdnHost = cdnHost;
+            this.ExceptionHandler = exceptionHandler;
+            this.StorageProvider = storageProvider ?? new DefaultStorageProvider();
         }
     }
 

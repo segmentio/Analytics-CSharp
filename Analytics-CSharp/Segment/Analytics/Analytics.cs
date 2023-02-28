@@ -1,32 +1,31 @@
-﻿using System;
-using System.Runtime.Serialization;
-using Segment.Analytics.Plugins;
-using Segment.Concurrent;
-using Segment.Serialization;
-using Segment.Analytics.Utilities;
-using Segment.Sovran;
-
-using JsonUtility = Segment.Serialization.JsonUtility;
-using System.Threading.Tasks;
-
 namespace Segment.Analytics
 {
+    using global::System;
+    using global::System.Runtime.Serialization;
+    using global::System.Threading.Tasks;
+    using Segment.Analytics.Plugins;
+    using Segment.Analytics.Utilities;
+    using Segment.Concurrent;
+    using Segment.Serialization;
+    using Segment.Sovran;
+    using JsonUtility = Serialization.JsonUtility;
+
     public partial class Analytics : ISubscriber
     {
-        public Timeline timeline { get; }
+        public Timeline Timeline { get; }
 
-        internal Configuration configuration { get; }
-        internal Store store { get;}
-        internal IStorage storage { get;}
+        internal Configuration Configuration { get; }
+        internal Store Store { get; }
+        internal IStorage Storage { get; }
 
-        internal Scope analyticsScope { get; }
-        internal IDispatcher fileIODispatcher { get; }
-        internal IDispatcher networkIODispatcher { get; }
-        internal IDispatcher analyticsDispatcher { get; }
+        internal Scope AnalyticsScope { get; }
+        internal IDispatcher FileIODispatcher { get; }
+        internal IDispatcher NetworkIODispatcher { get; }
+        internal IDispatcher AnalyticsDispatcher { get; }
 
-        internal static ILogger logger = null;
+        internal static ILogger s_logger = null;
 
-        internal UserInfo userInfo;
+        internal UserInfo _userInfo;
 
         /// <summary>
         /// Public constructor of Analytics.
@@ -34,28 +33,28 @@ namespace Segment.Analytics
         /// <param name="configuration">configuration that analytics can use</param>
         public Analytics(Configuration configuration)
         {
-            this.configuration = configuration;
-            analyticsScope = new Scope(configuration.exceptionHandler);
-            if (configuration.userSynchronizeDispatcher)
+            this.Configuration = configuration;
+            this.AnalyticsScope = new Scope(configuration.ExceptionHandler);
+            if (configuration.UserSynchronizeDispatcher)
             {
                 IDispatcher dispatcher = new SynchronizeDispatcher();
-                fileIODispatcher = dispatcher;
-                networkIODispatcher = dispatcher;
-                analyticsDispatcher = dispatcher;
+                this.FileIODispatcher = dispatcher;
+                this.NetworkIODispatcher = dispatcher;
+                this.AnalyticsDispatcher = dispatcher;
             }
             else
             {
-                fileIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(2));
-                networkIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(1));
-                analyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
+                this.FileIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(2));
+                this.NetworkIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(1));
+                this.AnalyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
             }
 
-            store = new Store(configuration.userSynchronizeDispatcher, configuration.exceptionHandler);
-            storage = configuration.storageProvider.CreateStorage(this);
-            timeline = new Timeline();
+            this.Store = new Store(configuration.UserSynchronizeDispatcher, configuration.ExceptionHandler);
+            this.Storage = configuration.StorageProvider.CreateStorage(this);
+            this.Timeline = new Timeline();
 
             // Start everything
-            Startup();
+            this.Startup();
         }
 
         /// <summary>
@@ -65,7 +64,7 @@ namespace Segment.Analytics
         public void Process(RawEvent incomingEvent)
         {
             incomingEvent.ApplyRawEventData();
-            timeline.Process(incomingEvent);
+            _ = this.Timeline.Process(incomingEvent);
         }
 
         #region System Modifiers
@@ -77,53 +76,41 @@ namespace Segment.Analytics
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>Anonymous Id</returns>
-        public string AnonymousId()
-        {
-            return userInfo.anonymousId;
-        }
+        public string AnonymousId() => this._userInfo._anonymousId;
 
 
         /// <summary>
-        /// Retrieve the userId registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call in a blocking way.
+        /// Retrieve the userId registered by a previous <see cref="Identify(string,JsonObject)"/> call in a blocking way.
         /// 
         /// Note: this method forces internal async methods to run in a synchronized way,
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>User Id</returns>
-        public string UserId()
-        {
-            return userInfo.userId;
-        }
-        
+        public string UserId() => this._userInfo._userId;
+
 
         /// <summary>
-        /// Retrieve the traits registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call in a blocking way.
+        /// Retrieve the traits registered by a previous <see cref="Identify(string,JsonObject)"/> call in a blocking way.
         /// 
         /// Note: this method forces internal async methods to run in a synchronized way,
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns><see cref="JsonObject"/> instance of Traits</returns>
-        public JsonObject Traits()
-        {
-            return userInfo.traits;
-        }
+        public JsonObject Traits() => this._userInfo._traits;
 
 
         /// <summary>
-        /// Retrieve the traits registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call.
+        /// Retrieve the traits registered by a previous <see cref="Identify(string,JsonObject)"/> call.
         /// </summary>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
         /// <returns>Traits</returns>
-        public T Traits<T>() where T : ISerializable
-        {
-            return userInfo.traits != null ? JsonUtility.FromJson<T>(userInfo.traits.ToString()) : default;
-        }
+        public T Traits<T>() where T : ISerializable => this._userInfo._traits != null ? JsonUtility.FromJson<T>(this._userInfo._traits.ToString()) : default;
 
 
         /// <summary>
         /// Force all the <see cref="EventPlugin"/> registered in analytics to flush
         /// </summary>
-        public void Flush() => Apply(plugin =>
+        public void Flush() => this.Apply(plugin =>
         {
             if (plugin is EventPlugin eventPlugin)
             {
@@ -138,14 +125,14 @@ namespace Segment.Analytics
         /// </summary>
         public void Reset()
         {
-            userInfo.userId = null;
-            userInfo.anonymousId = null;
-            userInfo.traits = null;
+            this._userInfo._userId = null;
+            this._userInfo._anonymousId = null;
+            this._userInfo._traits = null;
 
-            analyticsScope.Launch(analyticsDispatcher, async () =>
+            _ = this.AnalyticsScope.Launch(this.AnalyticsDispatcher, async () =>
             {
-                await store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction());
-                Apply(plugin =>
+                await this.Store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction());
+                this.Apply(plugin =>
                 {
                     if (plugin is EventPlugin eventPlugin)
                     {
@@ -160,7 +147,7 @@ namespace Segment.Analytics
         /// Retrieve the version of this library in use.
         /// </summary>
         /// <returns>A string representing the version in "BREAKING.FEATURE.FIX" format.</returns>
-        public string version => Version.SegmentVersion;
+        public string Version => Segment.Analytics.Version.SegmentVersion;
 
         #endregion
 
@@ -177,7 +164,7 @@ namespace Segment.Analytics
         /// <returns>Instance of <see cref="Settings"/></returns>
         public Settings? Settings()
         {
-            var task = SettingsAsync();
+            var task = this.SettingsAsync();
             task.Wait();
             return task.Result;
         }
@@ -189,10 +176,10 @@ namespace Segment.Analytics
         public async Task<Settings?> SettingsAsync()
         {
             Settings? returnSettings = null;
-            IState system = await store.CurrentState<System>();
+            IState system = await this.Store.CurrentState<System>();
             if (system is System convertedSystem)
             {
-                returnSettings = convertedSystem.settings;
+                returnSettings = convertedSystem._settings;
             }
 
             return returnSettings;
@@ -206,34 +193,34 @@ namespace Segment.Analytics
 
         private void Startup(HTTPClient httpClient = null)
         {
-            Add(new StartupQueue());
-            Add(new ContextPlugin());
-            Add(new UserInfoPlugin());
+            _ = this.Add(new StartupQueue());
+            _ = this.Add(new ContextPlugin());
+            _ = this.Add(new UserInfoPlugin());
 
             // use Wait() for this coroutine to force completion,
             // since Store must be setup before any event call happened.
             // Note: Task.Wait() forces internal async methods to run in a synchronized way,
             // we should avoid of doing it whenever possible.
-            analyticsScope.Launch(analyticsDispatcher, async () =>
+            this.AnalyticsScope.Launch(this.AnalyticsDispatcher, async () =>
             {
                 // load memory with initial value
-                userInfo = UserInfo.DefaultState(configuration, storage);
-                await store.Provide(userInfo);
-                await store.Provide(System.DefaultState(configuration, storage));
-                await storage.Initialize();
+                this._userInfo = UserInfo.DefaultState(this.Storage);
+                await this.Store.Provide(this._userInfo);
+                await this.Store.Provide(System.DefaultState(this.Configuration, this.Storage));
+                await this.Storage.Initialize();
             }).Wait();
 
             // check settings over the network,
             // we don't have to Wait() here, because events are piped in
             // StartupQueue until settings is ready
-            analyticsScope.Launch(analyticsDispatcher, async () =>
+            _ = this.AnalyticsScope.Launch(this.AnalyticsDispatcher, async () =>
             {
-                if (configuration.autoAddSegmentDestination)
+                if (this.Configuration.AutoAddSegmentDestination)
                 {
-                    Add(new SegmentDestination());
+                    _ = this.Add(new SegmentDestination());
                 }
 
-                await CheckSettings(httpClient);
+                await this.CheckSettings(httpClient);
                 // TODO: Add lifecycle events to call CheckSettings when app is brought to foreground (not launched)
             });
         }

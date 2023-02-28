@@ -1,10 +1,10 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Segment.Concurrent;
-
 namespace Segment.Analytics.Utilities
 {
+    using global::System;
+    using global::System.Linq;
+    using global::System.Threading.Tasks;
+    using Segment.Concurrent;
+
     internal partial class EventPipeline
     {
         private readonly Analytics _analytics;
@@ -14,7 +14,7 @@ namespace Segment.Analytics.Utilities
         private readonly int _flushCount;
 
         private readonly long _flushIntervalInMillis;
-        
+
         private readonly Channel<string> _writeChannel;
 
         private readonly Channel<string> _uploadChannel;
@@ -24,137 +24,135 @@ namespace Segment.Analytics.Utilities
         private readonly HTTPClient _httpClient;
 
         private readonly IStorage _storage;
-        
-        internal string apiHost { get; set; }
-        
-        public bool running { get; private set; }
+
+        internal string ApiHost { get; set; }
+
+        public bool Running { get; private set; }
 
         internal const string FlushPoison = "#!flush";
 
         internal const string UploadSig = "#!upload";
 
         public EventPipeline(
-            Analytics analytics, 
-            string logTag, 
-            string apiKey, 
-            int flushCount = 20, 
-            long flushIntervalInMillis = 30_000, 
+            Analytics analytics,
+            string logTag,
+            string apiKey,
+            int flushCount = 20,
+            long flushIntervalInMillis = 30_000,
             string apiHost = HTTPClient.DefaultAPIHost)
         {
-            _analytics = analytics;
-            _logTag = logTag;
-            _flushCount = flushCount;
-            _flushIntervalInMillis = flushIntervalInMillis;
-            this.apiHost = apiHost;
+            this._analytics = analytics;
+            this._logTag = logTag;
+            this._flushCount = flushCount;
+            this._flushIntervalInMillis = flushIntervalInMillis;
+            this.ApiHost = apiHost;
 
-            _writeChannel = new Channel<string>();
-            _uploadChannel = new Channel<string>();
-            _eventCount = new AtomicInteger(0);
-            _httpClient = new HTTPClient(apiKey);
-            _storage = analytics.storage;
-            running = false;
-        }
-        
-        public void Put(string @event) {
-            _writeChannel.Send(@event);
+            this._writeChannel = new Channel<string>();
+            this._uploadChannel = new Channel<string>();
+            this._eventCount = new AtomicInteger(0);
+            this._httpClient = new HTTPClient(apiKey);
+            this._storage = analytics.Storage;
+            this.Running = false;
         }
 
-        public void Flush()
-        {
-            _writeChannel.Send(FlushPoison);
-        }
+        public void Put(string @event) => this._writeChannel.Send(@event);
+
+        public void Flush() => this._writeChannel.Send(FlushPoison);
 
         public void Start()
         {
-            running = true;
-            Schedule();
-            Write();
-            Upload();
+            this.Running = true;
+            this.Schedule();
+            this.Write();
+            this.Upload();
         }
 
         public void Stop()
         {
-            _uploadChannel.Cancel();
-            _writeChannel.Cancel();
-            running = false;
+            this._uploadChannel.Cancel();
+            this._writeChannel.Cancel();
+            this.Running = false;
         }
 
-        private void Write() => _analytics.analyticsScope.Launch(_analytics.fileIODispatcher, async () =>
+        private void Write() => this._analytics.AnalyticsScope.Launch(this._analytics.FileIODispatcher, async () =>
         {
-            while (!_writeChannel.isCancelled)
+            while (!this._writeChannel.isCancelled)
             {
-                var e = await _writeChannel.Receive();
+                var e = await this._writeChannel.Receive();
                 var isPoison = e.Equals(FlushPoison);
 
                 if (!isPoison)
                 {
                     try
                     {
-                        await _storage.Write(StorageConstants.Events, e);
+                        await this._storage.Write(StorageConstants.Events, e);
                     }
                     catch (Exception exception)
                     {
-                        Analytics.logger?.LogError(exception, "Error writing events to storage.");
+                        Analytics.s_logger?.LogError(exception, this._logTag + ": Error writing events to storage.");
                     }
                 }
 
-                if (_eventCount.IncrementAndGet() >= _flushCount || isPoison)
+                if (this._eventCount.IncrementAndGet() >= this._flushCount || isPoison)
                 {
-                    _eventCount.Set(0);
-                    _uploadChannel.Send(UploadSig);
+                    this._eventCount.Set(0);
+                    this._uploadChannel.Send(UploadSig);
                 }
             }
         });
 
-        private void Upload() => _analytics.analyticsScope.Launch(_analytics.networkIODispatcher, async () =>
+        private void Upload() => this._analytics.AnalyticsScope.Launch(this._analytics.NetworkIODispatcher, async () =>
         {
-            while (!_uploadChannel.isCancelled)
+            while (!this._uploadChannel.isCancelled)
             {
-                await _uploadChannel.Receive();
-                
-                await Scope.WithContext(_analytics.fileIODispatcher, async () =>
-                {
-                    await _storage.Rollover();
-                });
+                _ = await this._uploadChannel.Receive();
 
-                var fileUrlList = _storage.Read(StorageConstants.Events).Split(',').ToList();
+                await Scope.WithContext(this._analytics.FileIODispatcher, async () => await this._storage.Rollover());
+
+                var fileUrlList = this._storage.Read(StorageConstants.Events).Split(',').ToList();
                 foreach (var url in fileUrlList)
                 {
-                    if (string.IsNullOrEmpty(url)) continue;
+                    if (string.IsNullOrEmpty(url))
+                    {
+                        continue;
+                    }
 
-                    var data = _storage.ReadAsBytes(url);
-                    if (data == null) continue;
+                    var data = this._storage.ReadAsBytes(url);
+                    if (data == null)
+                    {
+                        continue;
+                    }
 
                     var shouldCleanup = true;
                     try
                     {
-                        shouldCleanup = await _httpClient.Upload(data);
+                        shouldCleanup = await this._httpClient.Upload(data);
                     }
                     catch (Exception e)
                     {
-                        Analytics.logger?.LogError(e, "Error uploading to url");
+                        Analytics.s_logger?.LogError(e, this._logTag + ": Error uploading to url");
                     }
 
                     if (shouldCleanup)
                     {
-                        _storage.RemoveFile(url);
+                        _ = this._storage.RemoveFile(url);
                     }
                 }
             }
         });
 
-        private void Schedule() => _analytics.analyticsScope.Launch(_analytics.fileIODispatcher, async () =>
+        private void Schedule() => this._analytics.AnalyticsScope.Launch(this._analytics.FileIODispatcher, async () =>
         {
-            if (_flushIntervalInMillis > 0)
+            if (this._flushIntervalInMillis > 0)
             {
-                while (running)
+                while (this.Running)
                 {
-                    Flush();
+                    this.Flush();
 
                     // use delay to do periodical task
                     // this is doable in coroutine, since delay only suspends, allowing thread to
                     // do other work and then come back. 
-                    await Task.Delay((int)_flushIntervalInMillis);
+                    await Task.Delay((int)this._flushIntervalInMillis);
                 }
             }
         });

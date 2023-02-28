@@ -1,13 +1,12 @@
-using System;
-using System.IO;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Threading.Tasks;
-using Segment.Serialization;
-
 namespace Segment.Analytics.Utilities
 {
+    using global::System;
+    using global::System.Net.Http;
+    using global::System.Net.Http.Headers;
+    using global::System.Text;
+    using global::System.Threading.Tasks;
+    using Segment.Serialization;
+
     public class HTTPClient
     {
         internal const string DefaultAPIHost = "api.segment.io/v1";
@@ -16,69 +15,66 @@ namespace Segment.Analytics.Utilities
 
         private readonly HttpClient _httpClient;
 
-        private string _apiKey;
-        
-        private string _apiHost;
-        
-        private string _cdnHost;
+        private readonly string _apiKey;
 
-        private string _authHeader;
+        private readonly string _apiHost;
+
+        private readonly string _cdnHost;
+
+        private readonly string _authHeader;
 
         public HTTPClient(string apiKey, string apiHost = null, string cdnHost = null)
         {
-            _apiKey = apiKey;
-            _apiHost = apiHost ?? DefaultAPIHost;
-            _cdnHost = cdnHost ?? DefaultCdnHost;
-            _authHeader = AuthorizationHeader(apiKey);
-            _httpClient = new HttpClient();
+            this._apiKey = apiKey;
+            this._apiHost = apiHost ?? DefaultAPIHost;
+            this._cdnHost = cdnHost ?? DefaultCdnHost;
+            this._authHeader = this.AuthorizationHeader(apiKey);
+            this._httpClient = new HttpClient();
         }
 
-        public string SegmentURL(string host, string path)
-        {
-            return "https://" + host + path;
-        }
-        
+        public string SegmentURL(string host, string path) => "https://" + host + path;
+
         public virtual async Task<Settings?> Settings()
         {
-            var settingsURL = SegmentURL(_cdnHost, "/projects/" + _apiKey + "/settings");
-            var response = await DoGet(settingsURL);
+            var settingsURL = this.SegmentURL(this._cdnHost, "/projects/" + this._apiKey + "/settings");
+            var response = await this.DoGet(settingsURL);
             Settings? result = null;
-            
+
             if (!response.IsSuccessStatusCode)
             {
-                Analytics.logger?.LogError("Error " + response.StatusCode + " getting from settings url");
+                Analytics.s_logger?.LogError("Error " + response.StatusCode + " getting from settings url");
             }
             else
             {
                 var json = await response.Content.ReadAsStringAsync();
                 result = JsonUtility.FromJson<Settings>(json);
             }
-                
+
             response.Dispose();
             return result;
         }
 
         public virtual async Task<bool> Upload(byte[] data)
         {
-            var uploadURL = SegmentURL(_apiHost, "/b");
-            var response =  await DoPost(uploadURL, data);
+            var uploadURL = this.SegmentURL(this._apiHost, "/b");
+            var response = await this.DoPost(uploadURL, data);
 
             if (!response.IsSuccessStatusCode)
             {
-                Analytics.logger?.LogError("Error " + response.StatusCode + " uploading to url");
+                Analytics.s_logger?.LogError("Error " + response.StatusCode + " uploading to url");
                 var responseCode = (int)response.StatusCode;
                 response.Dispose();
 
                 switch (responseCode)
                 {
-                    case var n when (n >= 1 && n < 300):
+                    case var n when n >= 1 && n < 300:
                         return false;
-                    case var n when (n >= 300 && n < 400):
+                    case var n when n >= 300 && n < 400:
                         return false;
                     case 429:
                         return false;
-                    case var n when (n >= 400 && n < 500):
-                        Analytics.logger?.LogError("Payloads were rejected by server. Marked for removal.");
+                    case var n when n >= 400 && n < 500:
+                        Analytics.s_logger?.LogError("Payloads were rejected by server. Marked for removal.");
                         return true;
                     default:
                         return false;
@@ -90,27 +86,27 @@ namespace Segment.Analytics.Utilities
         }
 
         public async Task<HttpResponseMessage> DoGet(string url)
-        { 
+        {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            
-            return await _httpClient.SendAsync(request);
+
+            return await this._httpClient.SendAsync(request);
         }
 
         public async Task<HttpResponseMessage> DoPost(string url, byte[] data)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
-            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", _authHeader);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", this._authHeader);
             request.Content = new ByteArrayContent(data);
 
-            return await _httpClient.SendAsync(request);
+            return await this._httpClient.SendAsync(request);
         }
 
         private string AuthorizationHeader(string writeKey)
         {
-            var bytesToEncode = Encoding.UTF8.GetBytes (writeKey + ":");
-            return Convert.ToBase64String (bytesToEncode);
+            var bytesToEncode = Encoding.UTF8.GetBytes(writeKey + ":");
+            return Convert.ToBase64String(bytesToEncode);
         }
     }
 }

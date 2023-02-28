@@ -52,10 +52,10 @@ namespace Tests.Utilities
                 _analytics,
                 httpClient: _mockHttpClient.Object,
                 logTag: "key",
-                apiKey: _analytics.configuration.writeKey,
-                flushCount: _analytics.configuration.flushAt,
-                flushIntervalInMillis: _analytics.configuration.flushInterval * 1000L,
-                apiHost: _analytics.configuration.apiHost
+                apiKey: _analytics.Configuration.WriteKey,
+                flushCount: _analytics.Configuration.FlushAt,
+                flushIntervalInMillis: _analytics.Configuration.FlushInterval * 1000L,
+                apiHost: _analytics.Configuration.ApiHost
             );
             
             file = Guid.NewGuid().ToString();
@@ -98,14 +98,14 @@ namespace Tests.Utilities
         public void TestStart()
         {
             _eventPipeline.Start();
-            Assert.True(_eventPipeline.running);
+            Assert.True(_eventPipeline.Running);
         }
 
         [Fact]
         public void TestStop()
         {
             _eventPipeline.Stop();
-            Assert.False(_eventPipeline.running);
+            Assert.False(_eventPipeline.Running);
         }
 
         [Fact]
@@ -130,10 +130,10 @@ namespace Tests.Utilities
                 _analytics,
                 httpClient: _mockHttpClient.Object,
                 logTag: "key",
-                apiKey: _analytics.configuration.writeKey,
-                flushCount: _analytics.configuration.flushAt,
+                apiKey: _analytics.Configuration.WriteKey,
+                flushCount: _analytics.Configuration.FlushAt,
                 flushIntervalInMillis: 1000L,
-                apiHost: _analytics.configuration.apiHost
+                apiHost: _analytics.Configuration.ApiHost
             );
             _eventPipeline.Start();
             _eventPipeline.Put("test");

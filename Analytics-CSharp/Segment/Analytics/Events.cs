@@ -1,8 +1,8 @@
-using System.Runtime.Serialization;
-using Segment.Serialization;
-
 namespace Segment.Analytics
 {
+    using global::System.Runtime.Serialization;
+    using Segment.Serialization;
+
     public partial class Analytics
     {
         /// <summary>
@@ -18,9 +18,9 @@ namespace Segment.Analytics
             {
                 properties = new JsonObject();
             }
-            
+
             var trackEvent = new TrackEvent(name, properties);
-            Process(trackEvent);
+            this.Process(trackEvent);
         }
 
         /// <summary>
@@ -35,12 +35,12 @@ namespace Segment.Analytics
         {
             if (properties == null)
             {
-                Track(name);
+                this.Track(name);
             }
             else
             {
                 var json = JsonUtility.ToJson(properties);
-                Track(name, JsonUtility.FromJson<JsonObject>(json));
+                this.Track(name, JsonUtility.FromJson<JsonObject>(json));
             }
         }
 
@@ -51,7 +51,7 @@ namespace Segment.Analytics
         ///
         /// Traits and userId will be automatically cached and available on future sessions for the
         /// same user. To update a trait on the server, call identify with the same user id.
-        /// You can also use <see cref="Identify(Segment.Serialization.JsonObject)"/> for this purpose.
+        /// You can also use <see cref="Identify(JsonObject)"/> for this purpose.
         ///
         /// In the case when user logs out, make sure to call <see cref="Reset"/> to clear user's identity
         /// info.
@@ -66,15 +66,15 @@ namespace Segment.Analytics
                 traits = new JsonObject();
             }
 
-            analyticsScope.Launch(analyticsDispatcher, async () =>
+            _ = this.AnalyticsScope.Launch(this.AnalyticsDispatcher, async () =>
             {
-                await store.Dispatch<UserInfo.SetUserIdAndTraitsAction, UserInfo>(
+                await this.Store.Dispatch<UserInfo.SetUserIdAndTraitsAction, UserInfo>(
                 new UserInfo.SetUserIdAndTraitsAction(userId, traits));
-                
+
                 // need to process in scope to prevent
                 // user id being overwritten when apply event data
                 var identifyEvent = new IdentifyEvent(userId, traits);
-                Process(identifyEvent);
+                this.Process(identifyEvent);
             });
         }
 
@@ -99,16 +99,16 @@ namespace Segment.Analytics
                 traits = new JsonObject();
             }
 
-            analyticsScope.Launch(analyticsDispatcher, async () =>
+            _ = this.AnalyticsScope.Launch(this.AnalyticsDispatcher, async () =>
             {
-                await store.Dispatch<UserInfo.SetTraitsAction, UserInfo>(
+                await this.Store.Dispatch<UserInfo.SetTraitsAction, UserInfo>(
                     new UserInfo.SetTraitsAction(traits));
 
                 var identifyEvent = new IdentifyEvent(traits: traits);
-                Process(identifyEvent);
+                this.Process(identifyEvent);
             });
         }
-        
+
         /// <summary>
         /// Identify lets you tie one of your users and their actions to a recognizable {@code userId}.
         /// It also lets you record {@code traits} about the user, like their email, name, account type,
@@ -116,7 +116,7 @@ namespace Segment.Analytics
         ///
         /// Traits and userId will be automatically cached and available on future sessions for the
         /// same user. To update a trait on the server, call identify with the same user id.
-        /// You can also use <see cref="Identify(Segment.Serialization.JsonObject)"/> for this purpose.
+        /// You can also use <see cref="Identify(JsonObject)"/> for this purpose.
         ///
         /// In the case when user logs out, make sure to call <see cref="Reset"/> to clear user's identity
         /// info.
@@ -129,12 +129,12 @@ namespace Segment.Analytics
         {
             if (traits == null)
             {
-                Identify(userId);
+                this.Identify(userId);
             }
             else
             {
                 var json = JsonUtility.ToJson(traits);
-                Identify(userId, JsonUtility.FromJson<JsonObject>(json));
+                this.Identify(userId, JsonUtility.FromJson<JsonObject>(json));
             }
         }
 
@@ -157,12 +157,12 @@ namespace Segment.Analytics
         {
             if (traits == null)
             {
-                Identify(new JsonObject());
+                this.Identify(new JsonObject());
             }
             else
             {
                 var json = JsonUtility.ToJson(traits);
-                Identify(JsonUtility.FromJson<JsonObject>(json));
+                this.Identify(JsonUtility.FromJson<JsonObject>(json));
             }
         }
 
@@ -181,9 +181,9 @@ namespace Segment.Analytics
                 properties = new JsonObject();
             }
             var screenEvent = new ScreenEvent(category, title, properties);
-            Process(screenEvent);
+            this.Process(screenEvent);
         }
-        
+
         /// <summary>
         /// The screen methods let your record whenever a user sees a screen of your mobile app, and
         /// attach a name, category or properties to the screen. Either category or name must be
@@ -197,12 +197,12 @@ namespace Segment.Analytics
         {
             if (properties == null)
             {
-                Screen(title, category: category);
+                this.Screen(title, category: category);
             }
             else
             {
                 var json = JsonUtility.ToJson(properties);
-                Screen(title, JsonUtility.FromJson<JsonObject>(json), category);
+                this.Screen(title, JsonUtility.FromJson<JsonObject>(json), category);
             }
         }
 
@@ -210,7 +210,7 @@ namespace Segment.Analytics
         /// The group method lets you associate a user with a group. It also lets you record custom
         /// traits about the group, like industry or number of employees.
         ///
-        /// If you've called <see cref="Identify(string,Segment.Serialization.JsonObject)"/> before, this will
+        /// If you've called <see cref="Identify(string,JsonObject)"/> before, this will
         /// automatically remember the userId. If not, it will fall back to use the anonymousId instead.
         /// </summary>
         /// <param name="groupId">Unique identifier which you recognize a group by in your own database</param>
@@ -222,14 +222,14 @@ namespace Segment.Analytics
                 traits = new JsonObject();
             }
             var groupEvent = new GroupEvent(groupId, traits);
-            Process(groupEvent);
+            this.Process(groupEvent);
         }
-        
+
         /// <summary>
         /// The group method lets you associate a user with a group. It also lets you record custom
         /// traits about the group, like industry or number of employees.
         ///
-        /// If you've called <see cref="Identify(string,Segment.Serialization.JsonObject)"/> before, this will
+        /// If you've called <see cref="Identify(string,JsonObject)"/> before, this will
         /// automatically remember the userId. If not, it will fall back to use the anonymousId instead.
         /// </summary>
         /// <param name="groupId">Unique identifier which you recognize a group by in your own database</param>
@@ -239,12 +239,12 @@ namespace Segment.Analytics
         {
             if (traits == null)
             {
-                Group(groupId);
+                this.Group(groupId);
             }
             else
             {
                 var json = JsonUtility.ToJson(traits);
-                Group(groupId, JsonUtility.FromJson<JsonObject>(json));
+                this.Group(groupId, JsonUtility.FromJson<JsonObject>(json));
             }
         }
 
@@ -257,22 +257,19 @@ namespace Segment.Analytics
         /// <param name="newId">The new ID you want to alias the existing ID to. The existing ID will be either
         /// the previousId if you have called identify, or the anonymous ID.
         /// </param>
-        public void Alias(string newId)
-        {
-            analyticsScope.Launch(analyticsDispatcher, async () =>
-            {
-                var currentUserInfo = await store.CurrentState<UserInfo>();
-                if (!currentUserInfo.isNull)
-                {
-                    var aliasEvent = new AliasEvent(newId, currentUserInfo.userId ?? currentUserInfo.anonymousId);
-                    await store.Dispatch<UserInfo.SetUserIdAction, UserInfo>(new UserInfo.SetUserIdAction(newId));
-                    Process(aliasEvent);
-                }
-                else
-                {
-                    Analytics.logger?.LogError("failed to fetch current userinfo state");
-                }
-            });
-        }
+        public void Alias(string newId) => this.AnalyticsScope.Launch(this.AnalyticsDispatcher, async () =>
+                                                    {
+                                                        var currentUserInfo = await this.Store.CurrentState<UserInfo>();
+                                                        if (!currentUserInfo.IsNull)
+                                                        {
+                                                            var aliasEvent = new AliasEvent(newId, currentUserInfo._userId ?? currentUserInfo._anonymousId);
+                                                            await this.Store.Dispatch<UserInfo.SetUserIdAction, UserInfo>(new UserInfo.SetUserIdAction(newId));
+                                                            this.Process(aliasEvent);
+                                                        }
+                                                        else
+                                                        {
+                                                            s_logger?.LogError("failed to fetch current userinfo state");
+                                                        }
+                                                    });
     }
 }

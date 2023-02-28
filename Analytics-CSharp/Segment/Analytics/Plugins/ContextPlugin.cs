@@ -1,14 +1,14 @@
-using Segment.Serialization;
-
 namespace Segment.Analytics.Plugins
 {
+    using Segment.Serialization;
+
     /// <summary>
     /// Analytics plugin used to populate events with basic context data.
     /// Auto-added to analytics client on construction
     /// </summary>
     public class ContextPlugin : Plugin
     {
-        public override PluginType type => PluginType.Before;
+        public override PluginType Type => PluginType.Before;
 
         private JsonObject _library;
 
@@ -21,7 +21,7 @@ namespace Segment.Analytics.Plugins
         public override void Configure(Analytics analytics)
         {
             base.Configure(analytics);
-            _library = new JsonObject
+            this._library = new JsonObject
             {
                 [LibraryNameKey] = "Analytics-CSharp",
                 [LibraryVersionKey] = Version.SegmentVersion
@@ -30,17 +30,17 @@ namespace Segment.Analytics.Plugins
 
         private void ApplyContextData(RawEvent @event)
         {
-            var context = new JsonObject(@event.context?.Content)
+            var context = new JsonObject(@event.Context?.Content)
             {
                 [LibraryKey] = _library
             };
 
-            @event.context = context;
+            @event.Context = context;
         }
 
         public override RawEvent Execute(RawEvent incomingEvent)
         {
-            ApplyContextData(incomingEvent);
+            this.ApplyContextData(incomingEvent);
             return base.Execute(incomingEvent);
         }
     }
