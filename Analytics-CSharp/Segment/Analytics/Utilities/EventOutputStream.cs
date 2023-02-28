@@ -35,40 +35,40 @@ namespace Segment.Analytics.Utilities
 
         private InMemoryFile _file;
 
-        public long Length => this._file?.Length ?? 0;
+        public long Length => _file?.Length ?? 0;
 
-        public bool IsOpened => this._file != null;
+        public bool IsOpened => _file != null;
 
         public void OpenOrCreate(string file, out bool newFile)
         {
-            if (this._file != null && !this._file.Name.Equals(file))
+            if (_file != null && !_file.Name.Equals(file))
             {
                 // the given file is different than the current one
                 // close the current one first
-                this.Close();
+                Close();
             }
 
             newFile = false;
-            if (this._file == null)
+            if (_file == null)
             {
-                newFile = !this._directory.ContainsKey(file);
-                this._file = newFile ? new InMemoryFile(file) : this._directory[file];
+                newFile = !_directory.ContainsKey(file);
+                _file = newFile ? new InMemoryFile(file) : _directory[file];
             }
 
-            this._directory[file] = this._file;
+            _directory[file] = _file;
         }
 
         public Task Write(string content)
         {
-            this._file?.Write(content);
+            _file?.Write(content);
             return Task.CompletedTask;
         }
 
-        public IEnumerable<string> Read() => this._directory.Keys;
+        public IEnumerable<string> Read() => _directory.Keys;
 
-        public void Remove(string file) => this._directory.Remove(file);
+        public void Remove(string file) => _directory.Remove(file);
 
-        public void Close() => this._file = null;
+        public void Close() => _file = null;
 
 
         /// <summary>
@@ -78,22 +78,22 @@ namespace Segment.Analytics.Utilities
         /// <param name="extension">extension without dot</param>
         public void FinishAndClose(string extension = default)
         {
-            if (this._file == null)
+            if (_file == null)
             {
                 return;
             }
 
             if (extension != null)
             {
-                var nameWithExtension = this._file.Name + '.' + extension;
-                _ = this._directory.Remove(this._file.Name);
-                this._directory[nameWithExtension] = this._file;
+                var nameWithExtension = _file.Name + '.' + extension;
+                _ = _directory.Remove(_file.Name);
+                _directory[nameWithExtension] = _file;
             }
 
-            this._file = null;
+            _file = null;
         }
 
-        public byte[] ReadAsBytes(string source) => this._directory.ContainsKey(source) ? this._directory[source].ToBytes() : null;
+        public byte[] ReadAsBytes(string source) => _directory.ContainsKey(source) ? _directory[source].ToBytes() : null;
 
         public class InMemoryFile
         {
@@ -101,17 +101,17 @@ namespace Segment.Analytics.Utilities
 
             public string Name { get; }
 
-            public int Length => this.FileStream.Length;
+            public int Length => FileStream.Length;
 
             public InMemoryFile(string name)
             {
-                this.Name = name;
-                this.FileStream = new StringBuilder();
+                Name = name;
+                FileStream = new StringBuilder();
             }
 
-            public void Write(string content) => this.FileStream.Append(content);
+            public void Write(string content) => FileStream.Append(content);
 
-            public byte[] ToBytes() => this.FileStream.ToString().GetBytes();
+            public byte[] ToBytes() => FileStream.ToString().GetBytes();
         }
     }
 
@@ -124,11 +124,11 @@ namespace Segment.Analytics.Utilities
 
         private FileInfo _file;
 
-        public long Length => this._file?.Length ?? 0;
+        public long Length => _file?.Length ?? 0;
 
-        public bool IsOpened => this._file != null && this._fs != null;
+        public bool IsOpened => _file != null && _fs != null;
 
-        public FileEventStream(string directory) => this._directory = Directory.CreateDirectory(directory);
+        public FileEventStream(string directory) => _directory = Directory.CreateDirectory(directory);
 
         /// <summary>
         /// This method appends a `.tmp` extension to the give file, which
@@ -139,48 +139,48 @@ namespace Segment.Analytics.Utilities
         /// <param name="newFile">result that indicate whether the file is a new file</param>
         public void OpenOrCreate(string file, out bool newFile)
         {
-            if (this._file != null && !this._file.FullName.EndsWith(file))
+            if (_file != null && !_file.FullName.EndsWith(file))
             {
                 // the given file is different than the current one
                 // close the current one first
-                this.Close();
+                Close();
             }
 
-            if (this._file == null)
+            if (_file == null)
             {
-                this._file = new FileInfo(this._directory.FullName + Path.DirectorySeparatorChar + file);
+                _file = new FileInfo(_directory.FullName + Path.DirectorySeparatorChar + file);
             }
-            newFile = !this._file.Exists;
+            newFile = !_file.Exists;
 
-            if (this._fs == null)
+            if (_fs == null)
             {
-                this._fs = this._file.Open(FileMode.OpenOrCreate);
-                _ = this._fs.Seek(0, SeekOrigin.End);
+                _fs = _file.Open(FileMode.OpenOrCreate);
+                _ = _fs.Seek(0, SeekOrigin.End);
             }
-            this._file.Refresh();
+            _file.Refresh();
         }
 
         public async Task Write(string content)
         {
-            if (this._fs == null || this._file == null)
+            if (_fs == null || _file == null)
             {
                 return;
             }
 
-            await this._fs.WriteAsync(content.GetBytes(), 0, content.Length);
-            await this._fs.FlushAsync();
-            this._file.Refresh();
+            await _fs.WriteAsync(content.GetBytes(), 0, content.Length);
+            await _fs.FlushAsync();
+            _file.Refresh();
         }
 
-        public IEnumerable<string> Read() => this._directory.GetFiles().Select(f => f.FullName);
+        public IEnumerable<string> Read() => _directory.GetFiles().Select(f => f.FullName);
 
         public void Remove(string file) => File.Delete(file);
 
         public void Close()
         {
-            this._fs?.Close();
-            this._fs = null;
-            this._file = null;
+            _fs?.Close();
+            _fs = null;
+            _file = null;
         }
 
         /// <summary>
@@ -190,17 +190,17 @@ namespace Segment.Analytics.Utilities
         /// <param name="extension">extension without dot</param>
         public void FinishAndClose(string extension = default)
         {
-            this._fs?.Close();
-            this._fs = null;
+            _fs?.Close();
+            _fs = null;
 
 
-            if (this._file != null && extension != null)
+            if (_file != null && extension != null)
             {
-                var nameWithExtension = this._file.FullName + '.' + extension;
-                this._file.MoveTo(nameWithExtension);
+                var nameWithExtension = _file.FullName + '.' + extension;
+                _file.MoveTo(nameWithExtension);
             }
 
-            this._file = null;
+            _file = null;
         }
 
         public byte[] ReadAsBytes(string source)

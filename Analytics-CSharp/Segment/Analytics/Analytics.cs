@@ -33,28 +33,28 @@ namespace Segment.Analytics
         /// <param name="configuration">configuration that analytics can use</param>
         public Analytics(Configuration configuration)
         {
-            this.Configuration = configuration;
-            this.AnalyticsScope = new Scope(configuration.ExceptionHandler);
+            Configuration = configuration;
+            AnalyticsScope = new Scope(configuration.ExceptionHandler);
             if (configuration.UserSynchronizeDispatcher)
             {
                 IDispatcher dispatcher = new SynchronizeDispatcher();
-                this.FileIODispatcher = dispatcher;
-                this.NetworkIODispatcher = dispatcher;
-                this.AnalyticsDispatcher = dispatcher;
+                FileIODispatcher = dispatcher;
+                NetworkIODispatcher = dispatcher;
+                AnalyticsDispatcher = dispatcher;
             }
             else
             {
-                this.FileIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(2));
-                this.NetworkIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(1));
-                this.AnalyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
+                FileIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(2));
+                NetworkIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(1));
+                AnalyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
             }
 
-            this.Store = new Store(configuration.UserSynchronizeDispatcher, configuration.ExceptionHandler);
-            this.Storage = configuration.StorageProvider.CreateStorage(this);
-            this.Timeline = new Timeline();
+            Store = new Store(configuration.UserSynchronizeDispatcher, configuration.ExceptionHandler);
+            Storage = configuration.StorageProvider.CreateStorage(this);
+            Timeline = new Timeline();
 
             // Start everything
-            this.Startup();
+            Startup();
         }
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace Segment.Analytics
         public void Process(RawEvent incomingEvent)
         {
             incomingEvent.ApplyRawEventData();
-            _ = this.Timeline.Process(incomingEvent);
+            _ = Timeline.Process(incomingEvent);
         }
 
         #region System Modifiers
@@ -76,7 +76,7 @@ namespace Segment.Analytics
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>Anonymous Id</returns>
-        public string AnonymousId() => this._userInfo._anonymousId;
+        public string AnonymousId() => _userInfo._anonymousId;
 
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace Segment.Analytics
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>User Id</returns>
-        public string UserId() => this._userInfo._userId;
+        public string UserId() => _userInfo._userId;
 
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace Segment.Analytics
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns><see cref="JsonObject"/> instance of Traits</returns>
-        public JsonObject Traits() => this._userInfo._traits;
+        public JsonObject Traits() => _userInfo._traits;
 
 
         /// <summary>
@@ -104,13 +104,13 @@ namespace Segment.Analytics
         /// </summary>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
         /// <returns>Traits</returns>
-        public T Traits<T>() where T : ISerializable => this._userInfo._traits != null ? JsonUtility.FromJson<T>(this._userInfo._traits.ToString()) : default;
+        public T Traits<T>() where T : ISerializable => _userInfo._traits != null ? JsonUtility.FromJson<T>(_userInfo._traits.ToString()) : default;
 
 
         /// <summary>
         /// Force all the <see cref="EventPlugin"/> registered in analytics to flush
         /// </summary>
-        public void Flush() => this.Apply(plugin =>
+        public void Flush() => Apply(plugin =>
         {
             if (plugin is EventPlugin eventPlugin)
             {
@@ -125,14 +125,14 @@ namespace Segment.Analytics
         /// </summary>
         public void Reset()
         {
-            this._userInfo._userId = null;
-            this._userInfo._anonymousId = null;
-            this._userInfo._traits = null;
+            _userInfo._userId = null;
+            _userInfo._anonymousId = null;
+            _userInfo._traits = null;
 
-            _ = this.AnalyticsScope.Launch(this.AnalyticsDispatcher, async () =>
+            _ = AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
-                await this.Store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction());
-                this.Apply(plugin =>
+                await Store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction());
+                Apply(plugin =>
                 {
                     if (plugin is EventPlugin eventPlugin)
                     {
@@ -164,7 +164,7 @@ namespace Segment.Analytics
         /// <returns>Instance of <see cref="Settings"/></returns>
         public Settings? Settings()
         {
-            var task = this.SettingsAsync();
+            var task = SettingsAsync();
             task.Wait();
             return task.Result;
         }
@@ -176,7 +176,7 @@ namespace Segment.Analytics
         public async Task<Settings?> SettingsAsync()
         {
             Settings? returnSettings = null;
-            IState system = await this.Store.CurrentState<System>();
+            IState system = await Store.CurrentState<System>();
             if (system is System convertedSystem)
             {
                 returnSettings = convertedSystem._settings;
@@ -193,34 +193,34 @@ namespace Segment.Analytics
 
         private void Startup(HTTPClient httpClient = null)
         {
-            _ = this.Add(new StartupQueue());
-            _ = this.Add(new ContextPlugin());
-            _ = this.Add(new UserInfoPlugin());
+            _ = Add(new StartupQueue());
+            _ = Add(new ContextPlugin());
+            _ = Add(new UserInfoPlugin());
 
             // use Wait() for this coroutine to force completion,
             // since Store must be setup before any event call happened.
             // Note: Task.Wait() forces internal async methods to run in a synchronized way,
             // we should avoid of doing it whenever possible.
-            this.AnalyticsScope.Launch(this.AnalyticsDispatcher, async () =>
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
                 // load memory with initial value
-                this._userInfo = UserInfo.DefaultState(this.Storage);
-                await this.Store.Provide(this._userInfo);
-                await this.Store.Provide(System.DefaultState(this.Configuration, this.Storage));
-                await this.Storage.Initialize();
+                _userInfo = UserInfo.DefaultState(Storage);
+                await Store.Provide(_userInfo);
+                await Store.Provide(System.DefaultState(Configuration, Storage));
+                await Storage.Initialize();
             }).Wait();
 
             // check settings over the network,
             // we don't have to Wait() here, because events are piped in
             // StartupQueue until settings is ready
-            _ = this.AnalyticsScope.Launch(this.AnalyticsDispatcher, async () =>
+            _ = AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
-                if (this.Configuration.AutoAddSegmentDestination)
+                if (Configuration.AutoAddSegmentDestination)
                 {
-                    _ = this.Add(new SegmentDestination());
+                    _ = Add(new SegmentDestination());
                 }
 
-                await this.CheckSettings(httpClient);
+                await CheckSettings(httpClient);
                 // TODO: Add lifecycle events to call CheckSettings when app is brought to foreground (not launched)
             });
         }

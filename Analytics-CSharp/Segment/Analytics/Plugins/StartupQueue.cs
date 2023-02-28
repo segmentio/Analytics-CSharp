@@ -20,20 +20,20 @@ namespace Segment.Analytics.Plugins
         public override void Configure(Analytics analytics)
         {
             base.Configure(analytics);
-            _ = analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () => await analytics.Store.Subscribe<System>(this, state => this.RunningUpdate((System)state)));
+            _ = analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () => await analytics.Store.Subscribe<System>(this, state => RunningUpdate((System)state)));
         }
 
         public override RawEvent Execute(RawEvent incomingEvent)
         {
-            if (!this._running.Get() && incomingEvent != null)
+            if (!_running.Get() && incomingEvent != null)
             {
                 // The timeline hasn't started, we need to start queueing so we don't lose events
-                if (this._queuedEvents.Count >= s_maxSize)
+                if (_queuedEvents.Count >= s_maxSize)
                 {
                     // We've exceeded the max size and need to start dropping events
-                    _ = this._queuedEvents.TryDequeue(out _);
+                    _ = _queuedEvents.TryDequeue(out _);
                 }
-                this._queuedEvents.Enqueue(incomingEvent);
+                _queuedEvents.Enqueue(incomingEvent);
                 return null;
             }
             // The timeline has started, just let the event pass on to the next plugin 
@@ -42,20 +42,20 @@ namespace Segment.Analytics.Plugins
 
         private void RunningUpdate(System state)
         {
-            this._running.Set(state._running);
-            if (this._running.Get())
+            _running.Set(state._running);
+            if (_running.Get())
             {
-                this.ReplayEvents();
+                ReplayEvents();
             }
         }
 
         private void ReplayEvents()
         {
-            while (!this._queuedEvents.IsEmpty)
+            while (!_queuedEvents.IsEmpty)
             {
-                if (this._queuedEvents.TryDequeue(out var e))
+                if (_queuedEvents.TryDequeue(out var e))
                 {
-                    this.Analytics.Process(e);
+                    Analytics.Process(e);
                 }
             }
         }

@@ -20,7 +20,7 @@ namespace Segment.Analytics
             }
 
             var trackEvent = new TrackEvent(name, properties);
-            this.Process(trackEvent);
+            Process(trackEvent);
         }
 
         /// <summary>
@@ -35,12 +35,12 @@ namespace Segment.Analytics
         {
             if (properties == null)
             {
-                this.Track(name);
+                Track(name);
             }
             else
             {
                 var json = JsonUtility.ToJson(properties);
-                this.Track(name, JsonUtility.FromJson<JsonObject>(json));
+                Track(name, JsonUtility.FromJson<JsonObject>(json));
             }
         }
 
@@ -66,15 +66,15 @@ namespace Segment.Analytics
                 traits = new JsonObject();
             }
 
-            _ = this.AnalyticsScope.Launch(this.AnalyticsDispatcher, async () =>
+            _ = AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
-                await this.Store.Dispatch<UserInfo.SetUserIdAndTraitsAction, UserInfo>(
+                await Store.Dispatch<UserInfo.SetUserIdAndTraitsAction, UserInfo>(
                 new UserInfo.SetUserIdAndTraitsAction(userId, traits));
 
                 // need to process in scope to prevent
                 // user id being overwritten when apply event data
                 var identifyEvent = new IdentifyEvent(userId, traits);
-                this.Process(identifyEvent);
+                Process(identifyEvent);
             });
         }
 
@@ -99,13 +99,13 @@ namespace Segment.Analytics
                 traits = new JsonObject();
             }
 
-            _ = this.AnalyticsScope.Launch(this.AnalyticsDispatcher, async () =>
+            _ = AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
-                await this.Store.Dispatch<UserInfo.SetTraitsAction, UserInfo>(
+                await Store.Dispatch<UserInfo.SetTraitsAction, UserInfo>(
                     new UserInfo.SetTraitsAction(traits));
 
                 var identifyEvent = new IdentifyEvent(traits: traits);
-                this.Process(identifyEvent);
+                Process(identifyEvent);
             });
         }
 
@@ -129,12 +129,12 @@ namespace Segment.Analytics
         {
             if (traits == null)
             {
-                this.Identify(userId);
+                Identify(userId);
             }
             else
             {
                 var json = JsonUtility.ToJson(traits);
-                this.Identify(userId, JsonUtility.FromJson<JsonObject>(json));
+                Identify(userId, JsonUtility.FromJson<JsonObject>(json));
             }
         }
 
@@ -157,12 +157,12 @@ namespace Segment.Analytics
         {
             if (traits == null)
             {
-                this.Identify(new JsonObject());
+                Identify(new JsonObject());
             }
             else
             {
                 var json = JsonUtility.ToJson(traits);
-                this.Identify(JsonUtility.FromJson<JsonObject>(json));
+                Identify(JsonUtility.FromJson<JsonObject>(json));
             }
         }
 
@@ -181,7 +181,7 @@ namespace Segment.Analytics
                 properties = new JsonObject();
             }
             var screenEvent = new ScreenEvent(category, title, properties);
-            this.Process(screenEvent);
+            Process(screenEvent);
         }
 
         /// <summary>
@@ -197,12 +197,12 @@ namespace Segment.Analytics
         {
             if (properties == null)
             {
-                this.Screen(title, category: category);
+                Screen(title, category: category);
             }
             else
             {
                 var json = JsonUtility.ToJson(properties);
-                this.Screen(title, JsonUtility.FromJson<JsonObject>(json), category);
+                Screen(title, JsonUtility.FromJson<JsonObject>(json), category);
             }
         }
 
@@ -222,7 +222,7 @@ namespace Segment.Analytics
                 traits = new JsonObject();
             }
             var groupEvent = new GroupEvent(groupId, traits);
-            this.Process(groupEvent);
+            Process(groupEvent);
         }
 
         /// <summary>
@@ -239,12 +239,12 @@ namespace Segment.Analytics
         {
             if (traits == null)
             {
-                this.Group(groupId);
+                Group(groupId);
             }
             else
             {
                 var json = JsonUtility.ToJson(traits);
-                this.Group(groupId, JsonUtility.FromJson<JsonObject>(json));
+                Group(groupId, JsonUtility.FromJson<JsonObject>(json));
             }
         }
 
@@ -257,14 +257,14 @@ namespace Segment.Analytics
         /// <param name="newId">The new ID you want to alias the existing ID to. The existing ID will be either
         /// the previousId if you have called identify, or the anonymous ID.
         /// </param>
-        public void Alias(string newId) => this.AnalyticsScope.Launch(this.AnalyticsDispatcher, async () =>
+        public void Alias(string newId) => AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
                                                     {
-                                                        var currentUserInfo = await this.Store.CurrentState<UserInfo>();
+                                                        var currentUserInfo = await Store.CurrentState<UserInfo>();
                                                         if (!currentUserInfo.IsNull)
                                                         {
                                                             var aliasEvent = new AliasEvent(newId, currentUserInfo._userId ?? currentUserInfo._anonymousId);
-                                                            await this.Store.Dispatch<UserInfo.SetUserIdAction, UserInfo>(new UserInfo.SetUserIdAction(newId));
-                                                            this.Process(aliasEvent);
+                                                            await Store.Dispatch<UserInfo.SetUserIdAction, UserInfo>(new UserInfo.SetUserIdAction(newId));
+                                                            Process(aliasEvent);
                                                         }
                                                         else
                                                         {

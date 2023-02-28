@@ -65,17 +65,17 @@ namespace Segment.Analytics
             ICoroutineExceptionHandler exceptionHandler = null,
             IStorageProvider storageProvider = default)
         {
-            this.WriteKey = writeKey;
-            this.PersistentDataPath = persistentDataPath;
-            this.FlushAt = flushAt;
-            this.FlushInterval = flushInterval;
-            this.DefaultSettings = defaultSettings;
-            this.AutoAddSegmentDestination = autoAddSegmentDestination;
-            this.UserSynchronizeDispatcher = userSynchronizeDispatcher;
-            this.ApiHost = apiHost;
-            this.CdnHost = cdnHost;
-            this.ExceptionHandler = exceptionHandler;
-            this.StorageProvider = storageProvider ?? new DefaultStorageProvider();
+            WriteKey = writeKey;
+            PersistentDataPath = persistentDataPath;
+            FlushAt = flushAt;
+            FlushInterval = flushInterval;
+            DefaultSettings = defaultSettings;
+            AutoAddSegmentDestination = autoAddSegmentDestination;
+            UserSynchronizeDispatcher = userSynchronizeDispatcher;
+            ApiHost = apiHost;
+            CdnHost = cdnHost;
+            ExceptionHandler = exceptionHandler;
+            StorageProvider = storageProvider ?? new DefaultStorageProvider();
         }
     }
 

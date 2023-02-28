@@ -19,20 +19,20 @@ namespace Segment.Analytics
 
         internal void ApplyRawEventData(RawEvent rawEvent)
         {
-            this.AnonymousId = rawEvent.AnonymousId;
-            this.MessageId = rawEvent.MessageId;
-            this.UserId = rawEvent.UserId;
-            this.Timestamp = rawEvent.Timestamp;
-            this.Context = rawEvent.Context;
-            this.Integrations = rawEvent.Integrations;
+            AnonymousId = rawEvent.AnonymousId;
+            MessageId = rawEvent.MessageId;
+            UserId = rawEvent.UserId;
+            Timestamp = rawEvent.Timestamp;
+            Context = rawEvent.Context;
+            Integrations = rawEvent.Integrations;
         }
 
         internal void ApplyRawEventData()
         {
-            this.MessageId = Guid.NewGuid().ToString();
-            this.Context = new JsonObject();
-            this.Timestamp = DateTime.UtcNow.ToString("o"); // iso8601
-            this.Integrations = new JsonObject();
+            MessageId = Guid.NewGuid().ToString();
+            Context = new JsonObject();
+            Timestamp = DateTime.UtcNow.ToString("o"); // iso8601
+            Integrations = new JsonObject();
         }
     }
 
@@ -46,11 +46,11 @@ namespace Segment.Analytics
 
         internal TrackEvent(string trackEvent, JsonObject properties)
         {
-            this.Event = trackEvent;
-            this.Properties = properties;
+            Event = trackEvent;
+            Properties = properties;
         }
 
-        internal TrackEvent(TrackEvent existing) : this(existing.Event, existing.Properties) => this.ApplyRawEventData(existing);
+        internal TrackEvent(TrackEvent existing) : this(existing.Event, existing.Properties) => ApplyRawEventData(existing);
     }
 
     public sealed class IdentifyEvent : RawEvent
@@ -61,11 +61,11 @@ namespace Segment.Analytics
 
         internal IdentifyEvent(string userId = null, JsonObject traits = null)
         {
-            this.UserId = userId;
-            this.Traits = traits;
+            UserId = userId;
+            Traits = traits;
         }
 
-        internal IdentifyEvent(IdentifyEvent existing) : this(existing.UserId, existing.Traits) => this.ApplyRawEventData(existing);
+        internal IdentifyEvent(IdentifyEvent existing) : this(existing.UserId, existing.Traits) => ApplyRawEventData(existing);
     }
 
     public sealed class ScreenEvent : RawEvent
@@ -80,12 +80,12 @@ namespace Segment.Analytics
 
         internal ScreenEvent(string category, string title = null, JsonObject properties = null)
         {
-            this.Name = title;
-            this.Properties = properties;
-            this.Category = category;
+            Name = title;
+            Properties = properties;
+            Category = category;
         }
 
-        internal ScreenEvent(ScreenEvent existing) : this(existing.Category, existing.Name, existing.Properties) => this.ApplyRawEventData(existing);
+        internal ScreenEvent(ScreenEvent existing) : this(existing.Category, existing.Name, existing.Properties) => ApplyRawEventData(existing);
     }
 
     public sealed class GroupEvent : RawEvent
@@ -98,11 +98,11 @@ namespace Segment.Analytics
 
         internal GroupEvent(string groupId = null, JsonObject traits = null)
         {
-            this.GroupId = groupId;
-            this.Traits = traits;
+            GroupId = groupId;
+            Traits = traits;
         }
 
-        internal GroupEvent(GroupEvent existing) : this(existing.GroupId, existing.Traits) => this.ApplyRawEventData(existing);
+        internal GroupEvent(GroupEvent existing) : this(existing.GroupId, existing.Traits) => ApplyRawEventData(existing);
     }
 
     public sealed class AliasEvent : RawEvent
@@ -113,10 +113,10 @@ namespace Segment.Analytics
 
         internal AliasEvent(string newId, string previousId)
         {
-            this.UserId = newId;
-            this.PreviousId = previousId;
+            UserId = newId;
+            PreviousId = previousId;
         }
 
-        internal AliasEvent(AliasEvent existing) : this(existing.UserId, null) => this.ApplyRawEventData(existing);
+        internal AliasEvent(AliasEvent existing) : this(existing.UserId, null) => ApplyRawEventData(existing);
     }
 }

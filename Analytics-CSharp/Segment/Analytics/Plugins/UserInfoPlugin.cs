@@ -14,23 +14,23 @@ namespace Segment.Analytics.Plugins
         {
             if (@event is IdentifyEvent identifyEvent)
             {
-                this.Analytics._userInfo._userId = identifyEvent.UserId ?? this.Analytics._userInfo._userId;
-                this.Analytics._userInfo._traits = identifyEvent.Traits ?? this.Analytics._userInfo._traits;
+                Analytics._userInfo._userId = identifyEvent.UserId ?? Analytics._userInfo._userId;
+                Analytics._userInfo._traits = identifyEvent.Traits ?? Analytics._userInfo._traits;
             }
             else if (@event is AliasEvent aliasEvent)
             {
-                this.Analytics._userInfo._userId = aliasEvent.UserId ?? this.Analytics._userInfo._userId;
+                Analytics._userInfo._userId = aliasEvent.UserId ?? Analytics._userInfo._userId;
             }
             else
             {
-                @event.AnonymousId = this.Analytics._userInfo._anonymousId;
-                @event.UserId = this.Analytics._userInfo._userId;
+                @event.AnonymousId = Analytics._userInfo._anonymousId;
+                @event.UserId = Analytics._userInfo._userId;
             }
         }
 
         public override RawEvent Execute(RawEvent incomingEvent)
         {
-            this.ApplyUserInfoData(incomingEvent);
+            ApplyUserInfoData(incomingEvent);
             return base.Execute(incomingEvent);
         }
     }

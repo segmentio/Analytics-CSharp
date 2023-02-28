@@ -16,9 +16,9 @@ namespace Segment.Analytics.Utilities
     {
         public string Value { get; }
 
-        private StorageConstants(string value) => this.Value = value;
+        private StorageConstants(string value) => Value = value;
 
-        public override string ToString() => this.Value;
+        public override string ToString() => Value;
 
         public static implicit operator string(StorageConstants storageConstant) => storageConstant.Value;
 
@@ -157,9 +157,9 @@ namespace Segment.Analytics.Utilities
 
         internal string Begin => "{\"batch\":[";
 
-        internal string End => "],\"sentAt\":\"" + DateTime.UtcNow.ToString("o") + "\",\"writeKey\":\"" + this._writeKey + "\"}";
+        internal string End => "],\"sentAt\":\"" + DateTime.UtcNow.ToString("o") + "\",\"writeKey\":\"" + _writeKey + "\"}";
 
-        private string CurrentFile => this._writeKey + "-" + this._userPrefs.GetInt(this._fileIndexKey, 0);
+        private string CurrentFile => _writeKey + "-" + _userPrefs.GetInt(_fileIndexKey, 0);
 
         public const long MaxPayloadSize = 32_000;
 
@@ -171,18 +171,18 @@ namespace Segment.Analytics.Utilities
 
         public Storage(IPreferences userPrefs, IEventStream eventStream, Store store, string writeKey, IDispatcher ioDispatcher = default)
         {
-            this._userPrefs = userPrefs;
-            this._eventStream = eventStream;
-            this._store = store;
-            this._writeKey = writeKey;
-            this._fileIndexKey = "segment.events.file.index." + writeKey;
-            this._ioDispatcher = ioDispatcher;
+            _userPrefs = userPrefs;
+            _eventStream = eventStream;
+            _store = store;
+            _writeKey = writeKey;
+            _fileIndexKey = "segment.events.file.index." + writeKey;
+            _ioDispatcher = ioDispatcher;
         }
 
         public async Task Initialize()
         {
-            _ = await this._store.Subscribe<UserInfo>(this, this.UserInfoUpdate, true, this._ioDispatcher);
-            _ = await this._store.Subscribe<System>(this, this.SystemUpdate, true, this._ioDispatcher);
+            _ = await _store.Subscribe<UserInfo>(this, UserInfoUpdate, true, _ioDispatcher);
+            _ = await _store.Subscribe<System>(this, SystemUpdate, true, _ioDispatcher);
         }
 
         /// <summary>
@@ -203,7 +203,7 @@ namespace Segment.Analytics.Utilities
                 case StorageConstants._Events:
                     if (value.Length < MaxPayloadSize)
                     {
-                        await this.StoreEvent(value);
+                        await StoreEvent(value);
                     }
                     else
                     {
@@ -211,7 +211,7 @@ namespace Segment.Analytics.Utilities
                     }
                     break;
                 default:
-                    this.WritePrefs(key, value);
+                    WritePrefs(key, value);
                     break;
             }
         }
@@ -226,7 +226,7 @@ namespace Segment.Analytics.Utilities
         /// </para>
         /// <param name="key">the type of value being written</param>
         /// <param name="value">the value being written</param>
-        public void WritePrefs(StorageConstants key, string value) => this._userPrefs.Put(key, value);
+        public void WritePrefs(StorageConstants key, string value) => _userPrefs.Put(key, value);
 
         /// <summary>
         /// Direct writes to a new file, and close the current file.
@@ -234,7 +234,7 @@ namespace Segment.Analytics.Utilities
         /// we want to finish writing the current file, and have it
         /// flushed to server.
         /// </summary>
-        public virtual async Task Rollover() => await this.WithLock(this.PerformRollover);
+        public virtual async Task Rollover() => await WithLock(PerformRollover);
 
         public virtual string Read(StorageConstants key)
         {
@@ -242,10 +242,10 @@ namespace Segment.Analytics.Utilities
             {
                 case StorageConstants._Events:
                     return string.Join(",",
-                        this._eventStream.Read()
+                        _eventStream.Read()
                             .Where(f => f.EndsWith(FileExtension)));
                 default:
-                    return this._userPrefs.GetString(key, null);
+                    return _userPrefs.GetString(key, null);
             }
         }
 
@@ -256,7 +256,7 @@ namespace Segment.Analytics.Utilities
                 case StorageConstants._Events:
                     return true;
                 default:
-                    this._userPrefs.Remove(key);
+                    _userPrefs.Remove(key);
                     return true;
             }
         }
@@ -265,7 +265,7 @@ namespace Segment.Analytics.Utilities
         {
             try
             {
-                this._eventStream.Remove(filePath);
+                _eventStream.Remove(filePath);
                 return true;
             }
             catch (Exception e)
@@ -275,30 +275,30 @@ namespace Segment.Analytics.Utilities
             }
         }
 
-        public byte[] ReadAsBytes(string source) => this._eventStream.ReadAsBytes(source);
+        public byte[] ReadAsBytes(string source) => _eventStream.ReadAsBytes(source);
 
         #region State Subscriptions
 
         public void UserInfoUpdate(IState state)
         {
             var userInfo = (UserInfo)state;
-            this.WritePrefs(StorageConstants.AnonymousId, userInfo._anonymousId);
+            WritePrefs(StorageConstants.AnonymousId, userInfo._anonymousId);
 
             if (userInfo._userId != null)
             {
-                this.WritePrefs(StorageConstants.UserId, userInfo._userId);
+                WritePrefs(StorageConstants.UserId, userInfo._userId);
             }
 
             if (userInfo._traits != null)
             {
-                this.WritePrefs(StorageConstants.Traits, JsonUtility.ToJson(userInfo._traits));
+                WritePrefs(StorageConstants.Traits, JsonUtility.ToJson(userInfo._traits));
             }
         }
 
         public void SystemUpdate(IState state)
         {
             var system = (System)state;
-            this.WritePrefs(StorageConstants.Settings, JsonUtility.ToJson(system._settings));
+            WritePrefs(StorageConstants.Settings, JsonUtility.ToJson(system._settings));
         }
 
         #endregion
@@ -312,22 +312,22 @@ namespace Segment.Analytics.Utilities
         /// stores the event
         /// </summary>
         /// <param name="event">event to store</param>
-        private async Task StoreEvent(string @event) => await this.WithLock(async () =>
+        private async Task StoreEvent(string @event) => await WithLock(async () =>
         {
-            this._eventStream.OpenOrCreate(this.CurrentFile, out var newFile);
+            _eventStream.OpenOrCreate(CurrentFile, out var newFile);
             if (newFile)
             {
-                await this._eventStream.Write(this.Begin);
+                await _eventStream.Write(Begin);
             }
 
             // check if file is at capacity
-            if (this._eventStream.Length > MaxFileSize)
+            if (_eventStream.Length > MaxFileSize)
             {
-                await this.PerformRollover();
+                await PerformRollover();
 
                 // open the next file
-                this._eventStream.OpenOrCreate(this.CurrentFile, out newFile);
-                await this._eventStream.Write(this.Begin);
+                _eventStream.OpenOrCreate(CurrentFile, out newFile);
+                await _eventStream.Write(Begin);
             }
 
             var contents = new StringBuilder();
@@ -337,29 +337,29 @@ namespace Segment.Analytics.Utilities
             }
 
             _ = contents.Append(@event);
-            await this._eventStream.Write(contents.ToString());
+            await _eventStream.Write(contents.ToString());
         });
 
 
         private async Task PerformRollover()
         {
-            if (!this._eventStream.IsOpened)
+            if (!_eventStream.IsOpened)
             {
                 return;
             }
 
-            await this._eventStream.Write(this.End);
-            this._eventStream.FinishAndClose(FileExtension);
+            await _eventStream.Write(End);
+            _eventStream.FinishAndClose(FileExtension);
 
-            _ = this.IncrementFileIndex();
+            _ = IncrementFileIndex();
         }
 
         private bool IncrementFileIndex()
         {
-            var index = this._userPrefs.GetInt(this._fileIndexKey, 0) + 1;
+            var index = _userPrefs.GetInt(_fileIndexKey, 0) + 1;
             try
             {
-                this._userPrefs.Put(this._fileIndexKey, index);
+                _userPrefs.Put(_fileIndexKey, index);
                 return true;
             }
             catch (Exception e)
@@ -371,14 +371,14 @@ namespace Segment.Analytics.Utilities
 
         private async Task WithLock(Func<Task> block)
         {
-            await this._semaphore.WaitAsync().ConfigureAwait(false);
+            await _semaphore.WaitAsync().ConfigureAwait(false);
             try
             {
                 await block();
             }
             finally
             {
-                _ = this._semaphore.Release();
+                _ = _semaphore.Release();
             }
         }
 

@@ -25,17 +25,17 @@ namespace Segment.Analytics
             HTTPClient httpClient = null
             )
         {
-            this.Configuration = configuration;
-            this.AnalyticsScope = analyticsScope ?? new Scope(configuration.ExceptionHandler);
+            Configuration = configuration;
+            AnalyticsScope = analyticsScope ?? new Scope(configuration.ExceptionHandler);
             IDispatcher dispatcher = new SynchronizeDispatcher();
-            this.FileIODispatcher = fileIODispatcher ?? dispatcher;
-            this.NetworkIODispatcher = networkIODispatcher ?? dispatcher;
-            this.AnalyticsDispatcher = analyticsDispatcher ?? dispatcher;
-            this.Store = store ?? new Store(true, configuration.ExceptionHandler);
-            this.Storage = storage ?? new DefaultStorageProvider().CreateStorage(this);
-            this.Timeline = timeline ?? new Timeline();
+            FileIODispatcher = fileIODispatcher ?? dispatcher;
+            NetworkIODispatcher = networkIODispatcher ?? dispatcher;
+            AnalyticsDispatcher = analyticsDispatcher ?? dispatcher;
+            Store = store ?? new Store(true, configuration.ExceptionHandler);
+            Storage = storage ?? new DefaultStorageProvider().CreateStorage(this);
+            Timeline = timeline ?? new Timeline();
 
-            this.Startup(httpClient);
+            Startup(httpClient);
         }
     }
 }
@@ -57,18 +57,18 @@ namespace Segment.Analytics.Utilities
             long flushIntervalInMillis = 30_000,
             string apiHost = HTTPClient.DefaultAPIHost)
         {
-            this._analytics = analytics;
-            this._logTag = logTag;
-            this._flushCount = flushCount;
-            this._flushIntervalInMillis = flushIntervalInMillis;
-            this.ApiHost = apiHost;
+            _analytics = analytics;
+            _logTag = logTag;
+            _flushCount = flushCount;
+            _flushIntervalInMillis = flushIntervalInMillis;
+            ApiHost = apiHost;
 
-            this._writeChannel = writeChannel ?? new Channel<string>();
-            this._uploadChannel = uploadChannel ?? new Channel<string>();
-            this._eventCount = new AtomicInteger(0);
-            this._httpClient = httpClient ?? new HTTPClient(apiKey);
-            this._storage = analytics.Storage;
-            this.Running = false;
+            _writeChannel = writeChannel ?? new Channel<string>();
+            _uploadChannel = uploadChannel ?? new Channel<string>();
+            _eventCount = new AtomicInteger(0);
+            _httpClient = httpClient ?? new HTTPClient(apiKey);
+            _storage = analytics.Storage;
+            Running = false;
         }
     }
 }

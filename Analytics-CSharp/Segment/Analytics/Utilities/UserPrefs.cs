@@ -41,7 +41,7 @@ namespace Segment.Analytics.Utilities
 
             try
             {
-                ret = Convert.ToInt32(this._cache[key]);
+                ret = Convert.ToInt32(_cache[key]);
             }
             catch
             {
@@ -57,7 +57,7 @@ namespace Segment.Analytics.Utilities
 
             try
             {
-                ret = float.Parse(Convert.ToString(this._cache[key]));
+                ret = float.Parse(Convert.ToString(_cache[key]));
                 ;
             }
             catch
@@ -74,7 +74,7 @@ namespace Segment.Analytics.Utilities
 
             try
             {
-                ret = Convert.ToString(this._cache[key]);
+                ret = Convert.ToString(_cache[key]);
             }
             catch
             {
@@ -84,15 +84,15 @@ namespace Segment.Analytics.Utilities
             return ret;
         }
 
-        public bool Contains(string key) => this._cache.ContainsKey(key);
+        public bool Contains(string key) => _cache.ContainsKey(key);
 
-        public void Put(string key, int value) => this._cache[key] = value;
+        public void Put(string key, int value) => _cache[key] = value;
 
-        public void Put(string key, float value) => this._cache[key] = value;
+        public void Put(string key, float value) => _cache[key] = value;
 
-        public void Put(string key, string value) => this._cache[key] = value;
+        public void Put(string key, string value) => _cache[key] = value;
 
-        public void Remove(string key) => this._cache.Remove(key);
+        public void Remove(string key) => _cache.Remove(key);
     }
 
     /**
@@ -126,35 +126,35 @@ namespace Segment.Analytics.Utilities
 
         public UserPrefs(string file, ICoroutineExceptionHandler exceptionHandler = null)
         {
-            this._cache = new Dictionary<string, object>();
-            this._mutex = new object();
-            this._diskWriteMutex = new object();
-            this._ongoingDiskWrites = 0;
-            this._memoryEpoch = 0;
-            this._diskEpoch = 0;
-            this._loaded = false;
-            this._file = new FileInfo(file);
-            this._backupFile = new FileInfo(file + ".bak");
+            _cache = new Dictionary<string, object>();
+            _mutex = new object();
+            _diskWriteMutex = new object();
+            _ongoingDiskWrites = 0;
+            _memoryEpoch = 0;
+            _diskEpoch = 0;
+            _loaded = false;
+            _file = new FileInfo(file);
+            _backupFile = new FileInfo(file + ".bak");
 
             // uses a new scope for UserPrefs, so interruption does not propagate to analytics scope
             // in addition, file I/O in this class are all blocking. need to have its own threads
             // to prevent blocking analytics threads
-            this._scope = new Scope(exceptionHandler);
-            this._dispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
-            this.StartLoadFromDisk();
+            _scope = new Scope(exceptionHandler);
+            _dispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
+            StartLoadFromDisk();
         }
 
         public int GetInt(string key, int defaultValue = -1)
         {
             int ret;
 
-            lock (this._mutex)
+            lock (_mutex)
             {
-                this.AwaitLoadedLocked();
+                AwaitLoadedLocked();
 
                 try
                 {
-                    ret = Convert.ToInt32(this._cache[key]);
+                    ret = Convert.ToInt32(_cache[key]);
                 }
                 catch
                 {
@@ -169,13 +169,13 @@ namespace Segment.Analytics.Utilities
         {
             float ret;
 
-            lock (this._mutex)
+            lock (_mutex)
             {
-                this.AwaitLoadedLocked();
+                AwaitLoadedLocked();
 
                 try
                 {
-                    ret = float.Parse(Convert.ToString(this._cache[key]));
+                    ret = float.Parse(Convert.ToString(_cache[key]));
                 }
                 catch
                 {
@@ -190,13 +190,13 @@ namespace Segment.Analytics.Utilities
         {
             string ret;
 
-            lock (this._mutex)
+            lock (_mutex)
             {
-                this.AwaitLoadedLocked();
+                AwaitLoadedLocked();
 
                 try
                 {
-                    ret = Convert.ToString(this._cache[key]);
+                    ret = Convert.ToString(_cache[key]);
                 }
                 catch
                 {
@@ -209,11 +209,11 @@ namespace Segment.Analytics.Utilities
 
         public bool Contains(string key)
         {
-            this.AwaitLoadedLocked();
+            AwaitLoadedLocked();
 
-            lock (this._mutex)
+            lock (_mutex)
             {
-                return this._cache.ContainsKey(key);
+                return _cache.ContainsKey(key);
             }
         }
 
@@ -225,7 +225,7 @@ namespace Segment.Analytics.Utilities
         /// <param name="value">value</param>
         public void Put(string key, int value)
         {
-            var editor = this.Edit();
+            var editor = Edit();
             _ = editor.PutInt(key, value);
             editor.Apply();
         }
@@ -238,7 +238,7 @@ namespace Segment.Analytics.Utilities
         /// <param name="value">value</param>
         public void Put(string key, float value)
         {
-            var editor = this.Edit();
+            var editor = Edit();
             _ = editor.PutFloat(key, value);
             editor.Apply();
         }
@@ -251,7 +251,7 @@ namespace Segment.Analytics.Utilities
         /// <param name="value">value</param>
         public void Put(string key, string value)
         {
-            var editor = this.Edit();
+            var editor = Edit();
             _ = editor.PutString(key, value);
             editor.Apply();
         }
@@ -263,57 +263,57 @@ namespace Segment.Analytics.Utilities
         /// <param name="key">key</param>
         public void Remove(string key)
         {
-            var editor = this.Edit();
+            var editor = Edit();
             _ = editor.Remove(key);
             editor.Apply();
         }
 
         public Editor Edit()
         {
-            lock (this._mutex)
+            lock (_mutex)
             {
-                this.AwaitLoadedLocked();
+                AwaitLoadedLocked();
             }
 
             return new Editor(this);
         }
 
-        internal void EnqueueDiskWrite(long memoryEpochSnapshot) => this._scope.Launch(this._dispatcher, async () => await Task.Run(() => this.CommitToDisk(memoryEpochSnapshot)));
+        internal void EnqueueDiskWrite(long memoryEpochSnapshot) => _scope.Launch(_dispatcher, async () => await Task.Run(() => CommitToDisk(memoryEpochSnapshot)));
 
         private void CommitToDisk(long memoryEpochSnapshot)
         {
-            lock (this._diskWriteMutex)
+            lock (_diskWriteMutex)
             {
-                this.WriteToFile(memoryEpochSnapshot);
+                WriteToFile(memoryEpochSnapshot);
             }
 
-            lock (this._mutex)
+            lock (_mutex)
             {
-                this._ongoingDiskWrites--;
+                _ongoingDiskWrites--;
             }
         }
 
         private void WriteToFile(long memoryEpochSnapshot)
         {
-            if (this._file.Exists)
+            if (_file.Exists)
             {
-                lock (this._mutex)
+                lock (_mutex)
                 {
                     // only write when:
                     // 1. disk has an older version than memory
                     // 2. snapshot is final (skip intermediate versions)
                     // otherwise, skip
-                    if (!(this._diskEpoch < this._memoryEpoch && memoryEpochSnapshot == this._memoryEpoch))
+                    if (!(_diskEpoch < _memoryEpoch && memoryEpochSnapshot == _memoryEpoch))
                     {
                         return;
                     }
                 }
 
-                if (!this._backupFile.Exists)
+                if (!_backupFile.Exists)
                 {
                     try
                     {
-                        this.RenameFile(this._file, this._backupFile);
+                        RenameFile(_file, _backupFile);
                     }
                     catch (Exception e)
                     {
@@ -323,22 +323,22 @@ namespace Segment.Analytics.Utilities
                 }
                 else
                 {
-                    this._file.Delete();
+                    _file.Delete();
                 }
             }
 
             FileStream fs = null;
             try
             {
-                fs = this._file.Open(FileMode.Create);
-                var json = JsonUtility.ToJson(this._cache);
+                fs = _file.Open(FileMode.Create);
+                var json = JsonUtility.ToJson(_cache);
                 var bytes = json.GetBytes();
                 fs.Write(bytes, 0, bytes.Length);
                 fs.Close();
 
                 // successfully updated file, can safely delete backup and return
-                this._backupFile.Delete();
-                this._diskEpoch = this._memoryEpoch;
+                _backupFile.Delete();
+                _diskEpoch = _memoryEpoch;
 
                 return;
             }
@@ -349,29 +349,29 @@ namespace Segment.Analytics.Utilities
             }
 
             // exception happens during update, remove partial updated file
-            if (this._file.Exists)
+            if (_file.Exists)
             {
-                this._file.Delete();
+                _file.Delete();
             }
         }
 
         private void StartLoadFromDisk()
         {
-            lock (this._mutex)
+            lock (_mutex)
             {
-                this._loaded = false;
+                _loaded = false;
             }
 
-            _ = this._scope.Launch(this._dispatcher, async () => await Task.Run(this.LoadFromDisk));
+            _ = _scope.Launch(_dispatcher, async () => await Task.Run(LoadFromDisk));
         }
 
         private void LoadFromDisk()
         {
             Exception thrown = null;
 
-            lock (this._mutex)
+            lock (_mutex)
             {
-                if (this._loaded)
+                if (_loaded)
                 {
                     return;
                 }
@@ -379,16 +379,16 @@ namespace Segment.Analytics.Utilities
                 try
                 {
                     // if the directory does not exist, create it
-                    if (!string.IsNullOrEmpty(this._file.DirectoryName))
+                    if (!string.IsNullOrEmpty(_file.DirectoryName))
                     {
-                        _ = Directory.CreateDirectory(this._file.DirectoryName);
+                        _ = Directory.CreateDirectory(_file.DirectoryName);
                     }
 
                     // an update failed previously, recover from backup
-                    if (this._backupFile.Exists)
+                    if (_backupFile.Exists)
                     {
-                        this._file.Delete();
-                        this.RenameFile(this._backupFile, this._file);
+                        _file.Delete();
+                        RenameFile(_backupFile, _file);
                     }
                 }
                 catch (Exception e)
@@ -402,7 +402,7 @@ namespace Segment.Analytics.Utilities
 
             try
             {
-                var json = File.ReadAllText(this._file.FullName);
+                var json = File.ReadAllText(_file.FullName);
                 if (string.IsNullOrEmpty(json))
                 {
                     dict = new Dictionary<string, object>();
@@ -418,34 +418,34 @@ namespace Segment.Analytics.Utilities
                 thrown = e;
             }
 
-            lock (this._mutex)
+            lock (_mutex)
             {
-                this._loaded = true;
+                _loaded = true;
 
                 // if there is no exception, use the loaded dictionary
                 if (thrown == null)
                 {
-                    this._cache = dict;
+                    _cache = dict;
                 }
 
                 // if the cache is still null, init it with empty dictionary
-                if (this._cache == null)
+                if (_cache == null)
                 {
-                    this._cache = new Dictionary<string, object>();
+                    _cache = new Dictionary<string, object>();
                 }
 
                 // It's important that we always signal waiters, even if we'll make
                 // them fail with an exception. The try-finally is pretty wide, but
                 // better safe than sorry.
-                Monitor.PulseAll(this._mutex);
+                Monitor.PulseAll(_mutex);
             }
         }
 
         private void AwaitLoadedLocked()
         {
-            while (!this._loaded)
+            while (!_loaded)
             {
-                _ = Monitor.Wait(this._mutex);
+                _ = Monitor.Wait(_mutex);
             }
         }
 
@@ -471,17 +471,17 @@ namespace Segment.Analytics.Utilities
 
         public Editor(UserPrefs userPrefs)
         {
-            this._modified = new Dictionary<string, object>();
-            this._userPrefs = userPrefs;
-            this._clear = false;
-            this._mutex = new object();
+            _modified = new Dictionary<string, object>();
+            _userPrefs = userPrefs;
+            _clear = false;
+            _mutex = new object();
         }
 
         public Editor PutInt(string key, int value)
         {
-            lock (this._mutex)
+            lock (_mutex)
             {
-                this._modified[key] = value;
+                _modified[key] = value;
             }
 
             return this;
@@ -489,9 +489,9 @@ namespace Segment.Analytics.Utilities
 
         public Editor PutFloat(string key, float value)
         {
-            lock (this._mutex)
+            lock (_mutex)
             {
-                this._modified[key] = value;
+                _modified[key] = value;
             }
 
             return this;
@@ -499,9 +499,9 @@ namespace Segment.Analytics.Utilities
 
         public Editor PutString(string key, string value)
         {
-            lock (this._mutex)
+            lock (_mutex)
             {
-                this._modified[key] = value;
+                _modified[key] = value;
             }
 
             return this;
@@ -509,9 +509,9 @@ namespace Segment.Analytics.Utilities
 
         public Editor Remove(string key)
         {
-            lock (this._mutex)
+            lock (_mutex)
             {
-                this._modified[key] = this;
+                _modified[key] = this;
             }
 
             return this;
@@ -519,10 +519,10 @@ namespace Segment.Analytics.Utilities
 
         public Editor Clear()
         {
-            lock (this._mutex)
+            lock (_mutex)
             {
-                this._modified.Clear();
-                this._clear = true;
+                _modified.Clear();
+                _clear = true;
             }
 
             return this;
@@ -530,40 +530,40 @@ namespace Segment.Analytics.Utilities
 
         public void Apply()
         {
-            var memoryEpochSnapshot = this.CommitToMemory();
-            this._userPrefs.EnqueueDiskWrite(memoryEpochSnapshot);
+            var memoryEpochSnapshot = CommitToMemory();
+            _userPrefs.EnqueueDiskWrite(memoryEpochSnapshot);
         }
 
         private long CommitToMemory()
         {
             long memoryEpochSnapshot;
 
-            lock (this._userPrefs._mutex)
+            lock (_userPrefs._mutex)
             {
-                if (this._userPrefs._ongoingDiskWrites > 0)
+                if (_userPrefs._ongoingDiskWrites > 0)
                 {
                     // there are other writes going on, create a copy
-                    this._userPrefs._cache = new Dictionary<string, object>(this._userPrefs._cache);
+                    _userPrefs._cache = new Dictionary<string, object>(_userPrefs._cache);
                 }
 
-                var copyToDisk = this._userPrefs._cache;
-                this._userPrefs._ongoingDiskWrites++;
+                var copyToDisk = _userPrefs._cache;
+                _userPrefs._ongoingDiskWrites++;
 
-                lock (this._mutex)
+                lock (_mutex)
                 {
                     var changesMade = false;
 
-                    if (this._clear)
+                    if (_clear)
                     {
                         if (copyToDisk.Count != 0)
                         {
                             changesMade = true;
                             copyToDisk.Clear();
                         }
-                        this._clear = false;
+                        _clear = false;
                     }
 
-                    foreach (var item in this._modified)
+                    foreach (var item in _modified)
                     {
                         var k = item.Key;
                         var v = item.Value;
@@ -595,14 +595,14 @@ namespace Segment.Analytics.Utilities
                         changesMade = true;
                     }
 
-                    this._modified.Clear();
+                    _modified.Clear();
 
                     if (changesMade)
                     {
-                        this._userPrefs._memoryEpoch++;
+                        _userPrefs._memoryEpoch++;
                     }
 
-                    memoryEpochSnapshot = this._userPrefs._memoryEpoch;
+                    memoryEpochSnapshot = _userPrefs._memoryEpoch;
                 }
             }
 

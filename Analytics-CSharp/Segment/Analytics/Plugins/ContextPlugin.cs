@@ -21,7 +21,7 @@ namespace Segment.Analytics.Plugins
         public override void Configure(Analytics analytics)
         {
             base.Configure(analytics);
-            this._library = new JsonObject
+            _library = new JsonObject
             {
                 [LibraryNameKey] = "Analytics-CSharp",
                 [LibraryVersionKey] = Version.SegmentVersion
@@ -40,7 +40,7 @@ namespace Segment.Analytics.Plugins
 
         public override RawEvent Execute(RawEvent incomingEvent)
         {
-            this.ApplyContextData(incomingEvent);
+            ApplyContextData(incomingEvent);
             return base.Execute(incomingEvent);
         }
     }

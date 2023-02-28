@@ -17,29 +17,29 @@ namespace Segment.Analytics
 
     public partial class Analytics
     {
-        internal void Update(Settings settings, UpdateType type) => this.Timeline.Apply(plugin => plugin.Update(settings, type));
+        internal void Update(Settings settings, UpdateType type) => Timeline.Apply(plugin => plugin.Update(settings, type));
 
         private async Task CheckSettings(HTTPClient httpClient = null)
         {
-            httpClient = httpClient ?? new HTTPClient(this.Configuration.WriteKey, cdnHost: this.Configuration.CdnHost);
-            var systemState = await this.Store.CurrentState<System>();
+            httpClient = httpClient ?? new HTTPClient(Configuration.WriteKey, cdnHost: Configuration.CdnHost);
+            var systemState = await Store.CurrentState<System>();
             var hasSettings = systemState._settings.Integrations != null && systemState._settings.Plan != null;
             var updateType = hasSettings ? UpdateType.Refresh : UpdateType.Initial;
 
-            await this.Store.Dispatch<System.ToggleRunningAction, System>(new System.ToggleRunningAction(false));
+            await Store.Dispatch<System.ToggleRunningAction, System>(new System.ToggleRunningAction(false));
 
-            await Scope.WithContext(this.NetworkIODispatcher, async () =>
+            await Scope.WithContext(NetworkIODispatcher, async () =>
             {
                 var settings = await httpClient.Settings();
 
-                await Scope.WithContext(this.AnalyticsDispatcher, async () =>
+                await Scope.WithContext(AnalyticsDispatcher, async () =>
                 {
                     if (settings != null)
                     {
-                        await this.Store.Dispatch<System.UpdateSettingsAction, System>(new System.UpdateSettingsAction(settings.Value));
-                        this.Update(settings.Value, updateType);
+                        await Store.Dispatch<System.UpdateSettingsAction, System>(new System.UpdateSettingsAction(settings.Value));
+                        Update(settings.Value, updateType);
                     }
-                    await this.Store.Dispatch<System.ToggleRunningAction, System>(new System.ToggleRunningAction(true));
+                    await Store.Dispatch<System.ToggleRunningAction, System>(new System.ToggleRunningAction(true));
                 });
             });
         }

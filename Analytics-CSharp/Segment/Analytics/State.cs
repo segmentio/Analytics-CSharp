@@ -21,9 +21,9 @@ namespace Segment.Analytics
 
         private System(Configuration configuration, Settings settings, bool running)
         {
-            this._configuration = configuration;
-            this._settings = settings;
-            this._running = running;
+            _configuration = configuration;
+            _settings = settings;
+            _running = running;
         }
 
         internal static System DefaultState(Configuration configuration, IStorage storage)
@@ -47,14 +47,14 @@ namespace Segment.Analytics
         {
             private Settings _settings;
 
-            public UpdateSettingsAction(Settings settings) => this._settings = settings;
+            public UpdateSettingsAction(Settings settings) => _settings = settings;
 
             public IState Reduce(IState state)
             {
                 IState result = null;
                 if (state is System systemState)
                 {
-                    result = new System(systemState._configuration, this._settings, systemState._running);
+                    result = new System(systemState._configuration, _settings, systemState._running);
                 }
 
                 return result;
@@ -65,14 +65,14 @@ namespace Segment.Analytics
         {
             private readonly bool _running;
 
-            public ToggleRunningAction(bool running) => this._running = running;
+            public ToggleRunningAction(bool running) => _running = running;
 
             public IState Reduce(IState state)
             {
                 IState result = null;
                 if (state is System systemState)
                 {
-                    result = new System(systemState._configuration, systemState._settings, this._running);
+                    result = new System(systemState._configuration, systemState._settings, _running);
                 }
 
                 return result;
@@ -83,7 +83,7 @@ namespace Segment.Analytics
         {
             private readonly string _key;
 
-            public AddDestinationToSettingsAction(string key) => this._key = key;
+            public AddDestinationToSettingsAction(string key) => _key = key;
 
             public IState Reduce(IState state)
             {
@@ -94,7 +94,7 @@ namespace Segment.Analytics
                     // Check if the settings have this destination
                     var settings = systemState._settings;
                     var integrations = settings.Integrations;
-                    integrations[this._key] = true;
+                    integrations[_key] = true;
                     settings.Integrations = integrations;
 
                     result = new System(systemState._configuration, settings, systemState._running);
@@ -121,15 +121,15 @@ namespace Segment.Analytics
 
         private UserInfo(string anonymousId, string userId, JsonObject traits)
         {
-            this._anonymousId = anonymousId;
-            this._userId = userId;
-            this._traits = traits;
+            _anonymousId = anonymousId;
+            _userId = userId;
+            _traits = traits;
         }
 
         public bool IsNull =>
-            this._anonymousId == default &&
-            this._userId == default &&
-            this._traits == default;
+            _anonymousId == default &&
+            _userId == default &&
+            _traits == default;
 
         internal static UserInfo DefaultState(IStorage storage)
         {
@@ -170,14 +170,14 @@ namespace Segment.Analytics
         {
             private readonly string _userId;
 
-            public SetUserIdAction(string userId) => this._userId = userId;
+            public SetUserIdAction(string userId) => _userId = userId;
 
             public IState Reduce(IState state)
             {
                 IState result = null;
                 if (state is UserInfo userState)
                 {
-                    result = new UserInfo(userState._anonymousId, this._userId, userState._traits);
+                    result = new UserInfo(userState._anonymousId, _userId, userState._traits);
                 }
 
                 return result;
@@ -188,14 +188,14 @@ namespace Segment.Analytics
         {
             private readonly JsonObject _traits;
 
-            public SetTraitsAction(JsonObject traits) => this._traits = traits;
+            public SetTraitsAction(JsonObject traits) => _traits = traits;
 
             public IState Reduce(IState state)
             {
                 IState result = null;
                 if (state is UserInfo userState)
                 {
-                    result = new UserInfo(userState._anonymousId, userState._userId, this._traits);
+                    result = new UserInfo(userState._anonymousId, userState._userId, _traits);
                 }
 
                 return result;
@@ -209,8 +209,8 @@ namespace Segment.Analytics
 
             public SetUserIdAndTraitsAction(string userId, JsonObject traits)
             {
-                this._userId = userId;
-                this._traits = traits;
+                _userId = userId;
+                _traits = traits;
             }
 
             public IState Reduce(IState state)
@@ -218,7 +218,7 @@ namespace Segment.Analytics
                 IState result = null;
                 if (state is UserInfo userState)
                 {
-                    result = new UserInfo(userState._anonymousId, this._userId, this._traits);
+                    result = new UserInfo(userState._anonymousId, _userId, _traits);
                 }
 
                 return result;
@@ -229,14 +229,14 @@ namespace Segment.Analytics
         {
             private readonly string _anonymousId;
 
-            public SetAnonymousIdAction(string anonymousId) => this._anonymousId = anonymousId;
+            public SetAnonymousIdAction(string anonymousId) => _anonymousId = anonymousId;
 
             public IState Reduce(IState state)
             {
                 IState result = null;
                 if (state is UserInfo userState)
                 {
-                    result = new UserInfo(this._anonymousId, userState._userId, userState._traits);
+                    result = new UserInfo(_anonymousId, userState._userId, userState._traits);
                 }
 
                 return result;

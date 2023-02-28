@@ -25,19 +25,19 @@ namespace Segment.Analytics.Utilities
 
         public HTTPClient(string apiKey, string apiHost = null, string cdnHost = null)
         {
-            this._apiKey = apiKey;
-            this._apiHost = apiHost ?? DefaultAPIHost;
-            this._cdnHost = cdnHost ?? DefaultCdnHost;
-            this._authHeader = this.AuthorizationHeader(apiKey);
-            this._httpClient = new HttpClient();
+            _apiKey = apiKey;
+            _apiHost = apiHost ?? DefaultAPIHost;
+            _cdnHost = cdnHost ?? DefaultCdnHost;
+            _authHeader = AuthorizationHeader(apiKey);
+            _httpClient = new HttpClient();
         }
 
         public string SegmentURL(string host, string path) => "https://" + host + path;
 
         public virtual async Task<Settings?> Settings()
         {
-            var settingsURL = this.SegmentURL(this._cdnHost, "/projects/" + this._apiKey + "/settings");
-            var response = await this.DoGet(settingsURL);
+            var settingsURL = SegmentURL(_cdnHost, "/projects/" + _apiKey + "/settings");
+            var response = await DoGet(settingsURL);
             Settings? result = null;
 
             if (!response.IsSuccessStatusCode)
@@ -56,8 +56,8 @@ namespace Segment.Analytics.Utilities
 
         public virtual async Task<bool> Upload(byte[] data)
         {
-            var uploadURL = this.SegmentURL(this._apiHost, "/b");
-            var response = await this.DoPost(uploadURL, data);
+            var uploadURL = SegmentURL(_apiHost, "/b");
+            var response = await DoPost(uploadURL, data);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -90,17 +90,17 @@ namespace Segment.Analytics.Utilities
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            return await this._httpClient.SendAsync(request);
+            return await _httpClient.SendAsync(request);
         }
 
         public async Task<HttpResponseMessage> DoPost(string url, byte[] data)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
-            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", this._authHeader);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", _authHeader);
             request.Content = new ByteArrayContent(data);
 
-            return await this._httpClient.SendAsync(request);
+            return await _httpClient.SendAsync(request);
         }
 
         private string AuthorizationHeader(string writeKey)

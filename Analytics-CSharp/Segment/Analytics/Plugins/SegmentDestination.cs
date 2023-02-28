@@ -23,31 +23,31 @@ namespace Segment.Analytics.Plugins
 
         public override IdentifyEvent Identify(IdentifyEvent identifyEvent)
         {
-            this.Enqueue(identifyEvent);
+            Enqueue(identifyEvent);
             return identifyEvent;
         }
 
         public override TrackEvent Track(TrackEvent trackEvent)
         {
-            this.Enqueue(trackEvent);
+            Enqueue(trackEvent);
             return trackEvent;
         }
 
         public override GroupEvent Group(GroupEvent groupEvent)
         {
-            this.Enqueue(groupEvent);
+            Enqueue(groupEvent);
             return groupEvent;
         }
 
         public override AliasEvent Alias(AliasEvent aliasEvent)
         {
-            this.Enqueue(aliasEvent);
+            Enqueue(aliasEvent);
             return aliasEvent;
         }
 
         public override ScreenEvent Screen(ScreenEvent screenEvent)
         {
-            this.Enqueue(screenEvent);
+            Enqueue(screenEvent);
             return screenEvent;
         }
 
@@ -57,39 +57,39 @@ namespace Segment.Analytics.Plugins
 
             // TODO: Add DestinationMetadata enrichment plugin
 
-            this._pipeline = new EventPipeline(
+            _pipeline = new EventPipeline(
                     analytics,
-                    this.Key,
+                    Key,
                     analytics.Configuration.WriteKey,
                     analytics.Configuration.FlushAt,
                     analytics.Configuration.FlushInterval * 1000L,
                     analytics.Configuration.ApiHost
                 );
-            this._pipeline.Start();
+            _pipeline.Start();
         }
 
         public override void Update(Settings settings, UpdateType type)
         {
             base.Update(settings, type);
 
-            var segmentInfo = settings.Integrations?.GetJsonObject(this.Key);
+            var segmentInfo = settings.Integrations?.GetJsonObject(Key);
             var apiHost = segmentInfo?.GetString(ApiHost);
             if (apiHost != null)
             {
-                this._pipeline.ApiHost = apiHost;
+                _pipeline.ApiHost = apiHost;
             }
         }
 
         public override void Reset() => throw new NotImplementedException();
 
-        public override void Flush() => this._pipeline.Flush();
+        public override void Flush() => _pipeline.Flush();
 
         private void Enqueue<T>(T payload) where T : RawEvent
         {
             // TODO: filter out empty userid and traits values
 
             var str = JsonUtility.ToJson(payload);
-            this._pipeline.Put(str);
+            _pipeline.Put(str);
         }
     }
 }
