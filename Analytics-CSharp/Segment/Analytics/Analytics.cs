@@ -64,7 +64,7 @@ namespace Segment.Analytics
         public void Process(RawEvent incomingEvent)
         {
             incomingEvent.ApplyRawEventData();
-            _ = Timeline.Process(incomingEvent);
+            Timeline.Process(incomingEvent);
         }
 
         #region System Modifiers
@@ -129,7 +129,7 @@ namespace Segment.Analytics
             _userInfo._anonymousId = null;
             _userInfo._traits = null;
 
-            _ = AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
                 await Store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction());
                 Apply(plugin =>
@@ -193,9 +193,9 @@ namespace Segment.Analytics
 
         private void Startup(HTTPClient httpClient = null)
         {
-            _ = Add(new StartupQueue());
-            _ = Add(new ContextPlugin());
-            _ = Add(new UserInfoPlugin());
+            Add(new StartupQueue());
+            Add(new ContextPlugin());
+            Add(new UserInfoPlugin());
 
             // use Wait() for this coroutine to force completion,
             // since Store must be setup before any event call happened.
@@ -213,11 +213,11 @@ namespace Segment.Analytics
             // check settings over the network,
             // we don't have to Wait() here, because events are piped in
             // StartupQueue until settings is ready
-            _ = AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
                 if (Configuration.AutoAddSegmentDestination)
                 {
-                    _ = Add(new SegmentDestination());
+                    Add(new SegmentDestination());
                 }
 
                 await CheckSettings(httpClient);

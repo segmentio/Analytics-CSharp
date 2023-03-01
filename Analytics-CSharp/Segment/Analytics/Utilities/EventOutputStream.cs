@@ -86,7 +86,7 @@ namespace Segment.Analytics.Utilities
             if (extension != null)
             {
                 var nameWithExtension = _file.Name + '.' + extension;
-                _ = _directory.Remove(_file.Name);
+                _directory.Remove(_file.Name);
                 _directory[nameWithExtension] = _file;
             }
 
@@ -155,7 +155,7 @@ namespace Segment.Analytics.Utilities
             if (_fs == null)
             {
                 _fs = _file.Open(FileMode.OpenOrCreate);
-                _ = _fs.Seek(0, SeekOrigin.End);
+                _fs.Seek(0, SeekOrigin.End);
             }
             _file.Refresh();
         }

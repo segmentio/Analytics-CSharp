@@ -20,7 +20,7 @@ namespace Segment.Analytics.Plugins
         public override void Configure(Analytics analytics)
         {
             base.Configure(analytics);
-            _ = analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () => await analytics.Store.Subscribe<System>(this, state => RunningUpdate((System)state)));
+            analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () => await analytics.Store.Subscribe<System>(this, state => RunningUpdate((System)state)));
         }
 
         public override RawEvent Execute(RawEvent incomingEvent)
@@ -31,7 +31,7 @@ namespace Segment.Analytics.Plugins
                 if (_queuedEvents.Count >= s_maxSize)
                 {
                     // We've exceeded the max size and need to start dropping events
-                    _ = _queuedEvents.TryDequeue(out _);
+                    _queuedEvents.TryDequeue(out _);
                 }
                 _queuedEvents.Enqueue(incomingEvent);
                 return null;

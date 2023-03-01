@@ -2,8 +2,6 @@ namespace Segment.Analytics
 {
     using Segment.Analytics.Utilities;
     using Segment.Concurrent;
-using Segment.Analytics.Utilities;
-using Segment.Concurrent;
 
     public class Configuration
     {

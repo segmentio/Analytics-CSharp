@@ -66,7 +66,7 @@ namespace Segment.Analytics
                 traits = new JsonObject();
             }
 
-            _ = AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
                 await Store.Dispatch<UserInfo.SetUserIdAndTraitsAction, UserInfo>(
                 new UserInfo.SetUserIdAndTraitsAction(userId, traits));
@@ -99,7 +99,7 @@ namespace Segment.Analytics
                 traits = new JsonObject();
             }
 
-            _ = AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
                 await Store.Dispatch<UserInfo.SetTraitsAction, UserInfo>(
                     new UserInfo.SetTraitsAction(traits));

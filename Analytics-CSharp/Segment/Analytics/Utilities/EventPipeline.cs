@@ -105,7 +105,7 @@ namespace Segment.Analytics.Utilities
         {
             while (!_uploadChannel.isCancelled)
             {
-                _ = await _uploadChannel.Receive();
+                await _uploadChannel.Receive();
 
                 await Scope.WithContext(_analytics.FileIODispatcher, async () => await _storage.Rollover());
 
@@ -135,7 +135,7 @@ namespace Segment.Analytics.Utilities
 
                     if (shouldCleanup)
                     {
-                        _ = _storage.RemoveFile(url);
+                        _storage.RemoveFile(url);
                     }
                 }
             }

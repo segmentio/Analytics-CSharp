@@ -1,7 +1,7 @@
-
-using Segment.Analytics.Utilities;
 namespace Segment.Analytics.Plugins
 {
+
+    using Segment.Analytics.Utilities;
     using Segment.Serialization;
 
     /// <summary>

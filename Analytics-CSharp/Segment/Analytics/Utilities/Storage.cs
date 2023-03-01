@@ -68,10 +68,7 @@ namespace Segment.Analytics.Utilities
     public class DefaultStorageProvider : IStorageProvider
     {
         public string PersistentDataPath { get; set; }
-        public DefaultStorageProvider(string persistentDataPath = null)
-        {
-            PersistentDataPath = persistentDataPath ?? SystemInfo.getAppFolder();
-        }
+        public DefaultStorageProvider(string persistentDataPath = null) => PersistentDataPath = persistentDataPath ?? SystemInfo.getAppFolder();
 
         public IStorage CreateStorage(params object[] parameters)
         {
@@ -187,8 +184,8 @@ namespace Segment.Analytics.Utilities
 
         public async Task Initialize()
         {
-            _ = await _store.Subscribe<UserInfo>(this, UserInfoUpdate, true, _ioDispatcher);
-            _ = await _store.Subscribe<System>(this, SystemUpdate, true, _ioDispatcher);
+            await _store.Subscribe<UserInfo>(this, UserInfoUpdate, true, _ioDispatcher);
+            await _store.Subscribe<System>(this, SystemUpdate, true, _ioDispatcher);
         }
 
         /// <summary>
@@ -339,10 +336,10 @@ namespace Segment.Analytics.Utilities
             var contents = new StringBuilder();
             if (!newFile)
             {
-                _ = contents.Append(',');
+                contents.Append(',');
             }
 
-            _ = contents.Append(@event);
+            contents.Append(@event);
             await _eventStream.Write(contents.ToString());
         });
 
@@ -357,7 +354,7 @@ namespace Segment.Analytics.Utilities
             await _eventStream.Write(End);
             _eventStream.FinishAndClose(FileExtension);
 
-            _ = IncrementFileIndex();
+            IncrementFileIndex();
         }
 
         private bool IncrementFileIndex()
@@ -384,7 +381,7 @@ namespace Segment.Analytics.Utilities
             }
             finally
             {
-                _ = _semaphore.Release();
+                _semaphore.Release();
             }
         }
 

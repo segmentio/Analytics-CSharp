@@ -36,7 +36,7 @@ namespace Segment.Analytics
 
             // Make sure not to update the events during this next cycle. Since each destination may want different 
             // data than other destinations we don't want them conflicting and changing what a real result should be
-            _ = ApplyPlugins(PluginType.Destination, enrichmentResult);
+            ApplyPlugins(PluginType.Destination, enrichmentResult);
 
             // Finally end with after plugins
             var afterResult = ApplyPlugins(PluginType.After, enrichmentResult);
@@ -156,7 +156,7 @@ namespace Segment.Analytics
             _plugins.Add(plugin);
 
             var analytics = plugin.Analytics;
-            _ = analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () =>
+            analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () =>
             {
                 var settings = await plugin.Analytics.SettingsAsync();
                 if (settings.HasValue)
@@ -175,7 +175,7 @@ namespace Segment.Analytics
             {
                 if (plugin is DestinationPlugin)
                 {
-                    _ = plugin.Execute(result);
+                    plugin.Execute(result);
                 }
                 else
                 {

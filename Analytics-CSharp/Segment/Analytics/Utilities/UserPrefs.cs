@@ -226,7 +226,7 @@ namespace Segment.Analytics.Utilities
         public void Put(string key, int value)
         {
             var editor = Edit();
-            _ = editor.PutInt(key, value);
+            editor.PutInt(key, value);
             editor.Apply();
         }
 
@@ -239,7 +239,7 @@ namespace Segment.Analytics.Utilities
         public void Put(string key, float value)
         {
             var editor = Edit();
-            _ = editor.PutFloat(key, value);
+            editor.PutFloat(key, value);
             editor.Apply();
         }
 
@@ -252,7 +252,7 @@ namespace Segment.Analytics.Utilities
         public void Put(string key, string value)
         {
             var editor = Edit();
-            _ = editor.PutString(key, value);
+            editor.PutString(key, value);
             editor.Apply();
         }
 
@@ -264,7 +264,7 @@ namespace Segment.Analytics.Utilities
         public void Remove(string key)
         {
             var editor = Edit();
-            _ = editor.Remove(key);
+            editor.Remove(key);
             editor.Apply();
         }
 
@@ -362,7 +362,7 @@ namespace Segment.Analytics.Utilities
                 _loaded = false;
             }
 
-            _ = _scope.Launch(_dispatcher, async () => await Task.Run(LoadFromDisk));
+            _scope.Launch(_dispatcher, async () => await Task.Run(LoadFromDisk));
         }
 
         private void LoadFromDisk()
@@ -381,7 +381,7 @@ namespace Segment.Analytics.Utilities
                     // if the directory does not exist, create it
                     if (!string.IsNullOrEmpty(_file.DirectoryName))
                     {
-                        _ = Directory.CreateDirectory(_file.DirectoryName);
+                        Directory.CreateDirectory(_file.DirectoryName);
                     }
 
                     // an update failed previously, recover from backup
@@ -445,7 +445,7 @@ namespace Segment.Analytics.Utilities
         {
             while (!_loaded)
             {
-                _ = Monitor.Wait(_mutex);
+                Monitor.Wait(_mutex);
             }
         }
 
@@ -576,7 +576,7 @@ namespace Segment.Analytics.Utilities
                                 ;
                             }
 
-                            _ = copyToDisk.Remove(k);
+                            copyToDisk.Remove(k);
                         }
                         else
                         {

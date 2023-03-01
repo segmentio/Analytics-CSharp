@@ -1,15 +1,15 @@
-﻿using System;
-using System.Runtime.InteropServices;
-
 namespace Segment.Analytics.Utilities
 {
+    using global::System;
+    using global::System.Runtime.InteropServices;
+
     public class SystemInfo
     {
         public static string getAppFolder()
         {
             var type = Type.GetType("UnityEngine.Application, UnityEngine");
-            string unityPath = type?.GetProperty("persistentDataPath").GetValue(null,null).ToString();
-            if(unityPath != null)
+            var unityPath = type?.GetProperty("persistentDataPath").GetValue(null, null).ToString();
+            if (unityPath != null)
             {
                 return unityPath;
             }
@@ -41,10 +41,10 @@ namespace Segment.Analytics.Utilities
 
         public static string getOS()
         {
-            OperatingSystem os = Environment.OSVersion;
+            var os = Environment.OSVersion;
             var vs = os.Version;
 
-            string operatingSystem = "";
+            var operatingSystem = "";
 
             switch (os.Platform)
             {
