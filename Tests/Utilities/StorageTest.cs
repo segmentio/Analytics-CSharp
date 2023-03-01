@@ -20,7 +20,7 @@ namespace Tests.Utilities
         {
             var config = new Configuration(
                 writeKey: "123",
-                persistentDataPath: "tests",
+                storageProvider: new DefaultStorageProvider("tests"),
                 autoAddSegmentDestination: false,
                 userSynchronizeDispatcher: true
             );
@@ -30,7 +30,7 @@ namespace Tests.Utilities
         [Fact]
         public void TestDefaultStorageProvider()
         {   
-            var storage = new DefaultStorageProvider().CreateStorage(_analytics.Object);
+            var storage = new DefaultStorageProvider("tests").CreateStorage(_analytics.Object);
             var converted = Assert.IsType<Storage>(storage);
             Assert.IsType<FileEventStream>(converted._eventStream);
             Assert.IsType<UserPrefs>(converted._userPrefs);
