@@ -1,4 +1,5 @@
 using Segment.Serialization;
+using Segment.Analytics.Utilities;
 
 namespace Segment.Analytics.Plugins
 {
@@ -18,6 +19,10 @@ namespace Segment.Analytics.Plugins
 
         private const string LibraryVersionKey = "version";
 
+        private const string OSKey = "os";
+
+        private const string PlatformKey = "platform";
+
         public override void Configure(Analytics analytics)
         {
             base.Configure(analytics);
@@ -32,7 +37,9 @@ namespace Segment.Analytics.Plugins
         {
             var context = new JsonObject(@event.context?.Content)
             {
-                [LibraryKey] = _library
+                [LibraryKey] = _library,
+                [OSKey] = SystemInfo.getOS(),
+                [PlatformKey] = SystemInfo.getPlatform()
             };
 
             @event.context = context;

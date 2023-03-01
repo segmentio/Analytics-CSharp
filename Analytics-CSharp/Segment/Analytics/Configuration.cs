@@ -1,4 +1,6 @@
 ﻿
+using System;
+using System.IO;
 using Segment.Analytics.Utilities;
 using Segment.Concurrent;
 
@@ -7,8 +9,6 @@ namespace Segment.Analytics
     public class Configuration
     {
         public string writeKey { get; }
-        
-        public string persistentDataPath { get; }
         
         public int flushAt { get; }
         
@@ -32,13 +32,6 @@ namespace Segment.Analytics
         /// Configuration that analytics can use
         /// </summary>
         /// <param name="writeKey">the Segment writeKey</param>
-        /// <param name="persistentDataPath"> 
-        /// path where analytics stores data. for example:
-        ///     <list type="bullet">
-        ///         <item><description>Xamarin: <c>Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)</c></description></item>
-        ///         <item><description>Unity: <c>Application.persistentDataPath</c></description></item>
-        ///     </list>
-        /// </param>
         /// <param name="flushAt">count of events at which we flush events, defaults to <c>20</c></param>
         /// <param name="flushInterval">interval in seconds at which we flush events, defaults to <c>30 seconds</c></param>
         /// <param name="defaultSettings">settings object that will be used as fallback in case of network failure, defaults to empty</param>
@@ -49,12 +42,12 @@ namespace Segment.Analytics
         /// <param name="exceptionHandler">set an exception handler to handle errors happened in async methods within the analytics scope</param>
         /// <param name="storageProvider">set a storage provide to tell the analytics where to store your data:
         ///     <list type="bullet">
-        ///         <item><description><see cref="InMemoryStorageProvider"/> stores data only in memory</description></item>
+        ///         <item><description><see cref="InMemoryStorageProvider"/> stores data only in memory and ignores the persistentDataPath</description></item>
         ///         <item><description><see cref="DefaultStorageProvider"/> persists data in local disk. This is used by default</description></item>
         ///     </list>
+        ///     defaults to DefaultStorageProvider
         /// </param>
         public Configuration(string writeKey,
-            string persistentDataPath,
             int flushAt = 20,
             int flushInterval = 30,
             Settings defaultSettings = new Settings(),
@@ -66,7 +59,6 @@ namespace Segment.Analytics
             IStorageProvider storageProvider = default)
         {
             this.writeKey = writeKey;
-            this.persistentDataPath = persistentDataPath;
             this.flushAt = flushAt;
             this.flushInterval = flushInterval;
             this.defaultSettings = defaultSettings;
