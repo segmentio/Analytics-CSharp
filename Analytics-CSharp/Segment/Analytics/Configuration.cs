@@ -10,8 +10,6 @@ namespace Segment.Analytics
     {
         public string writeKey { get; }
         
-        public string persistentDataPath { get; }
-        
         public int flushAt { get; }
         
         public int flushInterval { get; }
@@ -58,7 +56,6 @@ namespace Segment.Analytics
         ///     defaults to DefaultStorageProvider on Unity (Mono) and Xamarin, or to InMemoryStorageProvider on .Net Core
         /// </param>
         public Configuration(string writeKey,
-            string persistentDataPath = null,
             int flushAt = 20,
             int flushInterval = 30,
             Settings defaultSettings = new Settings(),
@@ -72,7 +69,6 @@ namespace Segment.Analytics
             var platform = SystemInfo.getPlatform();
 
             this.writeKey = writeKey;
-            this.persistentDataPath = persistentDataPath ?? SystemInfo.getAppFolder();
             this.flushAt = flushAt;
             this.flushInterval = flushInterval;
             this.defaultSettings = defaultSettings;
@@ -81,19 +77,7 @@ namespace Segment.Analytics
             this.apiHost = apiHost;
             this.cdnHost = cdnHost;
             this.exceptionHandler = exceptionHandler;
-
-            if (storageProvider != null)
-            {
-                this.storageProvider = storageProvider;
-            }
-            else if (platform.Contains("Mono") || platform.Contains("Xamarin"))
-            {
-                this.storageProvider = new DefaultStorageProvider();
-            }
-            else
-            {
-                this.storageProvider = new InMemoryStorageProvider();
-            }
+            this.storageProvider = new DefaultStorageProvider();
         }
     }
 

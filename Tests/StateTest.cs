@@ -31,7 +31,6 @@ namespace Tests
             };
             _configuration = new Configuration(
                 writeKey: "123",
-                persistentDataPath: "tests",
                 autoAddSegmentDestination: false,
                 userSynchronizeDispatcher: true,
                 defaultSettings: _settings
@@ -132,7 +131,7 @@ namespace Tests
             };
             _configuration = new Configuration(
                 writeKey: "123",
-                persistentDataPath: "tests",
+                storageProvider: new DefaultStorageProvider("tests"),
                 autoAddSegmentDestination: false,
                 userSynchronizeDispatcher: true
             );

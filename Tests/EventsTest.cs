@@ -24,7 +24,7 @@ namespace Tests
 
             var config = new Configuration(
                 writeKey: "123",
-                persistentDataPath: "tests",
+                storageProvider: new DefaultStorageProvider("tests"),
                 autoAddSegmentDestination: false,
                 userSynchronizeDispatcher: true
             );
