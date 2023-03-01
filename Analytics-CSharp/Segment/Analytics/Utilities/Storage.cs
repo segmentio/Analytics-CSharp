@@ -73,7 +73,7 @@ namespace Segment.Analytics.Utilities
 
     public class DefaultStorageProvider : IStorageProvider
     {
-        public string PersistentDataPath;
+        public string PersistentDataPath { get; set; }
         public DefaultStorageProvider(string persistentDataPath = null)
         {
             PersistentDataPath = persistentDataPath ?? SystemInfo.getAppFolder();

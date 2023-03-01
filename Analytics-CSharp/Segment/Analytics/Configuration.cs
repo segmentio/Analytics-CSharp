@@ -32,14 +32,6 @@ namespace Segment.Analytics
         /// Configuration that analytics can use
         /// </summary>
         /// <param name="writeKey">the Segment writeKey</param>
-        /// <param name="persistentDataPath"> 
-        /// path where analytics stores data when using a storage provider that writes to disk. for example:
-        ///     <list type="bullet">
-        ///         <item><description>Xamarin: <c>Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)</c></description></item>
-        ///         <item><description>Unity: <c>Application.persistentDataPath</c></description></item>
-        ///     </list>
-        ///     defaults to Local Application Data
-        /// </param>
         /// <param name="flushAt">count of events at which we flush events, defaults to <c>20</c></param>
         /// <param name="flushInterval">interval in seconds at which we flush events, defaults to <c>30 seconds</c></param>
         /// <param name="defaultSettings">settings object that will be used as fallback in case of network failure, defaults to empty</param>
@@ -53,7 +45,7 @@ namespace Segment.Analytics
         ///         <item><description><see cref="InMemoryStorageProvider"/> stores data only in memory and ignores the persistentDataPath</description></item>
         ///         <item><description><see cref="DefaultStorageProvider"/> persists data in local disk. This is used by default</description></item>
         ///     </list>
-        ///     defaults to DefaultStorageProvider on Unity (Mono) and Xamarin, or to InMemoryStorageProvider on .Net Core
+        ///     defaults to DefaultStorageProvider
         /// </param>
         public Configuration(string writeKey,
             int flushAt = 20,
@@ -66,8 +58,6 @@ namespace Segment.Analytics
             ICoroutineExceptionHandler exceptionHandler = null,
             IStorageProvider storageProvider = default)
         {
-            var platform = SystemInfo.getPlatform();
-
             this.writeKey = writeKey;
             this.flushAt = flushAt;
             this.flushInterval = flushInterval;
