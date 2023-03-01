@@ -73,10 +73,10 @@ namespace Segment.Analytics.Utilities
 
     public class DefaultStorageProvider : IStorageProvider
     {
-        private string _persistentDataPath;
+        public string PersistentDataPath;
         public DefaultStorageProvider(string persistentDataPath = null)
         {
-            _persistentDataPath = persistentDataPath ?? SystemInfo.getAppFolder();
+            PersistentDataPath = persistentDataPath ?? SystemInfo.getAppFolder();
         }
 
         public IStorage CreateStorage(params object[] parameters)
@@ -89,7 +89,7 @@ namespace Segment.Analytics.Utilities
 
             var analytics = (Analytics)parameters[0];
             var config = analytics.configuration;
-            var rootDir = _persistentDataPath;
+            var rootDir = PersistentDataPath;
             var storageDirectory = rootDir + Path.DirectorySeparatorChar +
                                    "segment.data" + Path.DirectorySeparatorChar +
                                    config.writeKey + Path.DirectorySeparatorChar +
