@@ -77,7 +77,7 @@ namespace Segment.Analytics
             this.apiHost = apiHost;
             this.cdnHost = cdnHost;
             this.exceptionHandler = exceptionHandler;
-            this.storageProvider = new DefaultStorageProvider();
+            this.storageProvider = storageProvider ?? new DefaultStorageProvider();
         }
     }
 
