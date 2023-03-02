@@ -74,20 +74,6 @@ namespace Tests.Utilities
         [Fact]
         public void ReadTest()
         {
-
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var files = new[] {"test1", "test2.json", "test3"};
-After:
-            string[] files = new[] {"test1", "test2.json", "test3"};
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var files = new[] {"test1", "test2.json", "test3"};
-After:
-            string[] files = new[] {"test1", "test2.json", "test3"};
-*/
             string[] files = new[] { "test1", "test2.json", "test3" };
 
             _eventStream.OpenOrCreate("test1", out _);
@@ -114,20 +100,6 @@ After:
             _eventStream.OpenOrCreate("test", out _);
             _eventStream.FinishAndClose("json");
             _eventStream.Remove("test.json");
-
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            _eventStream.OpenOrCreate("test", out var newFile);
-After:
-            _eventStream.OpenOrCreate("test", out bool newFile);
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            _eventStream.OpenOrCreate("test", out var newFile);
-After:
-            _eventStream.OpenOrCreate("test", out bool newFile);
-*/
             _eventStream.OpenOrCreate("test", out bool newFile);
 
             Assert.True(newFile);
@@ -273,20 +245,6 @@ After:
             _eventStream.OpenOrCreate("test", out _);
             _eventStream.FinishAndClose("json");
             _eventStream.Remove("test.json");
-
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            _eventStream.OpenOrCreate("test", out var newFile);
-After:
-            _eventStream.OpenOrCreate("test", out bool newFile);
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            _eventStream.OpenOrCreate("test", out var newFile);
-After:
-            _eventStream.OpenOrCreate("test", out bool newFile);
-*/
             _eventStream.OpenOrCreate("test", out bool newFile);
 
             Assert.True(newFile);

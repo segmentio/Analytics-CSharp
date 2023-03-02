@@ -161,28 +161,6 @@ namespace Tests
             Assert.Equal(expectedTraits.ToString(), actual._traits.ToString());
         }
 
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var expectedAnonymousId = "foo";
-            var expectedUserId = "bar";
-            var badTraits = "{";
-After:
-            string expectedAnonymousId = "foo";
-            string expectedUserId = "bar";
-            string badTraits = "{";
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var expectedAnonymousId = "foo";
-            var expectedUserId = "bar";
-            var badTraits = "{";
-After:
-            string expectedAnonymousId = "foo";
-            string expectedUserId = "bar";
-            string badTraits = "{";
-*/
-
         [Fact]
         public void TestUserInfoDefaultStateException()
         {

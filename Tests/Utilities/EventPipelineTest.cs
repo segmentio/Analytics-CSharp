@@ -12,23 +12,9 @@ namespace Tests.Utilities
     {
         private EventPipeline _eventPipeline;
 
-
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-        private Analytics _analytics;
-After:
-        private readonly Analytics _analytics;
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-        private Analytics _analytics;
-After:
-        private readonly Analytics _analytics;
-*/
         private readonly Analytics _analytics;
 
-        private readonly readonly Mock<IStorage> _storage;
+        private readonly Mock<IStorage> _storage;
 
         private readonly Mock<HTTPClient> _mockHttpClient;
 

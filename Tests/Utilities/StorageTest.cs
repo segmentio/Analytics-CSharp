@@ -50,23 +50,9 @@ namespace Tests.Utilities
     {
         private readonly Storage _storage;
 
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-        private IPreferences _prefs;
-After:
-        private readonly IPreferences _prefs;
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-        private IPreferences _prefs;
-After:
-        private readonly IPreferences _prefs;
-*/
-
         private readonly IPreferences _prefs;
 
-        private readonly readonly Mock<IEventStream> _stream;
+        private readonly Mock<IEventStream> _stream;
 
         private readonly string _payload;
 
@@ -206,11 +192,11 @@ After:
 
         private readonly string _payload;
 
-        private readonly string dir;
+        private readonly string _dir;
 
-        private readonly string writeKey;
+        private readonly string _writeKey;
 
-        private readonly string parent;
+        private readonly string _parent;
 
         public StorageIntegrationTest()
         {
@@ -218,21 +204,21 @@ After:
             {
                 ["foo"] = "bar"
             }));
-            parent = Guid.NewGuid().ToString();
-            dir = parent + Path.DirectorySeparatorChar + "tmp";
-            writeKey = "123";
+            _parent = Guid.NewGuid().ToString();
+            _dir = _parent + Path.DirectorySeparatorChar + "tmp";
+            _writeKey = "123";
             _storage = new Storage(
-                new UserPrefs(parent + Path.DirectorySeparatorChar + writeKey + ".prefs"),
-                new FileEventStream(dir),
+                new UserPrefs(_parent + Path.DirectorySeparatorChar + _writeKey + ".prefs"),
+                new FileEventStream(_dir),
                 new Store(true),
-                writeKey);
+                _writeKey);
         }
 
         public void Dispose()
         {
             try
             {
-                Directory.Delete(parent, true);
+                Directory.Delete(_parent, true);
             }
             catch
             {
@@ -246,7 +232,7 @@ After:
             await _storage.Write(StorageConstants.Events, _payload);
             await _storage.Rollover();
 
-            string path = dir + Path.DirectorySeparatorChar + writeKey + "-0.json";
+            string path = _dir + Path.DirectorySeparatorChar + _writeKey + "-0.json";
             string actual = File.ReadAllText(path);
             Exception exception = Record.Exception(() =>
             {
@@ -261,27 +247,13 @@ After:
         [Fact]
         public async Task TestRead()
         {
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var actual = _storage.Read(StorageConstants.Events).Split(',');
-After:
-            string[] actual = _storage.Read(StorageConstants.Events).Split(',');
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var actual = _storage.Read(StorageConstants.Events).Split(',');
-After:
-            string[] actual = _storage.Read(StorageConstants.Events).Split(',');
-*/
-
             await _storage.Write(StorageConstants.Events, _payload);
             await _storage.Rollover();
 
             string[] actual = _storage.Read(StorageConstants.Events).Split(',');
 
             Assert.Single(actual);
-            Assert.EndsWith(dir + Path.DirectorySeparatorChar + writeKey + "-0.json", actual[0]);
+            Assert.EndsWith(_dir + Path.DirectorySeparatorChar + _writeKey + "-0.json", actual[0]);
         }
 
         [Fact]
@@ -309,7 +281,7 @@ After:
             await _storage.Write(StorageConstants.Events, _payload);
             await _storage.Rollover();
 
-            string[] files = Directory.GetFiles(dir);
+            string[] files = Directory.GetFiles(_dir);
             bool hasCompletedFile = false;
             bool hasTempFile = false;
 
@@ -341,7 +313,7 @@ After:
                 await _storage.Rollover();
             }
 
-            string[] files = Directory.GetFiles(dir);
+            string[] files = Directory.GetFiles(_dir);
             Assert.Empty(files);
         }
 
@@ -357,7 +329,7 @@ After:
                 await _storage.Rollover();
             }
 
-            string[] files = Directory.GetFiles(dir);
+            string[] files = Directory.GetFiles(_dir);
             Assert.Equal(expected, files.Length);
         }
     }

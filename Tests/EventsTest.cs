@@ -15,7 +15,7 @@ namespace Tests
 
         private Settings? _settings;
 
-        private readonly readonly Mock<StubEventPlugin> _plugin;
+        private readonly Mock<StubEventPlugin> _plugin;
 
         public EventsTest()
         {
@@ -76,34 +76,6 @@ namespace Tests
             Assert.Equal(expectedEvent, actual[0].Event);
         }
 
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var expectedEvent = "foo";
-After:
-            string expectedEvent = "foo";
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var expectedEvent = "foo";
-After:
-            string expectedEvent = "foo";
-*/
-
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var expectedEvent = "foo";
-After:
-            string expectedEvent = "foo";
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var expectedEvent = "foo";
-After:
-            string expectedEvent = "foo";
-*/
-
         [Fact]
         public void TestTrackT()
         {
@@ -149,19 +121,6 @@ After:
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId, expected);
 
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var actualUserId = _analytics.UserId();
-After:
-            string actualUserId = _analytics.UserId();
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var actualUserId = _analytics.UserId();
-After:
-            string actualUserId = _analytics.UserId();
-*/
             string actualUserId = _analytics.UserId();
 
             Assert.NotEmpty(actual);
@@ -179,19 +138,6 @@ After:
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId);
 
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var actualUserId = _analytics.UserId();
-After:
-            string actualUserId = _analytics.UserId();
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var actualUserId = _analytics.UserId();
-After:
-            string actualUserId = _analytics.UserId();
-*/
             string actualUserId = _analytics.UserId();
 
             Assert.NotEmpty(actual);
@@ -213,19 +159,6 @@ After:
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expected);
 
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var actualUserId = _analytics.UserId();
-After:
-            string actualUserId = _analytics.UserId();
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var actualUserId = _analytics.UserId();
-After:
-            string actualUserId = _analytics.UserId();
-*/
             string actualUserId = _analytics.UserId();
 
             Assert.NotEmpty(actual);
@@ -244,76 +177,7 @@ After:
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId, expected);
 
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var actualUserId = _analytics.UserId();
-After:
             string actualUserId = _analytics.UserId();
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var actualUserId = _analytics.UserId();
-After:
-            string actualUserId = _analytics.UserId();
-*/
-            
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var expectedUserId = "newUserId";
-After:
-            string expectedUserId = "newUserId";
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var expectedUserId = "newUserId";
-After:
-            string expectedUserId = "newUserId";
-*/
-
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var actualUserId = _analytics.UserId();
-After:
-            string actualUserId = _analytics.UserId();
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var actualUserId = _analytics.UserId();
-After:
-            string actualUserId = _analytics.UserId();
-*/
-
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var expectedUserId = _analytics.UserId();
-After:
-            string expectedUserId = _analytics.UserId();
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var expectedUserId = _analytics.UserId();
-After:
-            string expectedUserId = _analytics.UserId();
-*/
-
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var actualUserId = _analytics.UserId();
-After:
-            string actualUserId = _analytics.UserId();
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var actualUserId = _analytics.UserId();
-After:
-            string actualUserId = _analytics.UserId();
-*/
-string actualUserId = _analytics.UserId();
 
             Assert.NotEmpty(actual);
             Assert.Equal(expected.GetJsonObject(), actual[0].Traits);
@@ -455,34 +319,6 @@ string actualUserId = _analytics.UserId();
             Assert.True(actual[0].Traits.Count == 0);
             Assert.Equal(expectedGroupId, actual[0].GroupId);
         }
-
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var expectedGroupId = "foo";
-After:
-            string expectedGroupId = "foo";
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var expectedGroupId = "foo";
-After:
-            string expectedGroupId = "foo";
-*/
-
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var expectedGroupId = "foo";
-After:
-            string expectedGroupId = "foo";
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var expectedGroupId = "foo";
-After:
-            string expectedGroupId = "foo";
-*/
 
         [Fact]
         public void TestGroupT()

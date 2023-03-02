@@ -39,28 +39,6 @@ namespace Tests
         [Fact]
         public void TestApply()
         {
-
-/* Unmerged change from project 'Tests(net5.0)'
-Before:
-            var expected = _analytics.Timeline._plugins.Sum(o => o.Value._plugins.Count);
-            
-            var actual = 0;
-After:
-            int expected = _analytics.Timeline._plugins.Sum(o => o.Value._plugins.Count);
-
-            int actual = 0;
-*/
-
-/* Unmerged change from project 'Tests(net6.0)'
-Before:
-            var expected = _analytics.Timeline._plugins.Sum(o => o.Value._plugins.Count);
-            
-            var actual = 0;
-After:
-            int expected = _analytics.Timeline._plugins.Sum(o => o.Value._plugins.Count);
-
-            int actual = 0;
-*/
             int expected = _analytics.Timeline._plugins.Sum(o => o.Value._plugins.Count);
 
             int actual = 0;
