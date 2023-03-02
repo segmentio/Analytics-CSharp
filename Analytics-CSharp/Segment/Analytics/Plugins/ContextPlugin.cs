@@ -1,5 +1,6 @@
-using Segment.Serialization;
+
 using Segment.Analytics.Utilities;
+using Segment.Serialization;
 
 namespace Segment.Analytics.Plugins
 {
@@ -9,7 +10,7 @@ namespace Segment.Analytics.Plugins
     /// </summary>
     public class ContextPlugin : Plugin
     {
-        public override PluginType type => PluginType.Before;
+        public override PluginType Type => PluginType.Before;
 
         private JsonObject _library;
 
@@ -35,14 +36,14 @@ namespace Segment.Analytics.Plugins
 
         private void ApplyContextData(RawEvent @event)
         {
-            var context = new JsonObject(@event.context?.Content)
+            var context = new JsonObject(@event.Context?.Content)
             {
                 [LibraryKey] = _library,
                 [OSKey] = SystemInfo.getOS(),
                 [PlatformKey] = SystemInfo.getPlatform()
             };
 
-            @event.context = context;
+            @event.Context = context;
         }
 
         public override RawEvent Execute(RawEvent incomingEvent)

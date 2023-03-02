@@ -10,7 +10,7 @@ namespace Tests.Utilities
         [Fact]
         public void GetPlatformTest()
         {
-            var sysinfo = SystemInfo.getPlatform();
+            string sysinfo = SystemInfo.getPlatform();
 
             Assert.NotNull(sysinfo);
             Assert.Contains(".NET", sysinfo);
@@ -19,7 +19,7 @@ namespace Tests.Utilities
         [Fact]
         public void GetOSTest()
         {
-            var sysinfo = SystemInfo.getOS();
+            string sysinfo = SystemInfo.getOS();
 
             Assert.NotNull(sysinfo);
         }
@@ -27,7 +27,7 @@ namespace Tests.Utilities
         [Fact]
         public void GetAppFolderTest()
         {
-            var path = SystemInfo.getAppFolder();
+            string path = SystemInfo.getAppFolder();
 
             Assert.Equal(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), path);
         }

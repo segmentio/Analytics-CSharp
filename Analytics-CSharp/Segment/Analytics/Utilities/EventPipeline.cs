@@ -1,6 +1,6 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
+using global::System;
+using global::System.Linq;
+using global::System.Threading.Tasks;
 using Segment.Concurrent;
 
 namespace Segment.Analytics.Utilities
@@ -14,7 +14,7 @@ namespace Segment.Analytics.Utilities
         private readonly int _flushCount;
 
         private readonly long _flushIntervalInMillis;
-        
+
         private readonly Channel<string> _writeChannel;
 
         private readonly Channel<string> _uploadChannel;
@@ -24,49 +24,44 @@ namespace Segment.Analytics.Utilities
         private readonly HTTPClient _httpClient;
 
         private readonly IStorage _storage;
-        
-        internal string apiHost { get; set; }
-        
-        public bool running { get; private set; }
+
+        internal string ApiHost { get; set; }
+
+        public bool Running { get; private set; }
 
         internal const string FlushPoison = "#!flush";
 
         internal const string UploadSig = "#!upload";
 
         public EventPipeline(
-            Analytics analytics, 
-            string logTag, 
-            string apiKey, 
-            int flushCount = 20, 
-            long flushIntervalInMillis = 30_000, 
+            Analytics analytics,
+            string logTag,
+            string apiKey,
+            int flushCount = 20,
+            long flushIntervalInMillis = 30_000,
             string apiHost = HTTPClient.DefaultAPIHost)
         {
             _analytics = analytics;
             _logTag = logTag;
             _flushCount = flushCount;
             _flushIntervalInMillis = flushIntervalInMillis;
-            this.apiHost = apiHost;
+            ApiHost = apiHost;
 
             _writeChannel = new Channel<string>();
             _uploadChannel = new Channel<string>();
             _eventCount = new AtomicInteger(0);
             _httpClient = new HTTPClient(apiKey);
-            _storage = analytics.storage;
-            running = false;
-        }
-        
-        public void Put(string @event) {
-            _writeChannel.Send(@event);
+            _storage = analytics.Storage;
+            Running = false;
         }
 
-        public void Flush()
-        {
-            _writeChannel.Send(FlushPoison);
-        }
+        public void Put(string @event) => _writeChannel.Send(@event);
+
+        public void Flush() => _writeChannel.Send(FlushPoison);
 
         public void Start()
         {
-            running = true;
+            Running = true;
             Schedule();
             Write();
             Upload();
@@ -76,15 +71,15 @@ namespace Segment.Analytics.Utilities
         {
             _uploadChannel.Cancel();
             _writeChannel.Cancel();
-            running = false;
+            Running = false;
         }
 
-        private void Write() => _analytics.analyticsScope.Launch(_analytics.fileIODispatcher, async () =>
+        private void Write() => _analytics.AnalyticsScope.Launch(_analytics.FileIODispatcher, async () =>
         {
             while (!_writeChannel.isCancelled)
             {
-                var e = await _writeChannel.Receive();
-                var isPoison = e.Equals(FlushPoison);
+                string e = await _writeChannel.Receive();
+                bool isPoison = e.Equals(FlushPoison);
 
                 if (!isPoison)
                 {
@@ -94,7 +89,7 @@ namespace Segment.Analytics.Utilities
                     }
                     catch (Exception exception)
                     {
-                        Analytics.logger?.LogError(exception, "Error writing events to storage.");
+                        Analytics.s_logger?.LogError(exception, _logTag + ": Error writing events to storage.");
                     }
                 }
 
@@ -106,33 +101,36 @@ namespace Segment.Analytics.Utilities
             }
         });
 
-        private void Upload() => _analytics.analyticsScope.Launch(_analytics.networkIODispatcher, async () =>
+        private void Upload() => _analytics.AnalyticsScope.Launch(_analytics.NetworkIODispatcher, async () =>
         {
             while (!_uploadChannel.isCancelled)
             {
                 await _uploadChannel.Receive();
-                
-                await Scope.WithContext(_analytics.fileIODispatcher, async () =>
-                {
-                    await _storage.Rollover();
-                });
+
+                await Scope.WithContext(_analytics.FileIODispatcher, async () => await _storage.Rollover());
 
                 var fileUrlList = _storage.Read(StorageConstants.Events).Split(',').ToList();
-                foreach (var url in fileUrlList)
+                foreach (string url in fileUrlList)
                 {
-                    if (string.IsNullOrEmpty(url)) continue;
+                    if (string.IsNullOrEmpty(url))
+                    {
+                        continue;
+                    }
 
-                    var data = _storage.ReadAsBytes(url);
-                    if (data == null) continue;
+                    byte[] data = _storage.ReadAsBytes(url);
+                    if (data == null)
+                    {
+                        continue;
+                    }
 
-                    var shouldCleanup = true;
+                    bool shouldCleanup = true;
                     try
                     {
                         shouldCleanup = await _httpClient.Upload(data);
                     }
                     catch (Exception e)
                     {
-                        Analytics.logger?.LogError(e, "Error uploading to url");
+                        Analytics.s_logger?.LogError(e, _logTag + ": Error uploading to url");
                     }
 
                     if (shouldCleanup)
@@ -143,11 +141,11 @@ namespace Segment.Analytics.Utilities
             }
         });
 
-        private void Schedule() => _analytics.analyticsScope.Launch(_analytics.fileIODispatcher, async () =>
+        private void Schedule() => _analytics.AnalyticsScope.Launch(_analytics.FileIODispatcher, async () =>
         {
             if (_flushIntervalInMillis > 0)
             {
-                while (running)
+                while (Running)
                 {
                     Flush();
 

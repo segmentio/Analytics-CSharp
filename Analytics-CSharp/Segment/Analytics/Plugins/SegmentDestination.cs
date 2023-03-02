@@ -1,6 +1,6 @@
-using Segment.Serialization;
 using Segment.Analytics.Utilities;
-using NotImplementedException = System.NotImplementedException;
+using Segment.Serialization;
+using NotImplementedException = global::System.NotImplementedException;
 
 namespace Segment.Analytics.Plugins
 {
@@ -13,12 +13,12 @@ namespace Segment.Analytics.Plugins
     /// <item><description>We upload events on a dedicated thread using the batch api</description></item>
     /// </list>
     /// </summary>
-    public class SegmentDestination: DestinationPlugin
+    public class SegmentDestination : DestinationPlugin
     {
         private EventPipeline _pipeline;
-        
-        public override string key => "Segment.io";
-        
+
+        public override string Key => "Segment.io";
+
         internal const string ApiHost = "apiHost";
 
         public override IdentifyEvent Identify(IdentifyEvent identifyEvent)
@@ -54,16 +54,16 @@ namespace Segment.Analytics.Plugins
         public override void Configure(Analytics analytics)
         {
             base.Configure(analytics);
-            
+
             // TODO: Add DestinationMetadata enrichment plugin
 
             _pipeline = new EventPipeline(
                     analytics,
-                    key,
-                    analytics.configuration.writeKey,
-                    analytics.configuration.flushAt,
-                    analytics.configuration.flushInterval * 1000L,
-                    analytics.configuration.apiHost
+                    Key,
+                    analytics.Configuration.WriteKey,
+                    analytics.Configuration.FlushAt,
+                    analytics.Configuration.FlushInterval * 1000L,
+                    analytics.Configuration.ApiHost
                 );
             _pipeline.Start();
         }
@@ -72,29 +72,23 @@ namespace Segment.Analytics.Plugins
         {
             base.Update(settings, type);
 
-            var segmentInfo = settings.integrations?.GetJsonObject(key);
-            var apiHost = segmentInfo?.GetString(ApiHost);
+            JsonObject segmentInfo = settings.Integrations?.GetJsonObject(Key);
+            string apiHost = segmentInfo?.GetString(ApiHost);
             if (apiHost != null)
             {
-                _pipeline.apiHost = apiHost;
+                _pipeline.ApiHost = apiHost;
             }
         }
 
-        public override void Reset()
-        {
-            throw new NotImplementedException();
-        }
+        public override void Reset() => throw new NotImplementedException();
 
-        public override void Flush()
-        {
-            _pipeline.Flush();
-        }
+        public override void Flush() => _pipeline.Flush();
 
         private void Enqueue<T>(T payload) where T : RawEvent
         {
             // TODO: filter out empty userid and traits values
-            
-            var str = JsonUtility.ToJson(payload);
+
+            string str = JsonUtility.ToJson(payload);
             _pipeline.Put(str);
         }
     }

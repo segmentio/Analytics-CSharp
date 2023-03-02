@@ -1,33 +1,26 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using global::System;
+using global::System.IO;
+using global::System.Linq;
+using global::System.Text;
+using global::System.Threading;
+using global::System.Threading.Tasks;
 using Segment.Concurrent;
 using Segment.Serialization;
 using Segment.Sovran;
 
 namespace Segment.Analytics.Utilities
 {
-    
     #region Storage Constants
 
     public readonly struct StorageConstants
     {
-        public string value { get; }
+        public string Value { get; }
 
-        private StorageConstants(string value)
-        {
-            this.value = value;
-        }
+        private StorageConstants(string value) => Value = value;
 
-        public override string ToString()
-        {
-            return value;
-        }
+        public override string ToString() => Value;
 
-        public static implicit operator string(StorageConstants storageConstant) => storageConstant.value;
+        public static implicit operator string(StorageConstants storageConstant) => storageConstant.Value;
 
         // backing fields that holds the actual string representation
         // needed for switch statement, has to be compile time available
@@ -36,7 +29,6 @@ namespace Segment.Analytics.Utilities
         public const string _AnonymousId = "segment.anonymousId";
         public const string _Settings = "segment.settings";
         public const string _Events = "segment.events";
-            
         // enum alternatives
         public static readonly StorageConstants UserId = new StorageConstants(_UserId);
         public static readonly StorageConstants Traits = new StorageConstants(_Traits);
@@ -46,7 +38,7 @@ namespace Segment.Analytics.Utilities
     }
 
     #endregion
-    
+
     public interface IStorage
     {
         Task Initialize();
@@ -74,10 +66,7 @@ namespace Segment.Analytics.Utilities
     public class DefaultStorageProvider : IStorageProvider
     {
         public string PersistentDataPath { get; set; }
-        public DefaultStorageProvider(string persistentDataPath = null)
-        {
-            PersistentDataPath = persistentDataPath ?? SystemInfo.getAppFolder();
-        }
+        public DefaultStorageProvider(string persistentDataPath = null) => PersistentDataPath = persistentDataPath ?? SystemInfo.getAppFolder();
 
         public IStorage CreateStorage(params object[] parameters)
         {
@@ -88,20 +77,20 @@ namespace Segment.Analytics.Utilities
             }
 
             var analytics = (Analytics)parameters[0];
-            var config = analytics.configuration;
-            var rootDir = PersistentDataPath;
-            var storageDirectory = rootDir + Path.DirectorySeparatorChar +
+            Configuration config = analytics.Configuration;
+            string rootDir = PersistentDataPath;
+            string storageDirectory = rootDir + Path.DirectorySeparatorChar +
                                    "segment.data" + Path.DirectorySeparatorChar +
-                                   config.writeKey + Path.DirectorySeparatorChar +
+                                   config.WriteKey + Path.DirectorySeparatorChar +
                                    "events";
-            
-            var userPrefs = new UserPrefs(rootDir + Path.DirectorySeparatorChar + 
-                                       "segment.prefs" + Path.DirectorySeparatorChar + config.writeKey, config.exceptionHandler);
+
+            var userPrefs = new UserPrefs(rootDir + Path.DirectorySeparatorChar +
+                                       "segment.prefs" + Path.DirectorySeparatorChar + config.WriteKey, config.ExceptionHandler);
             var eventStream = new FileEventStream(storageDirectory);
-            return new Storage(userPrefs, eventStream, analytics.store, config.writeKey, analytics.fileIODispatcher);   
+            return new Storage(userPrefs, eventStream, analytics.Store, config.WriteKey, analytics.FileIODispatcher);
         }
     }
-    
+
     public class InMemoryStorageProvider : IStorageProvider
     {
         public IStorage CreateStorage(params object[] parameters)
@@ -115,7 +104,7 @@ namespace Segment.Analytics.Utilities
             var analytics = (Analytics)parameters[0];
             var userPrefs = new InMemoryPrefs();
             var eventStream = new InMemoryEventStream();
-            return new Storage(userPrefs, eventStream, analytics.store, analytics.configuration.writeKey, analytics.fileIODispatcher); 
+            return new Storage(userPrefs, eventStream, analytics.Store, analytics.Configuration.WriteKey, analytics.FileIODispatcher);
         }
     }
 
@@ -154,7 +143,7 @@ namespace Segment.Analytics.Utilities
     public class Storage : IStorage, ISubscriber
     {
         private readonly Store _store;
-        
+
         private readonly string _writeKey;
 
         internal readonly IPreferences _userPrefs;
@@ -166,17 +155,17 @@ namespace Segment.Analytics.Utilities
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
         internal readonly string _fileIndexKey;
-        
+
         internal string Begin => "{\"batch\":[";
-        
+
         internal string End => "],\"sentAt\":\"" + DateTime.UtcNow.ToString("o") + "\",\"writeKey\":\"" + _writeKey + "\"}";
-        
+
         private string CurrentFile => _writeKey + "-" + _userPrefs.GetInt(_fileIndexKey, 0);
 
         public const long MaxPayloadSize = 32_000;
 
         public const long MaxBatchSize = 475_000;
-        
+
         public const long MaxFileSize = 475_000;
 
         private const string FileExtension = "json";
@@ -196,7 +185,7 @@ namespace Segment.Analytics.Utilities
             await _store.Subscribe<UserInfo>(this, UserInfoUpdate, true, _ioDispatcher);
             await _store.Subscribe<System>(this, SystemUpdate, true, _ioDispatcher);
         }
-        
+
         /// <summary>
         /// Write an event or a pref value async
         /// </summary>
@@ -238,28 +227,22 @@ namespace Segment.Analytics.Utilities
         /// </para>
         /// <param name="key">the type of value being written</param>
         /// <param name="value">the value being written</param>
-        public void WritePrefs(StorageConstants key, string value)
-        {
-            _userPrefs.Put(key, value);
-        }
-        
+        public void WritePrefs(StorageConstants key, string value) => _userPrefs.Put(key, value);
+
         /// <summary>
         /// Direct writes to a new file, and close the current file.
         /// This function is useful in cases such as `flush`, that
         /// we want to finish writing the current file, and have it
         /// flushed to server.
         /// </summary>
-        public virtual async Task Rollover() => await WithLock(async () =>
-        {
-            await PerformRollover();
-        });
-        
+        public virtual async Task Rollover() => await WithLock(PerformRollover);
+
         public virtual string Read(StorageConstants key)
         {
             switch (key)
             {
                 case StorageConstants._Events:
-                    return string.Join(",", 
+                    return string.Join(",",
                         _eventStream.Read()
                             .Where(f => f.EndsWith(FileExtension)));
                 default:
@@ -280,7 +263,7 @@ namespace Segment.Analytics.Utilities
         }
 
         public virtual bool RemoveFile(string filePath)
-        {   
+        {
             try
             {
                 _eventStream.Remove(filePath);
@@ -288,43 +271,40 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                Analytics.logger?.LogError(e, "Failed to remove file path.");
+                Analytics.s_logger?.LogError(e, "Failed to remove file path.");
                 return false;
             }
         }
 
-        public byte[] ReadAsBytes(string source)
-        {
-            return _eventStream.ReadAsBytes(source);
-        }
+        public byte[] ReadAsBytes(string source) => _eventStream.ReadAsBytes(source);
 
         #region State Subscriptions
 
         public void UserInfoUpdate(IState state)
-        {   
-            var userInfo = (UserInfo) state;
-            WritePrefs(StorageConstants.AnonymousId, userInfo.anonymousId);
-            
-            if (userInfo.userId != null)
+        {
+            var userInfo = (UserInfo)state;
+            WritePrefs(StorageConstants.AnonymousId, userInfo._anonymousId);
+
+            if (userInfo._userId != null)
             {
-                WritePrefs(StorageConstants.UserId, userInfo.userId);
+                WritePrefs(StorageConstants.UserId, userInfo._userId);
             }
 
-            if (userInfo.traits != null)
+            if (userInfo._traits != null)
             {
-                WritePrefs(StorageConstants.Traits, JsonUtility.ToJson(userInfo.traits));
+                WritePrefs(StorageConstants.Traits, JsonUtility.ToJson(userInfo._traits));
             }
         }
 
         public void SystemUpdate(IState state)
         {
-            var system = (System) state;
-            WritePrefs(StorageConstants.Settings, JsonUtility.ToJson(system.settings));
+            var system = (System)state;
+            WritePrefs(StorageConstants.Settings, JsonUtility.ToJson(system._settings));
         }
 
         #endregion
 
-        
+
         #region File operation
 
         /// <summary>
@@ -335,7 +315,7 @@ namespace Segment.Analytics.Utilities
         /// <param name="event">event to store</param>
         private async Task StoreEvent(string @event) => await WithLock(async () =>
         {
-            _eventStream.OpenOrCreate(CurrentFile, out var newFile);
+            _eventStream.OpenOrCreate(CurrentFile, out bool newFile);
             if (newFile)
             {
                 await _eventStream.Write(Begin);
@@ -360,21 +340,24 @@ namespace Segment.Analytics.Utilities
             contents.Append(@event);
             await _eventStream.Write(contents.ToString());
         });
-        
-        
+
+
         private async Task PerformRollover()
         {
-            if (!_eventStream.IsOpened) return;
+            if (!_eventStream.IsOpened)
+            {
+                return;
+            }
 
             await _eventStream.Write(End);
             _eventStream.FinishAndClose(FileExtension);
-            
+
             IncrementFileIndex();
         }
 
         private bool IncrementFileIndex()
         {
-            var index = _userPrefs.GetInt(_fileIndexKey, 0) + 1;
+            int index = _userPrefs.GetInt(_fileIndexKey, 0) + 1;
             try
             {
                 _userPrefs.Put(_fileIndexKey, index);
@@ -382,11 +365,11 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                Analytics.logger?.LogError(e, "Error editing preference file.");
+                Analytics.s_logger?.LogError(e, "Error editing preference file.");
                 return false;
             }
         }
-        
+
         private async Task WithLock(Func<Task> block)
         {
             await _semaphore.WaitAsync().ConfigureAwait(false);

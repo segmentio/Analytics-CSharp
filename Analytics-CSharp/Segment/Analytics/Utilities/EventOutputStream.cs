@@ -1,18 +1,18 @@
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using global::System.Collections.Concurrent;
+using global::System.Collections.Generic;
+using global::System.IO;
+using global::System.Linq;
+using global::System.Text;
+using global::System.Threading.Tasks;
 
 namespace Segment.Analytics.Utilities
 {
     public interface IEventStream
-    {   
+    {
         long Length { get; }
 
         bool IsOpened { get; }
-        
+
         void OpenOrCreate(string file, out bool newFile);
 
         Task Write(string content);
@@ -20,11 +20,11 @@ namespace Segment.Analytics.Utilities
         IEnumerable<string> Read();
 
         void Remove(string file);
-        
+
         void Close();
 
         void FinishAndClose(string extension = default);
-        
+
         byte[] ReadAsBytes(string source);
     }
 
@@ -38,7 +38,7 @@ namespace Segment.Analytics.Utilities
         public long Length => _file?.Length ?? 0;
 
         public bool IsOpened => _file != null;
-        
+
         public void OpenOrCreate(string file, out bool newFile)
         {
             if (_file != null && !_file.Name.Equals(file))
@@ -47,7 +47,7 @@ namespace Segment.Analytics.Utilities
                 // close the current one first
                 Close();
             }
-            
+
             newFile = false;
             if (_file == null)
             {
@@ -66,15 +66,9 @@ namespace Segment.Analytics.Utilities
 
         public IEnumerable<string> Read() => _directory.Keys;
 
-        public void Remove(string file)
-        {
-            _directory.Remove(file);
-        }
+        public void Remove(string file) => _directory.Remove(file);
 
-        public void Close()
-        {
-            _file = null;
-        }
+        public void Close() => _file = null;
 
 
         /// <summary>
@@ -84,11 +78,14 @@ namespace Segment.Analytics.Utilities
         /// <param name="extension">extension without dot</param>
         public void FinishAndClose(string extension = default)
         {
-            if (_file == null) return;
-            
+            if (_file == null)
+            {
+                return;
+            }
+
             if (extension != null)
             {
-                var nameWithExtension = _file.Name + '.' + extension;
+                string nameWithExtension = _file.Name + '.' + extension;
                 _directory.Remove(_file.Name);
                 _directory[nameWithExtension] = _file;
             }
@@ -96,15 +93,12 @@ namespace Segment.Analytics.Utilities
             _file = null;
         }
 
-        public byte[] ReadAsBytes(string source)
-        {
-            return _directory.ContainsKey(source) ? _directory[source].ToBytes() : null;
-        }
-        
+        public byte[] ReadAsBytes(string source) => _directory.ContainsKey(source) ? _directory[source].ToBytes() : null;
+
         public class InMemoryFile
         {
             public StringBuilder FileStream { get; }
-            
+
             public string Name { get; }
 
             public int Length => FileStream.Length;
@@ -120,25 +114,22 @@ namespace Segment.Analytics.Utilities
             public byte[] ToBytes() => FileStream.ToString().GetBytes();
         }
     }
-    
+
     public class FileEventStream : IEventStream
     {
-        
+
         private readonly DirectoryInfo _directory;
-        
+
         private FileStream _fs;
 
         private FileInfo _file;
-        
+
         public long Length => _file?.Length ?? 0;
 
         public bool IsOpened => _file != null && _fs != null;
 
-        public FileEventStream(string directory)
-        {   
-            _directory = Directory.CreateDirectory(directory);
-        }
-        
+        public FileEventStream(string directory) => _directory = Directory.CreateDirectory(directory);
+
         /// <summary>
         /// This method appends a `.tmp` extension to the give file, which
         /// means we only operate on an unfinished file. Once a file is
@@ -154,7 +145,7 @@ namespace Segment.Analytics.Utilities
                 // close the current one first
                 Close();
             }
-            
+
             if (_file == null)
             {
                 _file = new FileInfo(_directory.FullName + Path.DirectorySeparatorChar + file);
@@ -171,22 +162,19 @@ namespace Segment.Analytics.Utilities
 
         public async Task Write(string content)
         {
-            if (_fs == null || _file == null) return;
-            
+            if (_fs == null || _file == null)
+            {
+                return;
+            }
+
             await _fs.WriteAsync(content.GetBytes(), 0, content.Length);
             await _fs.FlushAsync();
             _file.Refresh();
         }
 
-        public IEnumerable<string>  Read()
-        {
-            return _directory.GetFiles().Select(f => f.FullName);
-        }
+        public IEnumerable<string> Read() => _directory.GetFiles().Select(f => f.FullName);
 
-        public void Remove(string file)
-        {
-            File.Delete(file);
-        }
+        public void Remove(string file) => File.Delete(file);
 
         public void Close()
         {
@@ -205,10 +193,10 @@ namespace Segment.Analytics.Utilities
             _fs?.Close();
             _fs = null;
 
-            
+
             if (_file != null && extension != null)
             {
-                var nameWithExtension = _file.FullName + '.' + extension;
+                string nameWithExtension = _file.FullName + '.' + extension;
                 _file.MoveTo(nameWithExtension);
             }
 
@@ -216,7 +204,7 @@ namespace Segment.Analytics.Utilities
         }
 
         public byte[] ReadAsBytes(string source)
-        {   
+        {
             var file = new FileInfo(source);
             return file.Exists ? File.ReadAllBytes(source) : null;
         }

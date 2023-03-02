@@ -1,32 +1,31 @@
-﻿using System;
-using System.Runtime.Serialization;
+using global::System;
+using global::System.Runtime.Serialization;
+using global::System.Threading.Tasks;
 using Segment.Analytics.Plugins;
+using Segment.Analytics.Utilities;
 using Segment.Concurrent;
 using Segment.Serialization;
-using Segment.Analytics.Utilities;
 using Segment.Sovran;
-
 using JsonUtility = Segment.Serialization.JsonUtility;
-using System.Threading.Tasks;
 
 namespace Segment.Analytics
 {
     public partial class Analytics : ISubscriber
     {
-        public Timeline timeline { get; }
+        public Timeline Timeline { get; }
 
-        internal Configuration configuration { get; }
-        internal Store store { get;}
-        internal IStorage storage { get;}
+        internal Configuration Configuration { get; }
+        internal Store Store { get; }
+        internal IStorage Storage { get; }
 
-        internal Scope analyticsScope { get; }
-        internal IDispatcher fileIODispatcher { get; }
-        internal IDispatcher networkIODispatcher { get; }
-        internal IDispatcher analyticsDispatcher { get; }
+        internal Scope AnalyticsScope { get; }
+        internal IDispatcher FileIODispatcher { get; }
+        internal IDispatcher NetworkIODispatcher { get; }
+        internal IDispatcher AnalyticsDispatcher { get; }
 
-        internal static ILogger logger = null;
+        internal static ILogger s_logger = null;
 
-        internal UserInfo userInfo;
+        internal UserInfo _userInfo;
 
         /// <summary>
         /// Public constructor of Analytics.
@@ -34,25 +33,25 @@ namespace Segment.Analytics
         /// <param name="configuration">configuration that analytics can use</param>
         public Analytics(Configuration configuration)
         {
-            this.configuration = configuration;
-            analyticsScope = new Scope(configuration.exceptionHandler);
-            if (configuration.userSynchronizeDispatcher)
+            Configuration = configuration;
+            AnalyticsScope = new Scope(configuration.ExceptionHandler);
+            if (configuration.UseSynchronizeDispatcher)
             {
                 IDispatcher dispatcher = new SynchronizeDispatcher();
-                fileIODispatcher = dispatcher;
-                networkIODispatcher = dispatcher;
-                analyticsDispatcher = dispatcher;
+                FileIODispatcher = dispatcher;
+                NetworkIODispatcher = dispatcher;
+                AnalyticsDispatcher = dispatcher;
             }
             else
             {
-                fileIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(2));
-                networkIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(1));
-                analyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
+                FileIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(2));
+                NetworkIODispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(1));
+                AnalyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
             }
 
-            store = new Store(configuration.userSynchronizeDispatcher, configuration.exceptionHandler);
-            storage = configuration.storageProvider.CreateStorage(this);
-            timeline = new Timeline();
+            Store = new Store(configuration.UseSynchronizeDispatcher, configuration.ExceptionHandler);
+            Storage = configuration.StorageProvider.CreateStorage(this);
+            Timeline = new Timeline();
 
             // Start everything
             Startup();
@@ -65,7 +64,7 @@ namespace Segment.Analytics
         public void Process(RawEvent incomingEvent)
         {
             incomingEvent.ApplyRawEventData();
-            timeline.Process(incomingEvent);
+            Timeline.Process(incomingEvent);
         }
 
         #region System Modifiers
@@ -77,47 +76,35 @@ namespace Segment.Analytics
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>Anonymous Id</returns>
-        public string AnonymousId()
-        {
-            return userInfo.anonymousId;
-        }
+        public string AnonymousId() => _userInfo._anonymousId;
 
 
         /// <summary>
-        /// Retrieve the userId registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call in a blocking way.
+        /// Retrieve the userId registered by a previous <see cref="Identify(string,JsonObject)"/> call in a blocking way.
         /// 
         /// Note: this method forces internal async methods to run in a synchronized way,
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>User Id</returns>
-        public string UserId()
-        {
-            return userInfo.userId;
-        }
-        
+        public string UserId() => _userInfo._userId;
+
 
         /// <summary>
-        /// Retrieve the traits registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call in a blocking way.
+        /// Retrieve the traits registered by a previous <see cref="Identify(string,JsonObject)"/> call in a blocking way.
         /// 
         /// Note: this method forces internal async methods to run in a synchronized way,
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns><see cref="JsonObject"/> instance of Traits</returns>
-        public JsonObject Traits()
-        {
-            return userInfo.traits;
-        }
+        public JsonObject Traits() => _userInfo._traits;
 
 
         /// <summary>
-        /// Retrieve the traits registered by a previous <see cref="Identify(string,Segment.Serialization.JsonObject)"/> call.
+        /// Retrieve the traits registered by a previous <see cref="Identify(string,JsonObject)"/> call.
         /// </summary>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
         /// <returns>Traits</returns>
-        public T Traits<T>() where T : ISerializable
-        {
-            return userInfo.traits != null ? JsonUtility.FromJson<T>(userInfo.traits.ToString()) : default;
-        }
+        public T Traits<T>() where T : ISerializable => _userInfo._traits != null ? JsonUtility.FromJson<T>(_userInfo._traits.ToString()) : default;
 
 
         /// <summary>
@@ -138,13 +125,12 @@ namespace Segment.Analytics
         /// </summary>
         public void Reset()
         {
-            userInfo.userId = null;
-            userInfo.anonymousId = null;
-            userInfo.traits = null;
+            string newAnonymousId = Guid.NewGuid().ToString();
+            _userInfo = new UserInfo(newAnonymousId, null, null);
 
-            analyticsScope.Launch(analyticsDispatcher, async () =>
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
-                await store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction());
+                await Store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction(newAnonymousId));
                 Apply(plugin =>
                 {
                     if (plugin is EventPlugin eventPlugin)
@@ -160,7 +146,7 @@ namespace Segment.Analytics
         /// Retrieve the version of this library in use.
         /// </summary>
         /// <returns>A string representing the version in "BREAKING.FEATURE.FIX" format.</returns>
-        public string version => Version.SegmentVersion;
+        public string Version => Segment.Analytics.Version.SegmentVersion;
 
         #endregion
 
@@ -177,7 +163,7 @@ namespace Segment.Analytics
         /// <returns>Instance of <see cref="Settings"/></returns>
         public Settings? Settings()
         {
-            var task = SettingsAsync();
+            Task<Settings?> task = SettingsAsync();
             task.Wait();
             return task.Result;
         }
@@ -189,10 +175,10 @@ namespace Segment.Analytics
         public async Task<Settings?> SettingsAsync()
         {
             Settings? returnSettings = null;
-            IState system = await store.CurrentState<System>();
+            IState system = await Store.CurrentState<System>();
             if (system is System convertedSystem)
             {
-                returnSettings = convertedSystem.settings;
+                returnSettings = convertedSystem._settings;
             }
 
             return returnSettings;
@@ -214,21 +200,21 @@ namespace Segment.Analytics
             // since Store must be setup before any event call happened.
             // Note: Task.Wait() forces internal async methods to run in a synchronized way,
             // we should avoid of doing it whenever possible.
-            analyticsScope.Launch(analyticsDispatcher, async () =>
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
                 // load memory with initial value
-                userInfo = UserInfo.DefaultState(configuration, storage);
-                await store.Provide(userInfo);
-                await store.Provide(System.DefaultState(configuration, storage));
-                await storage.Initialize();
+                _userInfo = UserInfo.DefaultState(Storage);
+                await Store.Provide(_userInfo);
+                await Store.Provide(System.DefaultState(Configuration, Storage));
+                await Storage.Initialize();
             }).Wait();
 
             // check settings over the network,
             // we don't have to Wait() here, because events are piped in
             // StartupQueue until settings is ready
-            analyticsScope.Launch(analyticsDispatcher, async () =>
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
-                if (configuration.autoAddSegmentDestination)
+                if (Configuration.AutoAddSegmentDestination)
                 {
                     Add(new SegmentDestination());
                 }

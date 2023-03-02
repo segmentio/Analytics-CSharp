@@ -39,6 +39,6 @@ namespace Tests.Utils
 
     public class StubEventPlugin : EventPlugin
     {
-        public override PluginType type => PluginType.Before;
+        public override PluginType Type => PluginType.Before;
     }
 }

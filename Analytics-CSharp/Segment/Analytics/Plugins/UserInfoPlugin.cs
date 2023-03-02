@@ -1,6 +1,3 @@
-using Segment.Serialization;
-using Segment.Sovran;
-
 namespace Segment.Analytics.Plugins
 {
     /// <summary>
@@ -9,28 +6,25 @@ namespace Segment.Analytics.Plugins
     /// </summary>
     public class UserInfoPlugin : Plugin
     {
-        public override PluginType type => PluginType.Before;
+        public override PluginType Type => PluginType.Before;
 
-        public override void Configure(Analytics analytics)
-        {
-            base.Configure(analytics);
-        }
+        public override void Configure(Analytics analytics) => base.Configure(analytics);
 
         private void ApplyUserInfoData(RawEvent @event)
         {
             if (@event is IdentifyEvent identifyEvent)
             {
-                analytics.userInfo.userId = identifyEvent.userId ?? analytics.userInfo.userId;
-                analytics.userInfo.traits = identifyEvent.traits ?? analytics.userInfo.traits;
+                Analytics._userInfo._userId = identifyEvent.UserId ?? Analytics._userInfo._userId;
+                Analytics._userInfo._traits = identifyEvent.Traits ?? Analytics._userInfo._traits;
             }
             else if (@event is AliasEvent aliasEvent)
             {
-                analytics.userInfo.userId = aliasEvent.userId ?? analytics.userInfo.userId;
+                Analytics._userInfo._userId = aliasEvent.UserId ?? Analytics._userInfo._userId;
             }
             else
             {
-                @event.anonymousId = analytics.userInfo.anonymousId;
-                @event.userId = analytics.userInfo.userId;
+                @event.AnonymousId = Analytics._userInfo._anonymousId;
+                @event.UserId = Analytics._userInfo._userId;
             }
         }
 

@@ -12,7 +12,7 @@ namespace Tests
 {
     public class AnalyticsTest
     {
-        private Analytics _analytics;
+        private readonly Analytics _analytics;
 
         private Settings? _settings;
 
@@ -32,38 +32,38 @@ namespace Tests
             mockHttpClient
                 .Setup(httpClient => httpClient.Settings())
                 .ReturnsAsync(_settings);
-            
+
             _analytics = new Analytics(config, httpClient: mockHttpClient.Object);
         }
 
         [Fact]
         public void TestProcess()
-        { 
+        {
             var actual = new TrackEvent("test", new JsonObject());
             _analytics.Process(actual);
 
-            Assert.NotNull(actual.messageId);
-            Assert.NotNull(actual.context);
-            Assert.NotNull(actual.timestamp);
-            
-            Assert.True(actual.userId != null || actual.anonymousId != null);
-            Assert.NotNull(actual.integrations);
+            Assert.NotNull(actual.MessageId);
+            Assert.NotNull(actual.Context);
+            Assert.NotNull(actual.Timestamp);
+
+            Assert.True(actual.UserId != null || actual.AnonymousId != null);
+            Assert.NotNull(actual.Integrations);
         }
 
         [Fact]
         public void TestAnonymousId()
         {
-            var id = _analytics.AnonymousId();
+            string id = _analytics.AnonymousId();
             Assert.NotNull(id);
         }
 
         [Fact]
         public void TestUserId()
         {
-            var expected = "test";
+            string expected = "test";
             _analytics.Identify(expected);
 
-            var actual = _analytics.UserId();
+            string actual = _analytics.UserId();
             Assert.Equal(expected, actual);
         }
 
@@ -76,17 +76,17 @@ namespace Tests
             };
             _analytics.Identify("test", expected);
 
-            var actual = _analytics.Traits();
+            JsonObject actual = _analytics.Traits();
             Assert.Equal(expected.ToString(), actual.ToString());
         }
-        
+
         [Fact]
         public void TestTraitsT()
         {
             var expected = new FooBar();
             _analytics.Identify("test", expected);
 
-            var actual = _analytics.Traits<FooBar>();
+            FooBar actual = _analytics.Traits<FooBar>();
             Assert.Equal(expected, actual);
         }
 
@@ -102,7 +102,7 @@ namespace Tests
 
             _analytics.Add(plugin.Object);
             _analytics.Flush();
-            
+
             plugin.Verify(o => o.Flush(), Times.Exactly(1));
         }
 
@@ -120,7 +120,7 @@ namespace Tests
             _analytics.Identify("test");
             _analytics.Reset();
 
-            var actual = _analytics.UserId();
+            string actual = _analytics.UserId();
             plugin.Verify(o => o.Reset(), Times.Exactly(1));
             Assert.Null(actual);
         }
@@ -128,20 +128,20 @@ namespace Tests
         [Fact]
         public void TestVersion()
         {
-            Assert.Equal(Version.SegmentVersion, _analytics.version);
+            Assert.Equal(Version.SegmentVersion, _analytics.Version);
         }
 
         [Fact]
         public void TestSettings()
         {
-            var actual = _analytics.Settings();
+            Settings? actual = _analytics.Settings();
             Assert.Equal(_settings, actual);
         }
-        
+
         [Fact]
         public async Task TestSettingsAsync()
         {
-            var actual = await _analytics.SettingsAsync();
+            Settings? actual = await _analytics.SettingsAsync();
             Assert.Equal(_settings, actual);
         }
     }

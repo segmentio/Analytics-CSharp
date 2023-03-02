@@ -6,7 +6,6 @@
  * of useless interfaces and constructors and abusing the factory
  * pattern just for the purpose of tests is simply a bad idea.
  */
-
 using Segment.Analytics.Utilities;
 using Segment.Concurrent;
 using Segment.Sovran;
@@ -19,23 +18,23 @@ namespace Segment.Analytics
             Timeline timeline = null,
             Store store = null,
             IStorage storage = null,
-            Scope analyticsScope = null, 
+            Scope analyticsScope = null,
             IDispatcher fileIODispatcher = null,
             IDispatcher networkIODispatcher = null,
             IDispatcher analyticsDispatcher = null,
             HTTPClient httpClient = null
             )
         {
-            this.configuration = configuration;
-            this.analyticsScope = analyticsScope ?? new Scope(configuration.exceptionHandler);
+            Configuration = configuration;
+            AnalyticsScope = analyticsScope ?? new Scope(configuration.ExceptionHandler);
             IDispatcher dispatcher = new SynchronizeDispatcher();
-            this.fileIODispatcher = fileIODispatcher ?? dispatcher;
-            this.networkIODispatcher = networkIODispatcher ?? dispatcher;
-            this.analyticsDispatcher = analyticsDispatcher ?? dispatcher;
-            this.store = store ?? new Store(true, configuration.exceptionHandler);
-            this.storage = storage ?? new DefaultStorageProvider().CreateStorage(this);
-            this.timeline = timeline ?? new Timeline();
-            
+            FileIODispatcher = fileIODispatcher ?? dispatcher;
+            NetworkIODispatcher = networkIODispatcher ?? dispatcher;
+            AnalyticsDispatcher = analyticsDispatcher ?? dispatcher;
+            Store = store ?? new Store(true, configuration.ExceptionHandler);
+            Storage = storage ?? new DefaultStorageProvider().CreateStorage(this);
+            Timeline = timeline ?? new Timeline();
+
             Startup(httpClient);
         }
     }
@@ -46,28 +45,28 @@ namespace Segment.Analytics.Utilities
     internal partial class EventPipeline
     {
         internal EventPipeline(
-            Analytics analytics, 
+            Analytics analytics,
             HTTPClient httpClient,
-            string logTag, 
-            string apiKey, 
+            string logTag,
+            string apiKey,
             Channel<string> writeChannel = default,
             Channel<string> uploadChannel = default,
-            int flushCount = 20, 
-            long flushIntervalInMillis = 30_000, 
+            int flushCount = 20,
+            long flushIntervalInMillis = 30_000,
             string apiHost = HTTPClient.DefaultAPIHost)
         {
             _analytics = analytics;
             _logTag = logTag;
             _flushCount = flushCount;
             _flushIntervalInMillis = flushIntervalInMillis;
-            this.apiHost = apiHost;
+            ApiHost = apiHost;
 
             _writeChannel = writeChannel ?? new Channel<string>();
             _uploadChannel = uploadChannel ?? new Channel<string>();
             _eventCount = new AtomicInteger(0);
             _httpClient = httpClient ?? new HTTPClient(apiKey);
-            _storage = analytics.storage;
-            running = false;
+            _storage = analytics.Storage;
+            Running = false;
         }
     }
 }

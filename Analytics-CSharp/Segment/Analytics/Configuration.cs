@@ -1,6 +1,3 @@
-﻿
-using System;
-using System.IO;
 using Segment.Analytics.Utilities;
 using Segment.Concurrent;
 
@@ -8,26 +5,27 @@ namespace Segment.Analytics
 {
     public class Configuration
     {
-        public string writeKey { get; }
-        
-        public int flushAt { get; }
-        
-        public int flushInterval { get; }
-        
-        public bool autoAddSegmentDestination { get; }
-        
-        public string apiHost { get; }
-        
-        public string cdnHost { get; }
-        
-        public Settings defaultSettings { get; }
+        public string WriteKey { get; }
 
-        public bool userSynchronizeDispatcher { get; }
-        
-        public ICoroutineExceptionHandler exceptionHandler { get; }
-        
-        public IStorageProvider storageProvider { get; }
-        
+
+        public int FlushAt { get; }
+
+        public int FlushInterval { get; }
+
+        public bool AutoAddSegmentDestination { get; }
+
+        public string ApiHost { get; }
+
+        public string CdnHost { get; }
+
+        public Settings DefaultSettings { get; }
+
+        public bool UseSynchronizeDispatcher { get; }
+
+        public ICoroutineExceptionHandler ExceptionHandler { get; }
+
+        public IStorageProvider StorageProvider { get; }
+
         /// <summary>
         /// Configuration that analytics can use
         /// </summary>
@@ -58,16 +56,16 @@ namespace Segment.Analytics
             ICoroutineExceptionHandler exceptionHandler = null,
             IStorageProvider storageProvider = default)
         {
-            this.writeKey = writeKey;
-            this.flushAt = flushAt;
-            this.flushInterval = flushInterval;
-            this.defaultSettings = defaultSettings;
-            this.autoAddSegmentDestination = autoAddSegmentDestination;
-            this.userSynchronizeDispatcher = userSynchronizeDispatcher;
-            this.apiHost = apiHost;
-            this.cdnHost = cdnHost;
-            this.exceptionHandler = exceptionHandler;
-            this.storageProvider = storageProvider ?? new DefaultStorageProvider();
+            WriteKey = writeKey;
+            FlushAt = flushAt;
+            FlushInterval = flushInterval;
+            DefaultSettings = defaultSettings;
+            AutoAddSegmentDestination = autoAddSegmentDestination;
+            UseSynchronizeDispatcher = userSynchronizeDispatcher;
+            ApiHost = apiHost;
+            CdnHost = cdnHost;
+            ExceptionHandler = exceptionHandler;
+            StorageProvider = storageProvider ?? new DefaultStorageProvider();
         }
     }
 

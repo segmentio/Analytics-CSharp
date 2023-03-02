@@ -11,7 +11,7 @@ namespace Tests
 {
     public class UserInfoPluginTest
     {
-        private Analytics _analytics;
+        private readonly Analytics _analytics;
 
         private Settings? _settings;
 
@@ -44,18 +44,18 @@ namespace Tests
             userInfoPlugin.Configure(_analytics);
             userInfoPlugin.Execute(identifyEvent);
 
-            TrackEvent trackEvent = new TrackEvent("eventname",null);
+            TrackEvent trackEvent = new TrackEvent("eventname", null);
             userInfoPlugin.Execute(trackEvent);
 
-            Assert.Equal("bob", trackEvent.userId);
-		}
+            Assert.Equal("bob", trackEvent.UserId);
+        }
 
 
         [Fact]
         public void TestAlias()
         {
             UserInfoPlugin userInfoPlugin = new UserInfoPlugin();
-            AliasEvent aliasEvent = new AliasEvent("steve","bob");
+            AliasEvent aliasEvent = new AliasEvent("steve", "bob");
 
             userInfoPlugin.Configure(_analytics);
             userInfoPlugin.Execute(aliasEvent);
@@ -63,7 +63,7 @@ namespace Tests
             TrackEvent trackEvent = new TrackEvent("eventname", null);
             userInfoPlugin.Execute(trackEvent);
 
-            Assert.Equal("steve", trackEvent.userId);
+            Assert.Equal("steve", trackEvent.UserId);
         }
     }
 }

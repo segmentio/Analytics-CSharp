@@ -5,7 +5,7 @@ namespace Tests.Utilities
 {
     public class InMemoryPrefsTest
     {
-        private IPreferences _prefs;
+        private readonly IPreferences _prefs;
 
         public InMemoryPrefsTest()
         {
@@ -18,19 +18,19 @@ namespace Tests.Utilities
         [Fact]
         public void GetTest()
         {
-            var keyNotExists = "keyNotExists";
-            var expectedInt = 100;
-            var expectedFloat = 0.1f;
-            var expectedString = "string";
+            string keyNotExists = "keyNotExists";
+            int expectedInt = 100;
+            float expectedFloat = 0.1f;
+            string expectedString = "string";
 
             Assert.Equal(1, _prefs.GetInt("int"));
             Assert.Equal(0.1f, _prefs.GetFloat("float"));
             Assert.Equal("string", _prefs.GetString("string"));
-            
+
             Assert.Equal(-1, _prefs.GetInt(keyNotExists));
             Assert.Equal(-1.0f, _prefs.GetFloat(keyNotExists));
             Assert.Null(_prefs.GetString(keyNotExists));
-            
+
             Assert.Equal(expectedInt, _prefs.GetInt(keyNotExists, expectedInt));
             Assert.Equal(expectedFloat, _prefs.GetFloat(keyNotExists, expectedFloat));
             Assert.Equal(expectedString, _prefs.GetString(keyNotExists, expectedString));
@@ -42,7 +42,7 @@ namespace Tests.Utilities
             _prefs.Put("int", 2);
             _prefs.Put("float", 0.2f);
             _prefs.Put("string", "stringstring");
-            
+
             Assert.Equal(2, _prefs.GetInt("int"));
             Assert.Equal(0.2f, _prefs.GetFloat("float"));
             Assert.Equal("stringstring", _prefs.GetString("string"));
@@ -56,10 +56,10 @@ namespace Tests.Utilities
             Assert.False(_prefs.Contains("int"));
         }
     }
-    
+
     public class UserPrefsTest
     {
-        private IPreferences _prefs;
+        private readonly IPreferences _prefs;
 
         public UserPrefsTest()
         {
@@ -72,19 +72,19 @@ namespace Tests.Utilities
         [Fact]
         public void GetTest()
         {
-            var keyNotExists = "keyNotExists";
-            var expectedInt = 100;
-            var expectedFloat = 0.1f;
-            var expectedString = "string";
+            string keyNotExists = "keyNotExists";
+            int expectedInt = 100;
+            float expectedFloat = 0.1f;
+            string expectedString = "string";
 
             Assert.Equal(1, _prefs.GetInt("int"));
             Assert.Equal(0.1f, _prefs.GetFloat("float"));
             Assert.Equal("string", _prefs.GetString("string"));
-            
+
             Assert.Equal(-1, _prefs.GetInt(keyNotExists));
             Assert.Equal(-1.0f, _prefs.GetFloat(keyNotExists));
             Assert.Null(_prefs.GetString(keyNotExists));
-            
+
             Assert.Equal(expectedInt, _prefs.GetInt(keyNotExists, expectedInt));
             Assert.Equal(expectedFloat, _prefs.GetFloat(keyNotExists, expectedFloat));
             Assert.Equal(expectedString, _prefs.GetString(keyNotExists, expectedString));
@@ -96,7 +96,7 @@ namespace Tests.Utilities
             _prefs.Put("int", 2);
             _prefs.Put("float", 0.2f);
             _prefs.Put("string", "stringstring");
-            
+
             Assert.Equal(2, _prefs.GetInt("int"));
             Assert.Equal(0.2f, _prefs.GetFloat("float"));
             Assert.Equal("stringstring", _prefs.GetString("string"));
@@ -113,21 +113,21 @@ namespace Tests.Utilities
         [Fact]
         public void EditorTest()
         {
-            var expectedInt = 100;
-            var expectedFloat = 100f;
-            var expectedString = "stringstring";
-            var userPrefs = (UserPrefs) _prefs;
-            var editor = userPrefs.Edit()
+            int expectedInt = 100;
+            float expectedFloat = 100f;
+            string expectedString = "stringstring";
+            var userPrefs = (UserPrefs)_prefs;
+            Editor editor = userPrefs.Edit()
                 .PutInt("int", expectedInt)
                 .PutFloat("float", expectedFloat)
                 .PutString("string", expectedString);
-            
+
             Assert.Equal(1, _prefs.GetInt("int"));
             Assert.Equal(0.1f, _prefs.GetFloat("float"));
             Assert.Equal("string", _prefs.GetString("string"));
-            
+
             editor.Apply();
-            
+
             Assert.Equal(expectedInt, _prefs.GetInt("int"));
             Assert.Equal(expectedFloat, _prefs.GetFloat("float"));
             Assert.Equal(expectedString, _prefs.GetString("string"));
