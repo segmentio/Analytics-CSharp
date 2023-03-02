@@ -19,7 +19,7 @@ namespace Segment.Analytics
         internal Settings _settings;
         internal bool _running;
 
-        System(Configuration configuration, Settings settings, bool running)
+        internal System(Configuration configuration, Settings settings, bool running)
         {
             _configuration = configuration;
             _settings = settings;
@@ -113,13 +113,13 @@ namespace Segment.Analytics
     ///         <item><description>traits (<see cref="JsonObject"/>)</description></item>
     ///     </list>
     /// </summary>
-    struct UserInfo : IState
+    public struct UserInfo : IState
     {
         internal string _anonymousId;
         internal string _userId;
         internal JsonObject _traits;
 
-        internal UserInfo(string anonymousId, string userId, JsonObject traits)
+        public UserInfo(string anonymousId, string userId, JsonObject traits)
         {
             _anonymousId = anonymousId;
             _userId = userId;
