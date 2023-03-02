@@ -8,11 +8,9 @@ namespace Segment.Analytics
     public struct Settings
     {
         // public Json integrations;
-#pragma warning disable IDE1006 // Naming Styles
         public JsonObject Integrations;
         public JsonObject Plan;
         public JsonObject EdgeFunctions;
-#pragma warning restore IDE1006 // Naming Styles
     }
 
     public partial class Analytics

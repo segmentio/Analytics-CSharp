@@ -61,7 +61,7 @@ namespace Segment.Analytics
             FlushInterval = flushInterval;
             DefaultSettings = defaultSettings;
             AutoAddSegmentDestination = autoAddSegmentDestination;
-            UserSynchronizeDispatcher = userSynchronizeDispatcher;
+            UseSynchronizeDispatcher = userSynchronizeDispatcher;
             ApiHost = apiHost;
             CdnHost = cdnHost;
             ExceptionHandler = exceptionHandler;

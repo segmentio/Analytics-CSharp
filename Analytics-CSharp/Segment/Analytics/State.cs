@@ -19,7 +19,7 @@ namespace Segment.Analytics
         internal Settings _settings;
         internal bool _running;
 
-        private System(Configuration configuration, Settings settings, bool running)
+        System(Configuration configuration, Settings settings, bool running)
         {
             _configuration = configuration;
             _settings = settings;
@@ -113,13 +113,13 @@ namespace Segment.Analytics
     ///         <item><description>traits (<see cref="JsonObject"/>)</description></item>
     ///     </list>
     /// </summary>
-    internal struct UserInfo : IState
+    struct UserInfo : IState
     {
         internal string _anonymousId;
         internal string _userId;
         internal JsonObject _traits;
 
-        private UserInfo(string anonymousId, string userId, JsonObject traits)
+        internal UserInfo(string anonymousId, string userId, JsonObject traits)
         {
             _anonymousId = anonymousId;
             _userId = userId;
@@ -153,13 +153,18 @@ namespace Segment.Analytics
 
         internal struct ResetAction : IAction
         {
+            private readonly string _newAnonymousId;
+
+            public ResetAction(string anonymousId = null) => _newAnonymousId = anonymousId;
+
             public IState Reduce(IState state)
             {
                 IState result = null;
 
                 if (state is UserInfo)
                 {
-                    result = new UserInfo(Guid.NewGuid().ToString(), null, null);
+                    string anonymousId = _newAnonymousId ?? Guid.NewGuid().ToString();
+                    result = new UserInfo(anonymousId, null, null);
                 }
 
                 return result;

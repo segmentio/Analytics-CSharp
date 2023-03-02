@@ -24,13 +24,11 @@ namespace Segment.Analytics.Utilities
 
         // backing fields that holds the actual string representation
         // needed for switch statement, has to be compile time available
-#pragma warning disable IDE1006
         public const string _UserId = "segment.userId";
         public const string _Traits = "segment.traits";
         public const string _AnonymousId = "segment.anonymousId";
         public const string _Settings = "segment.settings";
         public const string _Events = "segment.events";
-#pragma warning restore IDE1006
         // enum alternatives
         public static readonly StorageConstants UserId = new StorageConstants(_UserId);
         public static readonly StorageConstants Traits = new StorageConstants(_Traits);

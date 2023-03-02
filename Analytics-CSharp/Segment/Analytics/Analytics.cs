@@ -35,7 +35,7 @@ namespace Segment.Analytics
         {
             Configuration = configuration;
             AnalyticsScope = new Scope(configuration.ExceptionHandler);
-            if (configuration.UserSynchronizeDispatcher)
+            if (configuration.UseSynchronizeDispatcher)
             {
                 IDispatcher dispatcher = new SynchronizeDispatcher();
                 FileIODispatcher = dispatcher;
@@ -49,7 +49,7 @@ namespace Segment.Analytics
                 AnalyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
             }
 
-            Store = new Store(configuration.UserSynchronizeDispatcher, configuration.ExceptionHandler);
+            Store = new Store(configuration.UseSynchronizeDispatcher, configuration.ExceptionHandler);
             Storage = configuration.StorageProvider.CreateStorage(this);
             Timeline = new Timeline();
 
@@ -125,13 +125,12 @@ namespace Segment.Analytics
         /// </summary>
         public void Reset()
         {
-            _userInfo._userId = null;
-            _userInfo._anonymousId = null;
-            _userInfo._traits = null;
+            string newAnonymousId = Guid.NewGuid().ToString();
+            _userInfo = new UserInfo(newAnonymousId, null, null);
 
             AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
-                await Store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction());
+                await Store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction(newAnonymousId));
                 Apply(plugin =>
                 {
                     if (plugin is EventPlugin eventPlugin)
