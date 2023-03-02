@@ -1,10 +1,10 @@
+using global::System.Threading.Tasks;
+using Segment.Analytics.Utilities;
+using Segment.Concurrent;
+using Segment.Serialization;
+
 namespace Segment.Analytics
 {
-    using global::System.Threading.Tasks;
-    using Segment.Analytics.Utilities;
-    using Segment.Concurrent;
-    using Segment.Serialization;
-
     public struct Settings
     {
         // public Json integrations;
@@ -22,15 +22,15 @@ namespace Segment.Analytics
         private async Task CheckSettings(HTTPClient httpClient = null)
         {
             httpClient = httpClient ?? new HTTPClient(Configuration.WriteKey, cdnHost: Configuration.CdnHost);
-            var systemState = await Store.CurrentState<System>();
-            var hasSettings = systemState._settings.Integrations != null && systemState._settings.Plan != null;
-            var updateType = hasSettings ? UpdateType.Refresh : UpdateType.Initial;
+            System systemState = await Store.CurrentState<System>();
+            bool hasSettings = systemState._settings.Integrations != null && systemState._settings.Plan != null;
+            UpdateType updateType = hasSettings ? UpdateType.Refresh : UpdateType.Initial;
 
             await Store.Dispatch<System.ToggleRunningAction, System>(new System.ToggleRunningAction(false));
 
             await Scope.WithContext(NetworkIODispatcher, async () =>
             {
-                var settings = await httpClient.Settings();
+                Settings? settings = await httpClient.Settings();
 
                 await Scope.WithContext(AnalyticsDispatcher, async () =>
                 {

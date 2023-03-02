@@ -1,15 +1,15 @@
+using global::System;
+using global::System.IO;
+using global::System.Linq;
+using global::System.Text;
+using global::System.Threading;
+using global::System.Threading.Tasks;
+using Segment.Concurrent;
+using Segment.Serialization;
+using Segment.Sovran;
+
 namespace Segment.Analytics.Utilities
 {
-    using global::System;
-    using global::System.IO;
-    using global::System.Linq;
-    using global::System.Text;
-    using global::System.Threading;
-    using global::System.Threading.Tasks;
-    using Segment.Concurrent;
-    using Segment.Serialization;
-    using Segment.Sovran;
-
     #region Storage Constants
 
     public readonly struct StorageConstants
@@ -79,9 +79,9 @@ namespace Segment.Analytics.Utilities
             }
 
             var analytics = (Analytics)parameters[0];
-            var config = analytics.Configuration;
-            var rootDir = PersistentDataPath;
-            var storageDirectory = rootDir + Path.DirectorySeparatorChar +
+            Configuration config = analytics.Configuration;
+            string rootDir = PersistentDataPath;
+            string storageDirectory = rootDir + Path.DirectorySeparatorChar +
                                    "segment.data" + Path.DirectorySeparatorChar +
                                    config.WriteKey + Path.DirectorySeparatorChar +
                                    "events";
@@ -317,7 +317,7 @@ namespace Segment.Analytics.Utilities
         /// <param name="event">event to store</param>
         private async Task StoreEvent(string @event) => await WithLock(async () =>
         {
-            _eventStream.OpenOrCreate(CurrentFile, out var newFile);
+            _eventStream.OpenOrCreate(CurrentFile, out bool newFile);
             if (newFile)
             {
                 await _eventStream.Write(Begin);
@@ -359,7 +359,7 @@ namespace Segment.Analytics.Utilities
 
         private bool IncrementFileIndex()
         {
-            var index = _userPrefs.GetInt(_fileIndexKey, 0) + 1;
+            int index = _userPrefs.GetInt(_fileIndexKey, 0) + 1;
             try
             {
                 _userPrefs.Put(_fileIndexKey, index);

@@ -1,9 +1,9 @@
+
+using Segment.Analytics.Utilities;
+using Segment.Serialization;
+
 namespace Segment.Analytics.Plugins
 {
-
-    using Segment.Analytics.Utilities;
-    using Segment.Serialization;
-
     /// <summary>
     /// Analytics plugin used to populate events with basic context data.
     /// Auto-added to analytics client on construction

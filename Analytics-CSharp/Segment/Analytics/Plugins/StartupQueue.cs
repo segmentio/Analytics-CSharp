@@ -1,9 +1,9 @@
+using global::System.Collections.Concurrent;
+using Segment.Concurrent;
+using Segment.Sovran;
+
 namespace Segment.Analytics.Plugins
 {
-    using global::System.Collections.Concurrent;
-    using Segment.Concurrent;
-    using Segment.Sovran;
-
     /// <summary>
     /// Analytics plugin to manage started state of analytics client
     /// All events will be held in an in-memory queue until started state is enabled, and once enabled
@@ -53,7 +53,7 @@ namespace Segment.Analytics.Plugins
         {
             while (!_queuedEvents.IsEmpty)
             {
-                if (_queuedEvents.TryDequeue(out var e))
+                if (_queuedEvents.TryDequeue(out RawEvent e))
                 {
                     Analytics.Process(e);
                 }

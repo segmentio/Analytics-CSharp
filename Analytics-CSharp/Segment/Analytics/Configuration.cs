@@ -1,8 +1,8 @@
+using Segment.Analytics.Utilities;
+using Segment.Concurrent;
+
 namespace Segment.Analytics
 {
-    using Segment.Analytics.Utilities;
-    using Segment.Concurrent;
-
     public class Configuration
     {
         public string WriteKey { get; }

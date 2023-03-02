@@ -70,14 +70,14 @@ namespace XamarinSample
 
         void SendEvent_Clicked(object sender, EventArgs e)
         {
-            var field = string.IsNullOrEmpty(EventNameEditor.Text) ? EventNameEditor.Placeholder : EventNameEditor.Text;
-            var key = string.IsNullOrEmpty(PropertyEditor.Text) ? PropertyEditor.Placeholder : PropertyEditor.Text;
-            var value = string.IsNullOrEmpty(ValueEditor.Text) ? ValueEditor.Placeholder : ValueEditor.Text;
+            string field = string.IsNullOrEmpty(EventNameEditor.Text) ? EventNameEditor.Placeholder : EventNameEditor.Text;
+            string key = string.IsNullOrEmpty(PropertyEditor.Text) ? PropertyEditor.Placeholder : PropertyEditor.Text;
+            string value = string.IsNullOrEmpty(ValueEditor.Text) ? ValueEditor.Placeholder : ValueEditor.Text;
             var payload = new JsonObject
             {
                 [key] = value
             };
-            
+
             Send(field, payload);
         }
 
@@ -146,13 +146,13 @@ namespace XamarinSample
 
             public override RawEvent Execute(RawEvent incomingEvent)
             {
-                var result = JsonUtility.ToJson(incomingEvent);
+                string result = JsonUtility.ToJson(incomingEvent);
                 _onResult(result);
-                
+
                 return base.Execute(incomingEvent);
             }
         }
-        
+
         #endregion
     }
 }

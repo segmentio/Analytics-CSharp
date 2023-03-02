@@ -12,7 +12,7 @@ namespace Tests
 {
     public class AnalyticsTest
     {
-        private Analytics _analytics;
+        private readonly Analytics _analytics;
 
         private Settings? _settings;
 
@@ -32,20 +32,20 @@ namespace Tests
             mockHttpClient
                 .Setup(httpClient => httpClient.Settings())
                 .ReturnsAsync(_settings);
-            
+
             _analytics = new Analytics(config, httpClient: mockHttpClient.Object);
         }
 
         [Fact]
         public void TestProcess()
-        { 
+        {
             var actual = new TrackEvent("test", new JsonObject());
             _analytics.Process(actual);
 
             Assert.NotNull(actual.MessageId);
             Assert.NotNull(actual.Context);
             Assert.NotNull(actual.Timestamp);
-            
+
             Assert.True(actual.UserId != null || actual.AnonymousId != null);
             Assert.NotNull(actual.Integrations);
         }
@@ -53,13 +53,16 @@ namespace Tests
         [Fact]
         public void TestAnonymousId()
         {
-            var id = _analytics.AnonymousId();
+            string id = _analytics.AnonymousId();
             Assert.NotNull(id);
         }
 
         [Fact]
         public void TestUserId()
         {
+
+/* Unmerged change from project 'Tests(net5.0)'
+Before:
             var expected = "test";
             _analytics.Identify(expected);
 
@@ -87,6 +90,121 @@ namespace Tests
             _analytics.Identify("test", expected);
 
             var actual = _analytics.Traits<FooBar>();
+After:
+            string expected = "test";
+            _analytics.Identify(expected);
+
+            string actual = _analytics.UserId();
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void TestTraits()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            _analytics.Identify("test", expected);
+
+            JsonObject actual = _analytics.Traits();
+            Assert.Equal(expected.ToString(), actual.ToString());
+        }
+        
+        [Fact]
+        public void TestTraitsT()
+        {
+            var expected = new FooBar();
+            _analytics.Identify("test", expected);
+
+            FooBar actual = _analytics.Traits<FooBar>();
+*/
+
+/* Unmerged change from project 'Tests(net6.0)'
+Before:
+            var expected = "test";
+            _analytics.Identify(expected);
+
+            var actual = _analytics.UserId();
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void TestTraits()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            _analytics.Identify("test", expected);
+
+            var actual = _analytics.Traits();
+            Assert.Equal(expected.ToString(), actual.ToString());
+        }
+        
+        [Fact]
+        public void TestTraitsT()
+        {
+            var expected = new FooBar();
+            _analytics.Identify("test", expected);
+
+            var actual = _analytics.Traits<FooBar>();
+After:
+            string expected = "test";
+            _analytics.Identify(expected);
+
+            string actual = _analytics.UserId();
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void TestTraits()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            _analytics.Identify("test", expected);
+
+            JsonObject actual = _analytics.Traits();
+            Assert.Equal(expected.ToString(), actual.ToString());
+        }
+        
+        [Fact]
+        public void TestTraitsT()
+        {
+            var expected = new FooBar();
+            _analytics.Identify("test", expected);
+
+            FooBar actual = _analytics.Traits<FooBar>();
+*/
+            string expected = "test";
+            _analytics.Identify(expected);
+
+            string actual = _analytics.UserId();
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void TestTraits()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            _analytics.Identify("test", expected);
+
+            JsonObject actual = _analytics.Traits();
+            Assert.Equal(expected.ToString(), actual.ToString());
+        }
+
+        [Fact]
+        public void TestTraitsT()
+        {
+            var expected = new FooBar();
+            _analytics.Identify("test", expected);
+
+            FooBar actual = _analytics.Traits<FooBar>();
             Assert.Equal(expected, actual);
         }
 
@@ -102,7 +220,7 @@ namespace Tests
 
             _analytics.Add(plugin.Object);
             _analytics.Flush();
-            
+
             plugin.Verify(o => o.Flush(), Times.Exactly(1));
         }
 
@@ -120,7 +238,7 @@ namespace Tests
             _analytics.Identify("test");
             _analytics.Reset();
 
-            var actual = _analytics.UserId();
+            string actual = _analytics.UserId();
             plugin.Verify(o => o.Reset(), Times.Exactly(1));
             Assert.Null(actual);
         }
@@ -134,14 +252,14 @@ namespace Tests
         [Fact]
         public void TestSettings()
         {
-            var actual = _analytics.Settings();
+            Settings? actual = _analytics.Settings();
             Assert.Equal(_settings, actual);
         }
-        
+
         [Fact]
         public async Task TestSettingsAsync()
         {
-            var actual = await _analytics.SettingsAsync();
+            Settings? actual = await _analytics.SettingsAsync();
             Assert.Equal(_settings, actual);
         }
     }

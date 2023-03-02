@@ -1,10 +1,10 @@
+using global::System;
+using global::System.Linq;
+using global::System.Threading.Tasks;
+using Segment.Concurrent;
+
 namespace Segment.Analytics.Utilities
 {
-    using global::System;
-    using global::System.Linq;
-    using global::System.Threading.Tasks;
-    using Segment.Concurrent;
-
     internal partial class EventPipeline
     {
         private readonly Analytics _analytics;
@@ -78,8 +78,8 @@ namespace Segment.Analytics.Utilities
         {
             while (!_writeChannel.isCancelled)
             {
-                var e = await _writeChannel.Receive();
-                var isPoison = e.Equals(FlushPoison);
+                string e = await _writeChannel.Receive();
+                bool isPoison = e.Equals(FlushPoison);
 
                 if (!isPoison)
                 {
@@ -110,20 +110,20 @@ namespace Segment.Analytics.Utilities
                 await Scope.WithContext(_analytics.FileIODispatcher, async () => await _storage.Rollover());
 
                 var fileUrlList = _storage.Read(StorageConstants.Events).Split(',').ToList();
-                foreach (var url in fileUrlList)
+                foreach (string url in fileUrlList)
                 {
                     if (string.IsNullOrEmpty(url))
                     {
                         continue;
                     }
 
-                    var data = _storage.ReadAsBytes(url);
+                    byte[] data = _storage.ReadAsBytes(url);
                     if (data == null)
                     {
                         continue;
                     }
 
-                    var shouldCleanup = true;
+                    bool shouldCleanup = true;
                     try
                     {
                         shouldCleanup = await _httpClient.Upload(data);

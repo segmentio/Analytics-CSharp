@@ -14,7 +14,7 @@ namespace Tests.Utilities
 {
     public class StorageProviderTest
     {
-        private Mock<Analytics> _analytics;
+        private readonly Mock<Analytics> _analytics;
 
         public StorageProviderTest()
         {
@@ -29,32 +29,46 @@ namespace Tests.Utilities
 
         [Fact]
         public void TestDefaultStorageProvider()
-        {   
-            var storage = new DefaultStorageProvider("tests").CreateStorage(_analytics.Object);
-            var converted = Assert.IsType<Storage>(storage);
+        {
+            IStorage storage = new DefaultStorageProvider("tests").CreateStorage(_analytics.Object);
+            Storage converted = Assert.IsType<Storage>(storage);
             Assert.IsType<FileEventStream>(converted._eventStream);
             Assert.IsType<UserPrefs>(converted._userPrefs);
         }
 
         [Fact]
         public void TestInMemoryStorageProvider()
-        {   
-            var storage = new InMemoryStorageProvider().CreateStorage(_analytics.Object);
-            var converted = Assert.IsType<Storage>(storage);
+        {
+            IStorage storage = new InMemoryStorageProvider().CreateStorage(_analytics.Object);
+            Storage converted = Assert.IsType<Storage>(storage);
             Assert.IsType<InMemoryEventStream>(converted._eventStream);
             Assert.IsType<InMemoryPrefs>(converted._userPrefs);
         }
     }
-    
+
     public class StorageTest
     {
-        private Storage _storage;
-        
-        private IPreferences _prefs;
-        
-        private Mock<IEventStream> _stream;
+        private readonly Storage _storage;
 
-        private string _payload;
+/* Unmerged change from project 'Tests(net5.0)'
+Before:
+        private IPreferences _prefs;
+After:
+        private readonly IPreferences _prefs;
+*/
+
+/* Unmerged change from project 'Tests(net6.0)'
+Before:
+        private IPreferences _prefs;
+After:
+        private readonly IPreferences _prefs;
+*/
+
+        private readonly IPreferences _prefs;
+
+        private readonly readonly Mock<IEventStream> _stream;
+
+        private readonly string _payload;
 
         public StorageTest()
         {
@@ -71,7 +85,7 @@ namespace Tests.Utilities
         [Fact]
         public async Task WriteNewFileTest()
         {
-            var newFile = true;
+            bool newFile = true;
             _stream.Setup(o => o.OpenOrCreate(It.IsAny<string>(), out newFile));
 
             await _storage.Write(StorageConstants.Events, _payload);
@@ -82,14 +96,14 @@ namespace Tests.Utilities
         [Fact]
         public async Task RolloverToNewFileTest()
         {
-            var newFile = new[]{ false, true };
+            bool[] newFile = new[] { false, true };
             _stream.Setup(o => o.OpenOrCreate(It.IsAny<string>(), out newFile[0]))
                 .Callback(() => _stream.Setup(o => o.OpenOrCreate(It.IsAny<string>(), out newFile[1])));
             _stream.Setup(o => o.Length).Returns(Storage.MaxFileSize + 1);
             _stream.Setup(o => o.IsOpened).Returns(true);
 
             await _storage.Write(StorageConstants.Events, _payload);
-            
+
             // verify the old file gets rolled over
             _stream.Verify(o => o.FinishAndClose(It.IsAny<string>()), Times.Exactly(1));
             Assert.Equal(1, _prefs.GetInt(_storage._fileIndexKey, 0));
@@ -104,9 +118,9 @@ namespace Tests.Utilities
         [Fact]
         public async Task LargePayloadCauseExceptionTest()
         {
-            var letters = "abcdefghijklmnopqrstuvwxyz1234567890";
+            string letters = "abcdefghijklmnopqrstuvwxyz1234567890";
             var largePayload = new StringBuilder();
-            for (var i = 0; i < 1000; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 largePayload.Append(letters);
             }
@@ -119,7 +133,7 @@ namespace Tests.Utilities
         [Fact]
         public async Task WritePrefsAsyncTest()
         {
-            var expected = "userid";
+            string expected = "userid";
             Assert.Null(_storage.Read(StorageConstants.UserId));
             await _storage.Write(StorageConstants.UserId, expected);
             Assert.Equal(expected, _storage.Read(StorageConstants.UserId));
@@ -128,7 +142,7 @@ namespace Tests.Utilities
         [Fact]
         public void WritePrefsTest()
         {
-            var expected = "userid";
+            string expected = "userid";
             Assert.Null(_storage.Read(StorageConstants.UserId));
             _storage.WritePrefs(StorageConstants.UserId, expected);
             Assert.Equal(expected, _storage.Read(StorageConstants.UserId));
@@ -136,11 +150,11 @@ namespace Tests.Utilities
 
         [Fact]
         public async Task RolloverTest()
-        {   
+        {
             _stream.Setup(o => o.IsOpened).Returns(true);
 
             await _storage.Rollover();
-            
+
             _stream.Verify(o => o.Write(It.IsAny<string>()), Times.Exactly(1));
             _stream.Verify(o => o.FinishAndClose(It.IsAny<string>()), Times.Exactly(1));
             Assert.Equal(1, _prefs.GetInt(_storage._fileIndexKey, 0));
@@ -149,11 +163,11 @@ namespace Tests.Utilities
         [Fact]
         public void ReadTest()
         {
-            var files = new[] {"test1", "test2.json", "test3.tmp", "test4.json"}.ToList();
+            var files = new[] { "test1", "test2.json", "test3.tmp", "test4.json" }.ToList();
             _stream.Setup(o => o.Read()).Returns(files);
             _prefs.Put(StorageConstants.UserId, "userId");
-            
-            var actual = _storage.Read(StorageConstants.Events);
+
+            string actual = _storage.Read(StorageConstants.Events);
             Assert.Equal(files[1] + ',' + files[3], actual);
             Assert.Equal("userId", _storage.Read(StorageConstants.UserId));
         }
@@ -163,7 +177,7 @@ namespace Tests.Utilities
         {
             _prefs.Put(StorageConstants.UserId, "userId");
             _storage.Remove(StorageConstants.UserId);
-            
+
             Assert.True(_storage.Remove(StorageConstants.Events));
             Assert.Null(_storage.Read(StorageConstants.UserId));
         }
@@ -188,15 +202,15 @@ namespace Tests.Utilities
 
     public class StorageIntegrationTest : IDisposable
     {
-        private Storage _storage;
+        private readonly Storage _storage;
 
-        private string _payload;
+        private readonly string _payload;
 
-        private string dir;
+        private readonly string dir;
 
-        private string writeKey;
+        private readonly string writeKey;
 
-        private string parent;
+        private readonly string parent;
 
         public StorageIntegrationTest()
         {
@@ -208,9 +222,9 @@ namespace Tests.Utilities
             dir = parent + Path.DirectorySeparatorChar + "tmp";
             writeKey = "123";
             _storage = new Storage(
-                new UserPrefs(parent + Path.DirectorySeparatorChar + writeKey + ".prefs"), 
-                new FileEventStream(dir), 
-                new Store(true), 
+                new UserPrefs(parent + Path.DirectorySeparatorChar + writeKey + ".prefs"),
+                new FileEventStream(dir),
+                new Store(true),
                 writeKey);
         }
 
@@ -232,13 +246,13 @@ namespace Tests.Utilities
             await _storage.Write(StorageConstants.Events, _payload);
             await _storage.Rollover();
 
-            var path = dir + Path.DirectorySeparatorChar + writeKey + "-0.json";
-            var actual = File.ReadAllText(path);
-            var exception = Record.Exception(() =>
+            string path = dir + Path.DirectorySeparatorChar + writeKey + "-0.json";
+            string actual = File.ReadAllText(path);
+            Exception exception = Record.Exception(() =>
             {
                 JsonUtility.FromJson<JsonObject>(actual);
             });
-            
+
             Assert.True(File.Exists(path));
             Assert.Contains(_payload, actual);
             Assert.Null(exception);
@@ -246,12 +260,26 @@ namespace Tests.Utilities
 
         [Fact]
         public async Task TestRead()
-        {   
+        {
+/* Unmerged change from project 'Tests(net5.0)'
+Before:
+            var actual = _storage.Read(StorageConstants.Events).Split(',');
+After:
+            string[] actual = _storage.Read(StorageConstants.Events).Split(',');
+*/
+
+/* Unmerged change from project 'Tests(net6.0)'
+Before:
+            var actual = _storage.Read(StorageConstants.Events).Split(',');
+After:
+            string[] actual = _storage.Read(StorageConstants.Events).Split(',');
+*/
+
             await _storage.Write(StorageConstants.Events, _payload);
             await _storage.Rollover();
 
-            var actual = _storage.Read(StorageConstants.Events).Split(',');
-            
+            string[] actual = _storage.Read(StorageConstants.Events).Split(',');
+
             Assert.Single(actual);
             Assert.EndsWith(dir + Path.DirectorySeparatorChar + writeKey + "-0.json", actual[0]);
         }
@@ -262,14 +290,14 @@ namespace Tests.Utilities
             await _storage.Write(StorageConstants.Events, _payload);
             await _storage.Rollover();
 
-            var actual = _storage.Read(StorageConstants.Events).Split(',');
+            string[] actual = _storage.Read(StorageConstants.Events).Split(',');
 
-            foreach (var file in actual)
+            foreach (string file in actual)
             {
                 _storage.RemoveFile(file);
             }
 
-            foreach (var file in actual)
+            foreach (string file in actual)
             {
                 Assert.False(File.Exists(file));
             }
@@ -281,11 +309,11 @@ namespace Tests.Utilities
             await _storage.Write(StorageConstants.Events, _payload);
             await _storage.Rollover();
 
-            var files = Directory.GetFiles(dir);
-            var hasCompletedFile = false;
-            var hasTempFile = false;
+            string[] files = Directory.GetFiles(dir);
+            bool hasCompletedFile = false;
+            bool hasTempFile = false;
 
-            foreach (var file in files)
+            foreach (string file in files)
             {
                 if (file.EndsWith("-0"))
                 {
@@ -297,7 +325,7 @@ namespace Tests.Utilities
                     hasCompletedFile = true;
                 }
             }
-            
+
             Assert.Single(files);
             Assert.True(hasCompletedFile);
             Assert.False(hasTempFile);
@@ -308,12 +336,12 @@ namespace Tests.Utilities
         {
             // rollover w/o writing content to the file
             // should not create a file at all
-            for (var i = 0; i < 5; i++)
+            for (int i = 0; i < 5; i++)
             {
                 await _storage.Rollover();
             }
-            
-            var files = Directory.GetFiles(dir);
+
+            string[] files = Directory.GetFiles(dir);
             Assert.Empty(files);
         }
 
@@ -322,14 +350,14 @@ namespace Tests.Utilities
         {
             // rollover w/ writing content
             // should create a file every time
-            var expected = 5;
-            for (var i = 0; i < expected; i++)
+            int expected = 5;
+            for (int i = 0; i < expected; i++)
             {
                 await _storage.Write(StorageConstants.Events, _payload);
                 await _storage.Rollover();
             }
-            
-            var files = Directory.GetFiles(dir);
+
+            string[] files = Directory.GetFiles(dir);
             Assert.Equal(expected, files.Length);
         }
     }

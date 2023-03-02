@@ -1,12 +1,12 @@
+using global::System.Collections.Concurrent;
+using global::System.Collections.Generic;
+using global::System.IO;
+using global::System.Linq;
+using global::System.Text;
+using global::System.Threading.Tasks;
+
 namespace Segment.Analytics.Utilities
 {
-    using global::System.Collections.Concurrent;
-    using global::System.Collections.Generic;
-    using global::System.IO;
-    using global::System.Linq;
-    using global::System.Text;
-    using global::System.Threading.Tasks;
-
     public interface IEventStream
     {
         long Length { get; }
@@ -85,7 +85,7 @@ namespace Segment.Analytics.Utilities
 
             if (extension != null)
             {
-                var nameWithExtension = _file.Name + '.' + extension;
+                string nameWithExtension = _file.Name + '.' + extension;
                 _directory.Remove(_file.Name);
                 _directory[nameWithExtension] = _file;
             }
@@ -196,7 +196,7 @@ namespace Segment.Analytics.Utilities
 
             if (_file != null && extension != null)
             {
-                var nameWithExtension = _file.FullName + '.' + extension;
+                string nameWithExtension = _file.FullName + '.' + extension;
                 _file.MoveTo(nameWithExtension);
             }
 

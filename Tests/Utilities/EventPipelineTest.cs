@@ -12,19 +12,33 @@ namespace Tests.Utilities
     {
         private EventPipeline _eventPipeline;
 
+
+/* Unmerged change from project 'Tests(net5.0)'
+Before:
         private Analytics _analytics;
+After:
+        private readonly Analytics _analytics;
+*/
 
-        private Mock<IStorage> _storage;
+/* Unmerged change from project 'Tests(net6.0)'
+Before:
+        private Analytics _analytics;
+After:
+        private readonly Analytics _analytics;
+*/
+        private readonly Analytics _analytics;
 
-        private Mock<HTTPClient> _mockHttpClient;
+        private readonly readonly Mock<IStorage> _storage;
 
-        private string file;
+        private readonly Mock<HTTPClient> _mockHttpClient;
 
-        private byte[] _bytes;
+        private readonly string file;
+
+        private readonly byte[] _bytes;
 
         public EventPipelineTest()
         {
-            var settings = JsonUtility.FromJson<Settings?>(
+            Settings? settings = JsonUtility.FromJson<Settings?>(
                 "{\"integrations\":{\"Segment.io\":{\"apiKey\":\"1vNgUqwJeCHmqgI9S1sOm9UHCyfYqbaQ\"}},\"plan\":{},\"edgeFunction\":{}}");
 
             var config = new Configuration(
@@ -57,7 +71,7 @@ namespace Tests.Utilities
                 flushIntervalInMillis: _analytics.Configuration.FlushInterval * 1000L,
                 apiHost: _analytics.Configuration.ApiHost
             );
-            
+
             file = Guid.NewGuid().ToString();
             _bytes = file.GetBytes();
             _storage
@@ -75,19 +89,19 @@ namespace Tests.Utilities
             _eventPipeline.Put("test");
 
             await Task.Delay(1000);
-            
+
             _storage.Verify(o => o.Write(StorageConstants.Events, It.IsAny<string>()), Times.Exactly(1));
         }
-        
+
         [Fact]
         public async Task TestFlush()
-        {   
+        {
             _eventPipeline.Start();
             _eventPipeline.Put("test");
             _eventPipeline.Flush();
 
             await Task.Delay(1000);
-            
+
             _storage.Verify(o => o.Rollover(), Times.Exactly(1));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
             _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(1));
@@ -114,9 +128,9 @@ namespace Tests.Utilities
             _eventPipeline.Start();
             _eventPipeline.Put("event 1");
             _eventPipeline.Put("event 2");
-            
+
             await Task.Delay(1000);
-            
+
             _storage.Verify(o => o.Rollover(), Times.Exactly(1));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
             _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(1));
@@ -139,26 +153,26 @@ namespace Tests.Utilities
             _eventPipeline.Put("test");
 
             await Task.Delay(1500);
-            
+
             _storage.Verify(o => o.Rollover(), Times.Exactly(2));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(2));
             _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(2));
             _storage.Verify(o => o.RemoveFile(file), Times.Exactly(2));
         }
-        
+
         [Fact]
         public async Task TestFlushInterruptedWhenNoFileExist()
         {
             // make sure the file does not exist
             _storage
                 .Setup(o => o.ReadAsBytes(It.IsAny<string>()))
-                .Returns((byte[]) null);
-            
+                .Returns((byte[])null);
+
             _eventPipeline.Start();
             _eventPipeline.Flush();
 
             await Task.Delay(1000);
-            
+
             _storage.Verify(o => o.Rollover(), Times.Exactly(1));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
             _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(0));

@@ -1,10 +1,10 @@
+using global::System;
+using Segment.Analytics.Utilities;
+using Segment.Serialization;
+using Segment.Sovran;
+
 namespace Segment.Analytics
 {
-    using global::System;
-    using Segment.Analytics.Utilities;
-    using Segment.Serialization;
-    using Segment.Sovran;
-
     /// <summary>
     /// Stores state related to the analytics system:
     ///     <list type="bullet">
@@ -31,7 +31,7 @@ namespace Segment.Analytics
             Settings settings;
             try
             {
-                var cache = storage.Read(StorageConstants.Settings) ?? "";
+                string cache = storage.Read(StorageConstants.Settings) ?? "";
                 settings = JsonUtility.FromJson<Settings>(cache);
             }
             catch (Exception e)
@@ -92,8 +92,8 @@ namespace Segment.Analytics
                 if (state is System systemState)
                 {
                     // Check if the settings have this destination
-                    var settings = systemState._settings;
-                    var integrations = settings.Integrations;
+                    Settings settings = systemState._settings;
+                    JsonObject integrations = settings.Integrations;
                     integrations[_key] = true;
                     settings.Integrations = integrations;
 
@@ -133,9 +133,9 @@ namespace Segment.Analytics
 
         internal static UserInfo DefaultState(IStorage storage)
         {
-            var userId = storage.Read(StorageConstants.UserId);
-            var anonymousId = storage.Read(StorageConstants.AnonymousId) ?? Guid.NewGuid().ToString();
-            var traitsStr = storage.Read(StorageConstants.Traits) ?? "{}";
+            string userId = storage.Read(StorageConstants.UserId);
+            string anonymousId = storage.Read(StorageConstants.AnonymousId) ?? Guid.NewGuid().ToString();
+            string traitsStr = storage.Read(StorageConstants.Traits) ?? "{}";
 
             JsonObject traits;
             try

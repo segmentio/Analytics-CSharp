@@ -10,7 +10,7 @@ namespace XamarinSample
     public partial class App : Application
     {
         public static Analytics analytics { get; private set; }
-        
+
         public App()
         {
             InitializeComponent();
@@ -19,7 +19,7 @@ namespace XamarinSample
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 flushAt: 1);
             analytics = new Analytics(configuration);
-            
+
             MainPage = new MainPage();
         }
 

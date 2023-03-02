@@ -10,8 +10,8 @@ namespace Tests.Utilities
 {
     public class InMemoryEventStreamTest
     {
-        private IEventStream _eventStream;
-        
+        private readonly IEventStream _eventStream;
+
         public InMemoryEventStreamTest()
         {
             _eventStream = new InMemoryEventStream();
@@ -20,13 +20,13 @@ namespace Tests.Utilities
         [Fact]
         public void LengthTest()
         {
-            var str1 = "abc";
-            var str2 = "defgh";
+            string str1 = "abc";
+            string str2 = "defgh";
             Assert.Equal(0, _eventStream.Length);
-            
+
             _eventStream.OpenOrCreate("test", out _);
             _eventStream.Write(str1);
-            
+
             Assert.Equal(str1.Length, _eventStream.Length);
 
             _eventStream.Write(str2);
@@ -37,10 +37,10 @@ namespace Tests.Utilities
         public void IsOpenTest()
         {
             Assert.False(_eventStream.IsOpened);
-            
+
             _eventStream.OpenOrCreate("test", out _);
             Assert.True(_eventStream.IsOpened);
-            
+
             _eventStream.Close();
             Assert.False(_eventStream.IsOpened);
         }
@@ -48,9 +48,9 @@ namespace Tests.Utilities
         [Fact]
         public void OpenOrCreateTest()
         {
-            _eventStream.OpenOrCreate("test", out var actual);
+            _eventStream.OpenOrCreate("test", out bool actual);
             Assert.True(actual);
-            
+
             _eventStream.OpenOrCreate("test", out actual);
             Assert.False(actual);
         }
@@ -58,13 +58,13 @@ namespace Tests.Utilities
         [Fact]
         public void WriteAndReadBytesTest()
         {
-            var file = "test";
+            string file = "test";
             _eventStream.OpenOrCreate(file, out _);
-            var str1 = "abc";
-            var str2 = "defgh";
-            
+            string str1 = "abc";
+            string str2 = "defgh";
+
             Assert.Equal(0, _eventStream.Length);
-            
+
             _eventStream.Write(str1);
             Assert.Equal(str1.GetBytes(), _eventStream.ReadAsBytes(file));
             _eventStream.Write(str2);
@@ -74,14 +74,28 @@ namespace Tests.Utilities
         [Fact]
         public void ReadTest()
         {
+
+/* Unmerged change from project 'Tests(net5.0)'
+Before:
             var files = new[] {"test1", "test2.json", "test3"};
-            
+After:
+            string[] files = new[] {"test1", "test2.json", "test3"};
+*/
+
+/* Unmerged change from project 'Tests(net6.0)'
+Before:
+            var files = new[] {"test1", "test2.json", "test3"};
+After:
+            string[] files = new[] {"test1", "test2.json", "test3"};
+*/
+            string[] files = new[] { "test1", "test2.json", "test3" };
+
             _eventStream.OpenOrCreate("test1", out _);
-            
+
             // open test2 without finish test1
             _eventStream.OpenOrCreate("test2", out _);
             _eventStream.FinishAndClose("json");
-            
+
             // open test3 after finish test2
             _eventStream.OpenOrCreate("test3", out _);
             // open test3 again
@@ -100,8 +114,22 @@ namespace Tests.Utilities
             _eventStream.OpenOrCreate("test", out _);
             _eventStream.FinishAndClose("json");
             _eventStream.Remove("test.json");
+
+/* Unmerged change from project 'Tests(net5.0)'
+Before:
             _eventStream.OpenOrCreate("test", out var newFile);
-            
+After:
+            _eventStream.OpenOrCreate("test", out bool newFile);
+*/
+
+/* Unmerged change from project 'Tests(net6.0)'
+Before:
+            _eventStream.OpenOrCreate("test", out var newFile);
+After:
+            _eventStream.OpenOrCreate("test", out bool newFile);
+*/
+            _eventStream.OpenOrCreate("test", out bool newFile);
+
             Assert.True(newFile);
         }
 
@@ -110,7 +138,7 @@ namespace Tests.Utilities
         {
             _eventStream.OpenOrCreate("test", out _);
             Assert.True(_eventStream.IsOpened);
-            
+
             _eventStream.Close();
             Assert.False(_eventStream.IsOpened);
         }
@@ -130,10 +158,10 @@ namespace Tests.Utilities
 
     public class FileEventStreamTest : IDisposable
     {
-        private IEventStream _eventStream;
+        private readonly IEventStream _eventStream;
 
-        private string dir;
-        
+        private readonly string dir;
+
         public FileEventStreamTest()
         {
             dir = Guid.NewGuid().ToString();
@@ -141,7 +169,7 @@ namespace Tests.Utilities
         }
 
         public void Dispose()
-        {   
+        {
             try
             {
                 Directory.Delete(dir, true);
@@ -155,13 +183,13 @@ namespace Tests.Utilities
         [Fact]
         public async Task LengthTest()
         {
-            var str1 = "abc";
-            var str2 = "defgh";
+            string str1 = "abc";
+            string str2 = "defgh";
             Assert.Equal(0, _eventStream.Length);
-            
+
             _eventStream.OpenOrCreate("test", out _);
             await _eventStream.Write(str1);
-            
+
             Assert.Equal(str1.Length, _eventStream.Length);
 
             await _eventStream.Write(str2);
@@ -172,10 +200,10 @@ namespace Tests.Utilities
         public void IsOpenTest()
         {
             Assert.False(_eventStream.IsOpened);
-            
+
             _eventStream.OpenOrCreate("test", out _);
             Assert.True(_eventStream.IsOpened);
-            
+
             _eventStream.Close();
             Assert.False(_eventStream.IsOpened);
         }
@@ -183,9 +211,9 @@ namespace Tests.Utilities
         [Fact]
         public void OpenOrCreateTest()
         {
-            _eventStream.OpenOrCreate("test", out var actual);
+            _eventStream.OpenOrCreate("test", out bool actual);
             Assert.True(actual);
-            
+
             _eventStream.OpenOrCreate("test", out actual);
             Assert.False(actual);
         }
@@ -193,18 +221,18 @@ namespace Tests.Utilities
         [Fact]
         public async Task WriteAndReadBytesTest()
         {
-            var str1 = "abc";
-            var str2 = "defgh";
-         
-            _eventStream.OpenOrCreate("test", out _);   
+            string str1 = "abc";
+            string str2 = "defgh";
+
+            _eventStream.OpenOrCreate("test", out _);
             Assert.Equal(0, _eventStream.Length);
             var files = _eventStream.Read().ToList();
             Assert.Single(files);
             await _eventStream.Write(str1);
             _eventStream.Close();
             Assert.Equal(str1.GetBytes(), _eventStream.ReadAsBytes(files[0]));
-            
-            _eventStream.OpenOrCreate("test", out _);   
+
+            _eventStream.OpenOrCreate("test", out _);
             Assert.Equal(str1.Length, _eventStream.Length);
             files = _eventStream.Read().ToList();
             Assert.Single(files);
@@ -216,15 +244,15 @@ namespace Tests.Utilities
         [Fact]
         public void ReadTest()
         {
-            var files = new[] {"test1", "test2.json", "test3"}.ToList();
+            var files = new[] { "test1", "test2.json", "test3" }.ToList();
             files.Sort();
-            
+
             _eventStream.OpenOrCreate("test1", out _);
-            
+
             // open test2 without finish test1
             _eventStream.OpenOrCreate("test2", out _);
             _eventStream.FinishAndClose("json");
-            
+
             // open test3 after finish test2
             _eventStream.OpenOrCreate("test3", out _);
             // open test3 again
@@ -232,7 +260,7 @@ namespace Tests.Utilities
 
             var actual = _eventStream.Read().ToList();
             actual.Sort();
-            
+
             Assert.Equal(files.Count(), actual.Count);
             Assert.EndsWith(files[0], actual[0]);
             Assert.EndsWith(files[1], actual[1]);
@@ -245,8 +273,22 @@ namespace Tests.Utilities
             _eventStream.OpenOrCreate("test", out _);
             _eventStream.FinishAndClose("json");
             _eventStream.Remove("test.json");
+
+/* Unmerged change from project 'Tests(net5.0)'
+Before:
             _eventStream.OpenOrCreate("test", out var newFile);
-            
+After:
+            _eventStream.OpenOrCreate("test", out bool newFile);
+*/
+
+/* Unmerged change from project 'Tests(net6.0)'
+Before:
+            _eventStream.OpenOrCreate("test", out var newFile);
+After:
+            _eventStream.OpenOrCreate("test", out bool newFile);
+*/
+            _eventStream.OpenOrCreate("test", out bool newFile);
+
             Assert.True(newFile);
         }
 
@@ -255,7 +297,7 @@ namespace Tests.Utilities
         {
             _eventStream.OpenOrCreate("test", out _);
             Assert.True(_eventStream.IsOpened);
-            
+
             _eventStream.Close();
             Assert.False(_eventStream.IsOpened);
         }

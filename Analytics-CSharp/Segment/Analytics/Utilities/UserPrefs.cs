@@ -1,14 +1,14 @@
+using global::System;
+using global::System.Collections.Concurrent;
+using global::System.Collections.Generic;
+using global::System.IO;
+using global::System.Threading;
+using global::System.Threading.Tasks;
+using Segment.Concurrent;
+using Segment.Serialization;
+
 namespace Segment.Analytics.Utilities
 {
-    using global::System;
-    using global::System.Collections.Concurrent;
-    using global::System.Collections.Generic;
-    using global::System.IO;
-    using global::System.Threading;
-    using global::System.Threading.Tasks;
-    using Segment.Concurrent;
-    using Segment.Serialization;
-
     public interface IPreferences
     {
         int GetInt(string key, int defaultValue = -1);
@@ -225,7 +225,7 @@ namespace Segment.Analytics.Utilities
         /// <param name="value">value</param>
         public void Put(string key, int value)
         {
-            var editor = Edit();
+            Editor editor = Edit();
             editor.PutInt(key, value);
             editor.Apply();
         }
@@ -238,7 +238,7 @@ namespace Segment.Analytics.Utilities
         /// <param name="value">value</param>
         public void Put(string key, float value)
         {
-            var editor = Edit();
+            Editor editor = Edit();
             editor.PutFloat(key, value);
             editor.Apply();
         }
@@ -251,7 +251,7 @@ namespace Segment.Analytics.Utilities
         /// <param name="value">value</param>
         public void Put(string key, string value)
         {
-            var editor = Edit();
+            Editor editor = Edit();
             editor.PutString(key, value);
             editor.Apply();
         }
@@ -263,7 +263,7 @@ namespace Segment.Analytics.Utilities
         /// <param name="key">key</param>
         public void Remove(string key)
         {
-            var editor = Edit();
+            Editor editor = Edit();
             editor.Remove(key);
             editor.Apply();
         }
@@ -331,8 +331,8 @@ namespace Segment.Analytics.Utilities
             try
             {
                 fs = _file.Open(FileMode.Create);
-                var json = JsonUtility.ToJson(_cache);
-                var bytes = json.GetBytes();
+                string json = JsonUtility.ToJson(_cache);
+                byte[] bytes = json.GetBytes();
                 fs.Write(bytes, 0, bytes.Length);
                 fs.Close();
 
@@ -402,7 +402,7 @@ namespace Segment.Analytics.Utilities
 
             try
             {
-                var json = File.ReadAllText(_file.FullName);
+                string json = File.ReadAllText(_file.FullName);
                 if (string.IsNullOrEmpty(json))
                 {
                     dict = new Dictionary<string, object>();
@@ -530,7 +530,7 @@ namespace Segment.Analytics.Utilities
 
         public void Apply()
         {
-            var memoryEpochSnapshot = CommitToMemory();
+            long memoryEpochSnapshot = CommitToMemory();
             _userPrefs.EnqueueDiskWrite(memoryEpochSnapshot);
         }
 
@@ -546,12 +546,12 @@ namespace Segment.Analytics.Utilities
                     _userPrefs._cache = new Dictionary<string, object>(_userPrefs._cache);
                 }
 
-                var copyToDisk = _userPrefs._cache;
+                Dictionary<string, object> copyToDisk = _userPrefs._cache;
                 _userPrefs._ongoingDiskWrites++;
 
                 lock (_mutex)
                 {
-                    var changesMade = false;
+                    bool changesMade = false;
 
                     if (_clear)
                     {
@@ -563,10 +563,10 @@ namespace Segment.Analytics.Utilities
                         _clear = false;
                     }
 
-                    foreach (var item in _modified)
+                    foreach (KeyValuePair<string, object> item in _modified)
                     {
-                        var k = item.Key;
-                        var v = item.Value;
+                        string k = item.Key;
+                        object v = item.Value;
 
                         if (v == this || v == null)
                         {
@@ -582,7 +582,7 @@ namespace Segment.Analytics.Utilities
                         {
                             if (copyToDisk.ContainsKey(k))
                             {
-                                var existingValue = copyToDisk[k];
+                                object existingValue = copyToDisk[k];
                                 if (existingValue != null && existingValue.Equals(v))
                                 {
                                     continue;

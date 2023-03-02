@@ -1,15 +1,15 @@
+using global::System;
+using global::System.Runtime.Serialization;
+using global::System.Threading.Tasks;
+using Segment.Analytics.Plugins;
+using Segment.Analytics.Utilities;
+using Segment.Concurrent;
+using Segment.Serialization;
+using Segment.Sovran;
+using JsonUtility = Segment.Serialization.JsonUtility;
+
 namespace Segment.Analytics
 {
-    using global::System;
-    using global::System.Runtime.Serialization;
-    using global::System.Threading.Tasks;
-    using Segment.Analytics.Plugins;
-    using Segment.Analytics.Utilities;
-    using Segment.Concurrent;
-    using Segment.Serialization;
-    using Segment.Sovran;
-    using JsonUtility = Serialization.JsonUtility;
-
     public partial class Analytics : ISubscriber
     {
         public Timeline Timeline { get; }
@@ -164,7 +164,7 @@ namespace Segment.Analytics
         /// <returns>Instance of <see cref="Settings"/></returns>
         public Settings? Settings()
         {
-            var task = SettingsAsync();
+            Task<Settings?> task = SettingsAsync();
             task.Wait();
             return task.Result;
         }

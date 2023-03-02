@@ -1,8 +1,8 @@
+using global::System;
+using Segment.Serialization;
+
 namespace Segment.Analytics
 {
-    using global::System;
-    using Segment.Serialization;
-
     public abstract class RawEvent
     {
         public virtual string Type { get; set; }

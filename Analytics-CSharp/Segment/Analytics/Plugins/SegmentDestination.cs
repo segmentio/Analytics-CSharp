@@ -1,9 +1,9 @@
+using Segment.Analytics.Utilities;
+using Segment.Serialization;
+using NotImplementedException = global::System.NotImplementedException;
+
 namespace Segment.Analytics.Plugins
 {
-    using Segment.Analytics.Utilities;
-    using Segment.Serialization;
-    using NotImplementedException = global::System.NotImplementedException;
-
     /// <summary>
     /// Segment Analytics plugin that is used to send events to Segment's tracking api, in the choice of region.
     /// How it works:
@@ -72,8 +72,8 @@ namespace Segment.Analytics.Plugins
         {
             base.Update(settings, type);
 
-            var segmentInfo = settings.Integrations?.GetJsonObject(Key);
-            var apiHost = segmentInfo?.GetString(ApiHost);
+            JsonObject segmentInfo = settings.Integrations?.GetJsonObject(Key);
+            string apiHost = segmentInfo?.GetString(ApiHost);
             if (apiHost != null)
             {
                 _pipeline.ApiHost = apiHost;
@@ -88,7 +88,7 @@ namespace Segment.Analytics.Plugins
         {
             // TODO: filter out empty userid and traits values
 
-            var str = JsonUtility.ToJson(payload);
+            string str = JsonUtility.ToJson(payload);
             _pipeline.Put(str);
         }
     }

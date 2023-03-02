@@ -1,12 +1,12 @@
+using global::System;
+using global::System.Net.Http;
+using global::System.Net.Http.Headers;
+using global::System.Text;
+using global::System.Threading.Tasks;
+using Segment.Serialization;
+
 namespace Segment.Analytics.Utilities
 {
-    using global::System;
-    using global::System.Net.Http;
-    using global::System.Net.Http.Headers;
-    using global::System.Text;
-    using global::System.Threading.Tasks;
-    using Segment.Serialization;
-
     public class HTTPClient
     {
         internal const string DefaultAPIHost = "api.segment.io/v1";
@@ -36,8 +36,8 @@ namespace Segment.Analytics.Utilities
 
         public virtual async Task<Settings?> Settings()
         {
-            var settingsURL = SegmentURL(_cdnHost, "/projects/" + _apiKey + "/settings");
-            var response = await DoGet(settingsURL);
+            string settingsURL = SegmentURL(_cdnHost, "/projects/" + _apiKey + "/settings");
+            HttpResponseMessage response = await DoGet(settingsURL);
             Settings? result = null;
 
             if (!response.IsSuccessStatusCode)
@@ -46,7 +46,7 @@ namespace Segment.Analytics.Utilities
             }
             else
             {
-                var json = await response.Content.ReadAsStringAsync();
+                string json = await response.Content.ReadAsStringAsync();
                 result = JsonUtility.FromJson<Settings>(json);
             }
 
@@ -56,13 +56,13 @@ namespace Segment.Analytics.Utilities
 
         public virtual async Task<bool> Upload(byte[] data)
         {
-            var uploadURL = SegmentURL(_apiHost, "/b");
-            var response = await DoPost(uploadURL, data);
+            string uploadURL = SegmentURL(_apiHost, "/b");
+            HttpResponseMessage response = await DoPost(uploadURL, data);
 
             if (!response.IsSuccessStatusCode)
             {
                 Analytics.s_logger?.LogError("Error " + response.StatusCode + " uploading to url");
-                var responseCode = (int)response.StatusCode;
+                int responseCode = (int)response.StatusCode;
                 response.Dispose();
 
                 switch (responseCode)
@@ -105,7 +105,7 @@ namespace Segment.Analytics.Utilities
 
         private string AuthorizationHeader(string writeKey)
         {
-            var bytesToEncode = Encoding.UTF8.GetBytes(writeKey + ":");
+            byte[] bytesToEncode = Encoding.UTF8.GetBytes(writeKey + ":");
             return Convert.ToBase64String(bytesToEncode);
         }
     }

@@ -1,9 +1,9 @@
+using global::System;
+using global::System.Collections.Generic;
+using Segment.Serialization;
+
 namespace Segment.Analytics
 {
-    using global::System;
-    using global::System.Collections.Generic;
-    using Segment.Serialization;
-
     public enum PluginType : int
     {
         Before = 0, // Executed before event processing begins
@@ -143,8 +143,8 @@ namespace Segment.Analytics
                 return null;
             }
 
-            var beforeResult = _timeline.ApplyPlugins(PluginType.Before, @event);
-            var enrichmentResult = _timeline.ApplyPlugins(PluginType.Enrichment, beforeResult);
+            RawEvent beforeResult = _timeline.ApplyPlugins(PluginType.Before, @event);
+            RawEvent enrichmentResult = _timeline.ApplyPlugins(PluginType.Enrichment, beforeResult);
 
             RawEvent destinationResult;
             switch (enrichmentResult)
@@ -169,7 +169,7 @@ namespace Segment.Analytics
                     break;
             };
 
-            var afterResult = _timeline.ApplyPlugins(PluginType.After, destinationResult);
+            RawEvent afterResult = _timeline.ApplyPlugins(PluginType.After, destinationResult);
 
             return afterResult;
         }
@@ -180,7 +180,7 @@ namespace Segment.Analytics
         {
             // if event payload has integration marked false then its disabled by customer
             // default to true when missing
-            var customerEnabled = @event?.Integrations?.GetBool(Key, true) ?? true;
+            bool customerEnabled = @event?.Integrations?.GetBool(Key, true) ?? true;
 
             return _enabled && customerEnabled;
         }

@@ -6,12 +6,12 @@
  * of useless interfaces and constructors and abusing the factory
  * pattern just for the purpose of tests is simply a bad idea.
  */
+using Segment.Analytics.Utilities;
+using Segment.Concurrent;
+using Segment.Sovran;
+
 namespace Segment.Analytics
 {
-    using Segment.Analytics.Utilities;
-    using Segment.Concurrent;
-    using Segment.Sovran;
-
     public partial class Analytics
     {
         internal Analytics(Configuration configuration,
@@ -42,8 +42,6 @@ namespace Segment.Analytics
 
 namespace Segment.Analytics.Utilities
 {
-    using Segment.Concurrent;
-
     internal partial class EventPipeline
     {
         internal EventPipeline(

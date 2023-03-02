@@ -1,8 +1,8 @@
+using global::System.Runtime.Serialization;
+using Segment.Serialization;
+
 namespace Segment.Analytics
 {
-    using global::System.Runtime.Serialization;
-    using Segment.Serialization;
-
     public partial class Analytics
     {
         /// <summary>
@@ -39,7 +39,7 @@ namespace Segment.Analytics
             }
             else
             {
-                var json = JsonUtility.ToJson(properties);
+                string json = JsonUtility.ToJson(properties);
                 Track(name, JsonUtility.FromJson<JsonObject>(json));
             }
         }
@@ -133,7 +133,7 @@ namespace Segment.Analytics
             }
             else
             {
-                var json = JsonUtility.ToJson(traits);
+                string json = JsonUtility.ToJson(traits);
                 Identify(userId, JsonUtility.FromJson<JsonObject>(json));
             }
         }
@@ -161,7 +161,7 @@ namespace Segment.Analytics
             }
             else
             {
-                var json = JsonUtility.ToJson(traits);
+                string json = JsonUtility.ToJson(traits);
                 Identify(JsonUtility.FromJson<JsonObject>(json));
             }
         }
@@ -201,7 +201,7 @@ namespace Segment.Analytics
             }
             else
             {
-                var json = JsonUtility.ToJson(properties);
+                string json = JsonUtility.ToJson(properties);
                 Screen(title, JsonUtility.FromJson<JsonObject>(json), category);
             }
         }
@@ -243,7 +243,7 @@ namespace Segment.Analytics
             }
             else
             {
-                var json = JsonUtility.ToJson(traits);
+                string json = JsonUtility.ToJson(traits);
                 Group(groupId, JsonUtility.FromJson<JsonObject>(json));
             }
         }
@@ -259,7 +259,7 @@ namespace Segment.Analytics
         /// </param>
         public void Alias(string newId) => AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
                                                     {
-                                                        var currentUserInfo = await Store.CurrentState<UserInfo>();
+                                                        UserInfo currentUserInfo = await Store.CurrentState<UserInfo>();
                                                         if (!currentUserInfo.IsNull)
                                                         {
                                                             var aliasEvent = new AliasEvent(newId, currentUserInfo._userId ?? currentUserInfo._anonymousId);

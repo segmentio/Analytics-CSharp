@@ -1,14 +1,14 @@
+using global::System;
+using global::System.Runtime.InteropServices;
+
 namespace Segment.Analytics.Utilities
 {
-    using global::System;
-    using global::System.Runtime.InteropServices;
-
     public class SystemInfo
     {
         public static string getAppFolder()
         {
             var type = Type.GetType("UnityEngine.Application, UnityEngine");
-            var unityPath = type?.GetProperty("persistentDataPath").GetValue(null, null).ToString();
+            string unityPath = type?.GetProperty("persistentDataPath").GetValue(null, null).ToString();
             if (unityPath != null)
             {
                 return unityPath;
@@ -19,7 +19,7 @@ namespace Segment.Analytics.Utilities
 
         public static string getPlatform()
         {
-            var type = "";
+            string type = "";
 
             if (Type.GetType("Xamarin.Forms.Device") != null)
             {
@@ -31,8 +31,8 @@ namespace Segment.Analytics.Utilities
             }
             else
             {
-                var descr = RuntimeInformation.FrameworkDescription;
-                var platf = descr.Substring(0, descr.LastIndexOf(' '));
+                string descr = RuntimeInformation.FrameworkDescription;
+                string platf = descr.Substring(0, descr.LastIndexOf(' '));
 
                 type = platf;
             }
@@ -41,10 +41,10 @@ namespace Segment.Analytics.Utilities
 
         public static string getOS()
         {
-            var os = Environment.OSVersion;
-            var vs = os.Version;
+            OperatingSystem os = Environment.OSVersion;
+            global::System.Version vs = os.Version;
 
-            var operatingSystem = "";
+            string operatingSystem = "";
 
             switch (os.Platform)
             {
