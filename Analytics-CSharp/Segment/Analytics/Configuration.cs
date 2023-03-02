@@ -20,7 +20,7 @@ namespace Segment.Analytics
 
         public Settings DefaultSettings { get; }
 
-        public bool UserSynchronizeDispatcher { get; }
+        public bool UseSynchronizeDispatcher { get; }
 
         public ICoroutineExceptionHandler ExceptionHandler { get; }
 
