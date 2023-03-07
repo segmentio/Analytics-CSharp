@@ -7,7 +7,6 @@ using Segment.Concurrent;
 
 
 var configuration = new Configuration("YOUR WRITE KEY",
-    persistentDataPath: "temp",
     flushAt: 1,
     flushInterval: 10,
     exceptionHandler: new ErrorHandler());

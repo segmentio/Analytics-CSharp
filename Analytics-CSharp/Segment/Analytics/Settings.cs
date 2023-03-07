@@ -8,9 +8,9 @@ namespace Segment.Analytics
     public struct Settings
     {
         // public Json integrations;
-        public JsonObject Integrations;
-        public JsonObject Plan;
-        public JsonObject EdgeFunctions;
+        public JsonObject Integrations { get; set; }
+        public JsonObject Plan { get; set; }
+        public JsonObject EdgeFunctions { get; set; }
     }
 
     public partial class Analytics

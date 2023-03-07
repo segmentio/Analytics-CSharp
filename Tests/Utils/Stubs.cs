@@ -6,7 +6,7 @@ namespace Tests.Utils
 {
     class FooBar : ISerializable
     {
-        public readonly string foo = "bar";
+        public string foo => "bar";
 
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
