@@ -9,7 +9,7 @@
   "changelogUrl": "https://github.com/segmentio/Analytics-CSharp/releases",
   "licensesUrl": "https://github.com/segmentio/analytics-unity/blob/main/LICENSE.md",
   "dependencies": {
-    "com.unity.nuget.newtonsoft-json": "3.0.2"
+    "org.nuget.system.text.json":  "7.0.2"
   },
   "keywords": [
     "Analytics",
