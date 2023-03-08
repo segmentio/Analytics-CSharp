@@ -28,7 +28,7 @@ To get started with the Analytics-CSharp library:
     ```
     dotnet add package Segment.Analytics.CSharp --version <LATEST_VERSION>
     ```
-   **Analytics-CSharp** is distributed via NuGet. Check other installation options [here](https://www.nuget.org/packages/Segment.Analytics.CSharp/). 
+   **Analytics-CSharp** is distributed via NuGet. Check other installation options [here](https://www.nuget.org/packages/Segment.Analytics.CSharp/).
 3. Initialize and configure the client.
 
     ```c#
@@ -41,19 +41,19 @@ To get started with the Analytics-CSharp library:
                 flushInterval: 10);
         var analytics = new Analytics(configuration);
     ```
-   
+
    <br>These are the options you can apply to configure the client:
 
-|  Option Name                    | Description |
-| --------------------------------| ----------- |
- | `writeKey` *required*           | This is your Segment write key. |
- | `persistentDataPath` *requried* | This is the path where Segment stores your data. <br> for Xamarin use: `Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)`. <br> for Unity use: `Application.persistentDataPath` |
- | `apiHost`                       | Default set to `api.segment.io/v1`. <br> This sets a default API Host to which Segment sends events. |
- | `autoAddSegmentDestination`     | Default set to `true`. <br> This automatically adds the Segment Destination plugin. You can set this to `false` if you want to manually add the Segment Destination plugin. |
- | `defaultSettings`               | Default set to `{}`. <br> The settings object used as fallback in case of network failure. |
- | `flushAt`                       | Default set to `20`. <br> The count of events at which Segment flushes events. |
- | `flushInterval`                 | Default set to `30` (seconds). <br> The interval in seconds at which Segment flushes events. |
-| `exceptionHandler`                 | set a an exception handler to handle errors happened in async methods within the analytics scope |
+|  Option Name                    | Description                                                                                                                                                                                                                                                                   |
+| --------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+ | `writeKey` *required*           | This is your Segment write key.                                                                                                                                                                                                                                               |
+ | `apiHost`                       | Default set to `api.segment.io/v1`. <br> This sets a default API Host to which Segment sends events.                                                                                                                                                                          |
+ | `autoAddSegmentDestination`     | Default set to `true`. <br> This automatically adds the Segment Destination plugin. You can set this to `false` if you want to manually add the Segment Destination plugin.                                                                                                   |
+ | `defaultSettings`               | Default set to `{}`. <br> The settings object used as fallback in case of network failure.                                                                                                                                                                                    |
+ | `flushAt`                       | Default set to `20`. <br> The count of events at which Segment flushes events.                                                                                                                                                                                                |
+ | `flushInterval`                 | Default set to `30` (seconds). <br> The interval in seconds at which Segment flushes events.                                                                                                                                                                                  |
+| `exceptionHandler`                 | Set a an exception handler to handle errors happened in async methods within the analytics scope                                                                                                                                                                              |
+ | `StorageProvider`| Set how you want your data to be stored. <br> `DefaultStorageProvider` is used by default which stores data to local storage. `InMemoryStorageProvider` is also provided in the library. You can also write your own storage solution by implementing `IStorageProvider` and `IStorage` |
 
 ## Tracking Methods
 

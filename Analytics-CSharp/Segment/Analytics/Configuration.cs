@@ -7,7 +7,6 @@ namespace Segment.Analytics
     {
         public string WriteKey { get; }
 
-
         public int FlushAt { get; }
 
         public int FlushInterval { get; }
