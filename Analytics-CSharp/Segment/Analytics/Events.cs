@@ -29,9 +29,26 @@ namespace Segment.Analytics
         /// For example a 'Purchased a Shirt' event might have properties like revenue or size.
         /// </summary>
         /// <param name="name">Name of the action</param>
-        /// <param name="properties">Properties to describe the action</param>
-        /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public void Track<T>(string name, T properties = default) where T : ISerializable
+        /// <param name="properties">Properties to describe the action.
+        /// <para>
+        /// Analytics internally serializes/deserializes object in the following way:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>Properties: only public properties are serialized. Fields are ignored completely.
+        /// To include fields in serialization, check <a href="https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/how-to?pivots=dotnet-8-0#include-fields">here</a>
+        /// for more details
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>Camel case: all properties are serialized and deserialized in camel cases.
+        /// To customize property names, check <a href="https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/customize-properties?pivots=dotnet-7-0">here</a>
+        /// for more details
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </para>
+        /// </param>
+        public void Track(string name, object properties)
         {
             if (properties == null)
             {
@@ -55,7 +72,7 @@ namespace Segment.Analytics
         ///
         /// In the case when user logs out, make sure to call <see cref="Reset"/> to clear user's identity
         /// info.
-        /// 
+        ///
         /// </summary>
         /// <param name="userId">Unique identifier which you recognize a user by in your own database</param>
         /// <param name="traits">Traits about the user</param>
@@ -87,7 +104,7 @@ namespace Segment.Analytics
         /// same user.
         ///
         /// This method is used to update a trait on the server with the same user id.
-        /// 
+        ///
         /// In the case when user logs out, make sure to call <see cref="Reset"/> to clear user's identity
         /// info.
         /// </summary>
@@ -120,12 +137,29 @@ namespace Segment.Analytics
         ///
         /// In the case when user logs out, make sure to call <see cref="Reset"/> to clear user's identity
         /// info.
-        /// 
+        ///
         /// </summary>
         /// <param name="userId">Unique identifier which you recognize a user by in your own database</param>
-        /// <param name="traits">Traits about the user</param>
-        /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public void Identify<T>(string userId, T traits = default) where T : ISerializable
+        /// <param name="traits">Traits about the user.
+        /// <para>
+        /// Analytics internally serializes/deserializes object in the following way:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>Properties: only public properties are serialized. Fields are ignored completely.
+        /// To include fields in serialization, check <a href="https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/how-to?pivots=dotnet-8-0#include-fields">here</a>
+        /// for more details
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>Camel case: all properties are serialized and deserialized in camel cases.
+        /// To customize property names, check <a href="https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/customize-properties?pivots=dotnet-7-0">here</a>
+        /// for more details
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </para>
+        /// </param>
+        public void Identify(string userId, object traits)
         {
             if (traits == null)
             {
@@ -147,13 +181,30 @@ namespace Segment.Analytics
         /// same user.
         ///
         /// This method is used to update a trait on the server with the same user id.
-        /// 
+        ///
         /// In the case when user logs out, make sure to call <see cref="Reset"/> to clear user's identity
         /// info.
         /// </summary>
-        /// <param name="traits">Traits about the user</param>
-        /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public void Identify<T>(T traits) where T : ISerializable
+        /// <param name="traits">Traits about the user.
+        /// <para>
+        /// Analytics internally serializes/deserializes object in the following way:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>Properties: only public properties are serialized. Fields are ignored completely.
+        /// To include fields in serialization, check <a href="https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/how-to?pivots=dotnet-8-0#include-fields">here</a>
+        /// for more details
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>Camel case: all properties are serialized and deserialized in camel cases.
+        /// To customize property names, check <a href="https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/customize-properties?pivots=dotnet-7-0">here</a>
+        /// for more details
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </para>
+        /// </param>
+        public void Identify(object traits)
         {
             if (traits == null)
             {
@@ -191,9 +242,26 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="title">A name for the screen</param>
         /// <param name="properties">Properties to add extra information to this call</param>
-        /// <param name="category">A category to describe the screen</param>
-        /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public void Screen<T>(string title, T properties = default, string category = "") where T : ISerializable
+        /// <param name="category">A category to describe the screen.
+        /// <para>
+        /// Analytics internally serializes/deserializes object in the following way:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>Properties: only public properties are serialized. Fields are ignored completely.
+        /// To include fields in serialization, check <a href="https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/how-to?pivots=dotnet-8-0#include-fields">here</a>
+        /// for more details
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>Camel case: all properties are serialized and deserialized in camel cases.
+        /// To customize property names, check <a href="https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/customize-properties?pivots=dotnet-7-0">here</a>
+        /// for more details
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </para>
+        /// </param>
+        public void Screen(string title, object properties, string category = "")
         {
             if (properties == null)
             {
@@ -233,9 +301,26 @@ namespace Segment.Analytics
         /// automatically remember the userId. If not, it will fall back to use the anonymousId instead.
         /// </summary>
         /// <param name="groupId">Unique identifier which you recognize a group by in your own database</param>
-        /// <param name="traits">Traits about the group</param>
-        /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public void Group<T>(string groupId, T traits = default) where T : ISerializable
+        /// <param name="traits">Traits about the group.
+        /// <para>
+        /// Analytics internally serializes/deserializes object in the following way:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>Properties: only public properties are serialized. Fields are ignored completely.
+        /// To include fields in serialization, check <a href="https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/how-to?pivots=dotnet-8-0#include-fields">here</a>
+        /// for more details
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>Camel case: all properties are serialized and deserialized in camel cases.
+        /// To customize property names, check <a href="https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/customize-properties?pivots=dotnet-7-0">here</a>
+        /// for more details
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </para>
+        /// </param>
+        public void Group(string groupId, object traits)
         {
             if (traits == null)
             {
