@@ -135,7 +135,7 @@ namespace XamarinSample
         /// </summary>
         private class DisplayResultPlugin : Plugin
         {
-            public override PluginType type => PluginType.After;
+            public override PluginType Type => PluginType.After;
 
             private readonly Action<string> _onResult;
 
