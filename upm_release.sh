@@ -84,6 +84,9 @@ echo "$(jq --arg VERSION "$VERSION" '.version=$VERSION' Analytics-CSharp/package
 rm -rf Analytics-CSharp/Plugins/*
 # download analytics-csharp and its dependencies from nuget
 nuget install Segment.Analytics.CSharp -Version "$VERSION" -OutputDirectory Analytics-CSharp/Plugins
+# remove dependencies related to System.Text.Json as they are satisfied through package.json
+rm -rf Analytics-CSharp/Plugins/System.*
+rm -rf Analytics-CSharp/Plugins/Microsoft.*
 # loop over all the libs and remove any non-netstandard2.0 libs
 for dir in Analytics-CSharp/Plugins/*; do
   if [ -d "$dir" ]; then
@@ -95,9 +98,6 @@ for dir in Analytics-CSharp/Plugins/*; do
     done
   fi
 done
-# remove dependencies related to System.Text.Json as they are satisfied through package.json
-rm -rf Analytics-CSharp/Plugins/System.*
-rm -rf Analytics-CSharp/Plugins/Microsoft.*
 
 echo "generating meta files ..."
 # launch unity to create a dummy head project
