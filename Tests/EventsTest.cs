@@ -100,7 +100,7 @@ namespace Tests
             _plugin.Setup(o => o.Track(Capture.In(actual)));
 
             _analytics.Add(_plugin.Object);
-            _analytics.Track<FooBar>(expectedEvent);
+            _analytics.Track(expectedEvent);
 
             Assert.NotEmpty(actual);
             Assert.True(actual[0].Properties.Count == 0);
@@ -192,7 +192,7 @@ namespace Tests
             _plugin.Setup(o => o.Identify(Capture.In(actual)));
 
             _analytics.Add(_plugin.Object);
-            _analytics.Identify<FooBar>(expectedUserId);
+            _analytics.Identify(expectedUserId);
             string actualUserId = _analytics.UserId();
 
             Assert.NotEmpty(actual);
@@ -278,7 +278,7 @@ namespace Tests
             _plugin.Setup(o => o.Screen(Capture.In(actual)));
 
             _analytics.Add(_plugin.Object);
-            _analytics.Screen<FooBar>(null, null, null);
+            _analytics.Screen(null, null, null);
 
             Assert.NotEmpty(actual);
             Assert.True(actual[0].Properties.Count == 0);
@@ -344,7 +344,7 @@ namespace Tests
             _plugin.Setup(o => o.Group(Capture.In(actual)));
 
             _analytics.Add(_plugin.Object);
-            _analytics.Group<FooBar>(expectedGroupId);
+            _analytics.Group(expectedGroupId);
 
             Assert.NotEmpty(actual);
             Assert.True(actual[0].Traits.Count == 0);

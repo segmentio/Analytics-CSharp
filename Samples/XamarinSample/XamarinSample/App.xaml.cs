@@ -16,7 +16,6 @@ namespace XamarinSample
             InitializeComponent();
 
             var configuration = new Configuration("HhvdP2KyRHb1XGiSTHjBcJiHckP6efii",
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 flushAt: 1);
             analytics = new Analytics(configuration);
 
