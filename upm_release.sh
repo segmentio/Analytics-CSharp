@@ -23,7 +23,7 @@ if [[ "$(absolute_path "$1")" = $PWD* ]]; then
     echo "Please provide a directory outside analytics-csharp's directory"
     exit 1
 fi
-cd "$1" || exit 
+cd "$1" || exit
 
 
 echo "checking required tools..."
@@ -51,18 +51,19 @@ echo "Unity executable found at $UNITY"
 if [ -z "$UNITY" ]
 then
       echo "unity executable is not found. make sure you have installed unity"
-      exit 
+      exit
 else
   echo "Unity executable found at $UNITY"
 fi
 
 echo "setting up release sandbox ..."
+rm -rf sandbox
 mkdir sandbox
 cd sandbox
 
 # download analytics-csharp, so it's isolated
 git clone https://github.com/segmentio/Analytics-CSharp.git
-cd Analytics-CSharp || exit 
+cd Analytics-CSharp || exit
 
 echo "fetching the current version of project ..."
 VERSION=$(grep '<Version>' Analytics-CSharp/Analytics-CSharp.csproj | sed "s@.*<Version>\(.*\)</Version>.*@\1@")
@@ -75,7 +76,7 @@ echo "packing ..."
 if [ "$(jq -r '.version' Analytics-CSharp/package.json)" == $VERSION ]
 then
   echo "$VERSION is the same as the current package version"
-  exit 
+  exit
 fi
 # update version in package.json
 echo "$(jq --arg VERSION "$VERSION" '.version=$VERSION' Analytics-CSharp/package.json)" > Analytics-CSharp/package.json
@@ -94,8 +95,9 @@ for dir in Analytics-CSharp/Plugins/*; do
     done
   fi
 done
-# remove Newtonsoft.json as it is satisfied through package.json
-rm -rf Analytics-CSharp/Plugins/Newtonsoft.Json.*
+# remove dependencies related to System.Text.Json as they are satisfied through package.json
+rm -rf Analytics-CSharp/Plugins/System.*
+rm -rf Analytics-CSharp/Plugins/Microsoft.*
 
 echo "generating meta files ..."
 # launch unity to create a dummy head project
@@ -107,7 +109,7 @@ echo "$(jq '.dependencies += {"com.segment.analytics.csharp": "file:../../Analyt
 
 echo "releasing ..."
 # commit all the changes
-cd Analytics-CSharp || exit 
+cd Analytics-CSharp || exit
 git add .
 git commit -m "prepare release $VERSION"
 # create and push a new tag, openupm will pick up this new tag and release it automatically
