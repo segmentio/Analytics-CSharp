@@ -32,11 +32,9 @@ To get started with the Analytics-CSharp library:
 3. Initialize and configure the client.
 
     ```c#
-        // NOTE: persistentDataPath is different on different platform
-        // for Xamarin use: Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-        // for Unity use: Application.persistentDataPath
+        // NOTE: to make Analytics stateless/in-memory,
+        // add `InMemoryStorageProvider` to the configuration
         var configuration = new Configuration("<YOUR WRITE KEY>",
-                persistentDataPath: "<PATH TO STORE DATA>",
                 flushAt: 1,
                 flushInterval: 10);
         var analytics = new Analytics(configuration);
@@ -135,11 +133,11 @@ For example, if you want to add something to the context object of any event pay
 ```c#
 class SomePlugin : Plugin
 {
-    public override PluginType type => PluginType.Enrichment;
+    public override PluginType Type => PluginType.Enrichment;
 
     public override RawEvent Execute(RawEvent incomingEvent)
     {
-        incomingEvent.context["foo"] = "bar";
+        incomingEvent.Context["foo"] = "bar";
         return incomingEvent;
     }
 }
@@ -153,7 +151,7 @@ For example, if you only want to act on `track` & `identify` events:
 ```c#
 class SomePlugin : EventPlugin
 {
-    public override PluginType type => PluginType.Enrichment;
+    public override PluginType Type => PluginType.Enrichment;
 
     public override IdentifyEvent Identify(IdentifyEvent identifyEvent)
     {
@@ -177,7 +175,7 @@ For example, if you want to implement a device-mode destination plugin for Ampli
 ```c#
 class AmplitudePlugin : DestinationPlugin
 {
-    public override string key =>
+    public override string Key =>
         "Amplitude"; // This is the name of the destination plugin, it is used to retrieve settings internally
 
     private Amplitude amplitudeSDK: // This is an instance of the partner SDK
@@ -194,7 +192,7 @@ class AmplitudePlugin : DestinationPlugin
     */
     public override TrackEvent Track(TrackEvent trackEvent)
     {
-        amplitudeSDK.logEvent(trackEvent.@event);
+        amplitudeSDK.logEvent(trackEvent.Event);
         return trackEvent;
     }
 }
@@ -209,11 +207,11 @@ class AmplitudePlugin : DestinationPlugin
 ```c#
 class AmplitudeEnrichment : Plugin
 {
-    public override PluginType type => PluginType.Enrichment;
+    public override PluginType Type => PluginType.Enrichment;
 
     public override RawEvent Execute(RawEvent incomingEvent)
     {
-        incomingEvent.context["foo"] = "bar";
+        incomingEvent.Context["foo"] = "bar";
         return incomingEvent;
     }
 }
@@ -239,11 +237,11 @@ Here's an example of adding a plugin to the context object of any event payload 
 ```c#
 class SomePlugin : Plugin
 {
-    public override PluginType type => PluginType.Enrichment;
+    public override PluginType Type => PluginType.Enrichment;
 
     public override RawEvent Execute(RawEvent incomingEvent)
     {
-        incomingEvent.context["foo"] = "bar";
+        incomingEvent.Context["foo"] = "bar";
         return incomingEvent;
     }
 }
@@ -270,11 +268,11 @@ The Add method lets you add a plugin to the analytics timeline.
 ```c#
 class SomePlugin : Plugin
 {
-    public override PluginType type => PluginType.Enrichment;
+    public override PluginType Type => PluginType.Enrichment;
 
     public override RawEvent Execute(RawEvent incomingEvent)
     {
-        incomingEvent.context["foo"] = "bar";
+        incomingEvent.Context["foo"] = "bar";
         return incomingEvent;
     }
 }

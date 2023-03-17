@@ -85,8 +85,7 @@ rm -rf Analytics-CSharp/Plugins/*
 # download analytics-csharp and its dependencies from nuget
 nuget install Segment.Analytics.CSharp -Version "$VERSION" -OutputDirectory Analytics-CSharp/Plugins
 # remove dependencies related to System.Text.Json as they are satisfied through package.json
-rm -rf Analytics-CSharp/Plugins/System.*
-rm -rf Analytics-CSharp/Plugins/Microsoft.*
+rm -rf Analytics-CSharp/Plugins/Newtonsoft.Json.*
 # loop over all the libs and remove any non-netstandard2.0 libs
 for dir in Analytics-CSharp/Plugins/*; do
   if [ -d "$dir" ]; then
@@ -103,7 +102,7 @@ echo "generating meta files ..."
 # launch unity to create a dummy head project
 "$UNITY" -batchmode -quit -createProject dummy
 # update the manifest of dummy head to import the package
-echo "$(jq '.dependencies += {"com.segment.analytics.csharp": "file:../../Analytics-CSharp"} | .scopedRegistries = [{"name": "package.openupm.com","url": "https://package.openupm.com","scopes":["com.openupm","org.nuget"]}]' dummy/Packages/manifest.json)" > dummy/Packages/manifest.json
+echo "$(jq '.dependencies += {"com.segment.analytics.csharp": "file:../../Analytics-CSharp"}' dummy/Packages/manifest.json)" > dummy/Packages/manifest.json
 # launch unity in quit mode to generate meta files
 "$UNITY" -batchmode -quit -projectPath dummy
 

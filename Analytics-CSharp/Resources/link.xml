@@ -7,5 +7,11 @@
     <assembly fullname="System.Core">
         <type fullname="System.Linq.Expressions.Interpreter.LightLambda" preserve="all" />
     </assembly>
+    <assembly fullname="UnityEngine">
+      <type fullname="UnityEngine.Application" preserve="all" />
+    </assembly>
+  <assembly fullname="Xamarin.Forms">
+    <type fullname="Xamarin.Forms.Device" preserve="all" />
+  </assembly>
 </linker>
 

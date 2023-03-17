@@ -25,7 +25,7 @@ namespace Segment.Analytics.Utilities
             {
                 type = "Xamarin";
             }
-            else if (Type.GetType("UnityEngine.Device.SystemInfo, UnityEngine") != null)
+            else if (Type.GetType("UnityEngine.Application, UnityEngine") != null)
             {
                 type = "Unity";
             }
