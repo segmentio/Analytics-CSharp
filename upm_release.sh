@@ -85,8 +85,7 @@ rm -rf Analytics-CSharp/Plugins/*
 # download analytics-csharp and its dependencies from nuget
 nuget install Segment.Analytics.CSharp -Version "$VERSION" -OutputDirectory Analytics-CSharp/Plugins
 # remove dependencies related to System.Text.Json as they are satisfied through package.json
-rm -rf Analytics-CSharp/Plugins/System.*
-rm -rf Analytics-CSharp/Plugins/Microsoft.*
+rm -rf Analytics-CSharp/Plugins/Newtonsoft.Json.*
 # loop over all the libs and remove any non-netstandard2.0 libs
 for dir in Analytics-CSharp/Plugins/*; do
   if [ -d "$dir" ]; then
