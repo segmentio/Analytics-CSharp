@@ -102,7 +102,7 @@ echo "generating meta files ..."
 # launch unity to create a dummy head project
 "$UNITY" -batchmode -quit -createProject dummy
 # update the manifest of dummy head to import the package
-echo "$(jq '.dependencies += {"com.segment.analytics.csharp": "file:../../Analytics-CSharp"} | .scopedRegistries = [{"name": "package.openupm.com","url": "https://package.openupm.com","scopes":["com.openupm","org.nuget"]}]' dummy/Packages/manifest.json)" > dummy/Packages/manifest.json
+echo "$(jq '.dependencies += {"com.segment.analytics.csharp": "file:../../Analytics-CSharp"}' dummy/Packages/manifest.json)" > dummy/Packages/manifest.json
 # launch unity in quit mode to generate meta files
 "$UNITY" -batchmode -quit -projectPath dummy
 
