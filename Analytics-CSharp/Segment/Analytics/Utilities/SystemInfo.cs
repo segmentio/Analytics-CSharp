@@ -1,33 +1,29 @@
+using System.Linq;
 using global::System;
 using global::System.Runtime.InteropServices;
 
 namespace Segment.Analytics.Utilities
 {
-    public class SystemInfo
+    public static class SystemInfo
     {
-        public static string getAppFolder()
+        public static string GetAppFolder()
         {
             var type = Type.GetType("UnityEngine.Application, UnityEngine");
-            string unityPath = type?.GetProperty("persistentDataPath").GetValue(null, null).ToString();
-            if (unityPath != null)
-            {
-                return unityPath;
-            }
-
-            return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string unityPath = type?.GetProperty("persistentDataPath")?.GetValue(null, null).ToString();
+            return unityPath ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         }
 
-        public static string getPlatform()
+        public static string GetPlatform()
         {
             string type = "";
 
-            if (Type.GetType("Xamarin.Forms.Device") != null)
-            {
-                type = "Xamarin";
-            }
-            else if (Type.GetType("UnityEngine.Application, UnityEngine") != null)
+            if (Type.GetType("UnityEngine.Application, UnityEngine") != null)
             {
                 type = "Unity";
+            }
+            else if (AssemblyExists("Xamarin.Forms.Core"))
+            {
+                type = "Xamarin";
             }
             else
             {
@@ -39,7 +35,7 @@ namespace Segment.Analytics.Utilities
             return type;
         }
 
-        public static string getOS()
+        public static string GetOs()
         {
             OperatingSystem os = Environment.OSVersion;
             global::System.Version vs = os.Version;
@@ -70,10 +66,13 @@ namespace Segment.Analytics.Utilities
                 case PlatformID.MacOSX:
                     operatingSystem = "MacOSX";
                     break;
-                default:
-                    break;
             }
             return operatingSystem + " - " + vs.Major + "." + vs.Minor;
+        }
+
+        public static bool AssemblyExists(string prefix)
+        {
+            return AppDomain.CurrentDomain.GetAssemblies().Where(a => a.ToString().StartsWith(prefix)).Count() > 0;
         }
     }
 }

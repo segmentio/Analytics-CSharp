@@ -56,6 +56,8 @@ namespace Segment.Analytics
 
         public virtual ScreenEvent Screen(ScreenEvent screenEvent) => screenEvent;
 
+        public virtual PageEvent Page(PageEvent pageEvent) => pageEvent;
+
         public virtual void Reset() { }
 
         public virtual void Flush() { }
@@ -68,6 +70,8 @@ namespace Segment.Analytics
                     return Identify(e);
                 case TrackEvent e:
                     return Track(e);
+                case PageEvent e:
+                    return Page(e);
                 case ScreenEvent e:
                     return Screen(e);
                 case AliasEvent e:
@@ -157,6 +161,9 @@ namespace Segment.Analytics
                     break;
                 case IdentifyEvent e:
                     destinationResult = Identify(e);
+                    break;
+                case PageEvent e:
+                    destinationResult = Page(e);
                     break;
                 case ScreenEvent e:
                     destinationResult = Screen(e);

@@ -39,8 +39,8 @@ namespace Segment.Analytics.Plugins
             var context = new JsonObject(@event.Context?.Content)
             {
                 [LibraryKey] = _library,
-                [OSKey] = SystemInfo.getOS(),
-                [PlatformKey] = SystemInfo.getPlatform()
+                [OSKey] = SystemInfo.GetOs(),
+                [PlatformKey] = SystemInfo.GetPlatform()
             };
 
             @event.Context = context;

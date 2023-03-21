@@ -88,6 +88,26 @@ namespace Segment.Analytics
         internal ScreenEvent(ScreenEvent existing) : this(existing.Category, existing.Name, existing.Properties) => ApplyRawEventData(existing);
     }
 
+    public sealed class PageEvent : RawEvent
+    {
+        public override string Type => "page";
+
+        public string Name { get; set; }
+
+        public string Category { get; set; }
+
+        public JsonObject Properties { get; set; }
+
+        internal PageEvent(string category, string title = null, JsonObject properties = null)
+        {
+            Name = title;
+            Properties = properties;
+            Category = category;
+        }
+
+        internal PageEvent(PageEvent existing) : this(existing.Category, existing.Name, existing.Properties) => ApplyRawEventData(existing);
+    }
+
     public sealed class GroupEvent : RawEvent
     {
         public override string Type => "group";

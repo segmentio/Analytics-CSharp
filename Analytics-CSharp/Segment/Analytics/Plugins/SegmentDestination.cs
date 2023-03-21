@@ -51,6 +51,12 @@ namespace Segment.Analytics.Plugins
             return screenEvent;
         }
 
+        public override PageEvent Page(PageEvent pageEvent)
+        {
+            Enqueue(pageEvent);
+            return pageEvent;
+        }
+
         public override void Configure(Analytics analytics)
         {
             base.Configure(analytics);

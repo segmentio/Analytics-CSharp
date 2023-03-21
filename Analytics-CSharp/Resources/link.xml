@@ -10,8 +10,5 @@
     <assembly fullname="UnityEngine">
       <type fullname="UnityEngine.Application" preserve="all" />
     </assembly>
-  <assembly fullname="Xamarin.Forms">
-    <type fullname="Xamarin.Forms.Device" preserve="all" />
-  </assembly>
 </linker>
 
