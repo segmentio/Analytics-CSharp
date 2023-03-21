@@ -287,6 +287,79 @@ namespace Tests
         }
 
         [Fact]
+        public void TestPage()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            string expectedTitle = "foo";
+            string expectedCategory = "bar";
+            var actual = new List<PageEvent>();
+            _plugin.Setup(o => o.Page(Capture.In(actual)));
+
+            _analytics.Add(_plugin.Object);
+            _analytics.Page(expectedTitle, expected, expectedCategory);
+
+            Assert.NotEmpty(actual);
+            Assert.Equal(expected, actual[0].Properties);
+            Assert.Equal(expectedTitle, actual[0].Name);
+            Assert.Equal(expectedCategory, actual[0].Category);
+            Assert.Equal("page", actual[0].Type);
+        }
+
+        [Fact]
+        public void TestPageWithNulls()
+        {
+            var actual = new List<PageEvent>();
+            _plugin.Setup(o => o.Page(Capture.In(actual)));
+
+            _analytics.Add(_plugin.Object);
+            _analytics.Page(null, null, null);
+
+            Assert.NotEmpty(actual);
+            Assert.True(actual[0].Properties.Count == 0);
+            Assert.Null(actual[0].Name);
+            Assert.Null(actual[0].Category);
+            Assert.Equal("page", actual[0].Type);
+        }
+
+        [Fact]
+        public void TestPageT()
+        {
+            var expected = new FooBar();
+            string expectedTitle = "foo";
+            string expectedCategory = "bar";
+            var actual = new List<PageEvent>();
+            _plugin.Setup(o => o.Page(Capture.In(actual)));
+
+            _analytics.Add(_plugin.Object);
+            _analytics.Page(expectedTitle, expected, expectedCategory);
+
+            Assert.NotEmpty(actual);
+            Assert.Equal(expected.GetJsonObject(), actual[0].Properties);
+            Assert.Equal(expectedTitle, actual[0].Name);
+            Assert.Equal(expectedCategory, actual[0].Category);
+            Assert.Equal("page", actual[0].Type);
+        }
+
+        [Fact]
+        public void TestPageTWithNulls()
+        {
+            var actual = new List<PageEvent>();
+            _plugin.Setup(o => o.Page(Capture.In(actual)));
+
+            _analytics.Add(_plugin.Object);
+            _analytics.Page(null, null, null);
+
+            Assert.NotEmpty(actual);
+            Assert.True(actual[0].Properties.Count == 0);
+            Assert.Null(actual[0].Name);
+            Assert.Null(actual[0].Category);
+            Assert.Equal("page", actual[0].Type);
+        }
+
+        [Fact]
         public void TestGroup()
         {
             var expected = new JsonObject

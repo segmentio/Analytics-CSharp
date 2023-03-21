@@ -206,6 +206,47 @@ namespace Segment.Analytics
             }
         }
 
+
+        /// <summary>
+        /// The page methods let your record whenever a user sees a page of your web app, and
+        /// attach a name, category or properties to the page. Either category or name must be
+        /// provided.
+        /// </summary>
+        /// <param name="title">A name for the page</param>
+        /// <param name="properties">Properties to add extra information to this call</param>
+        /// <param name="category">A category to describe the page</param>
+        public void Page(string title, JsonObject properties = default, string category = "")
+        {
+            if (properties == null)
+            {
+                properties = new JsonObject();
+            }
+            var pageEvent = new PageEvent(category, title, properties);
+            Process(pageEvent);
+        }
+
+        /// <summary>
+        /// The page methods let your record whenever a user sees a page of your mobile app, and
+        /// attach a name, category or properties to the page. Either category or name must be
+        /// provided.
+        /// </summary>
+        /// <param name="title">A name for the page</param>
+        /// <param name="properties">Properties to add extra information to this call</param>
+        /// <param name="category">A category to describe the page</param>
+        /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
+        public void Page<T>(string title, T properties = default, string category = "") where T : ISerializable
+        {
+            if (properties == null)
+            {
+                Page(title, category: category);
+            }
+            else
+            {
+                string json = JsonUtility.ToJson(properties);
+                Page(title, JsonUtility.FromJson<JsonObject>(json), category);
+            }
+        }
+
         /// <summary>
         /// The group method lets you associate a user with a group. It also lets you record custom
         /// traits about the group, like industry or number of employees.
