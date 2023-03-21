@@ -66,7 +66,7 @@ namespace Segment.Analytics.Utilities
     public class DefaultStorageProvider : IStorageProvider
     {
         public string PersistentDataPath { get; set; }
-        public DefaultStorageProvider(string persistentDataPath = null) => PersistentDataPath = persistentDataPath ?? SystemInfo.getAppFolder();
+        public DefaultStorageProvider(string persistentDataPath = null) => PersistentDataPath = persistentDataPath ?? SystemInfo.GetAppFolder();
 
         public IStorage CreateStorage(params object[] parameters)
         {
@@ -120,7 +120,7 @@ namespace Segment.Analytics.Utilities
     ///     "sentAt": "2021-04-30T22:06:11"
     /// }
     /// </code>
-    /// 
+    ///
     /// Each file stored is a batch of events. When uploading events the contents of the file can be
     /// sent as-is to the Segment batch upload endpoint.
     ///
@@ -130,7 +130,7 @@ namespace Segment.Analytics.Utilities
     ///     <item><description>Closing the file: ending the batch payload, and renaming the temporary file to a permanent one</description></item>
     ///     <item><description>Stored file paths: list of file paths that are not temporary and match the write-key of the manager</description></item>
     /// </list>
-    /// 
+    ///
     /// How it works:
     /// storeEvent() will store the event in the current open file, ensuring that batch size
     /// does not go over the 475KB limit. It will close the current file and create new temp ones
