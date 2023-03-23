@@ -68,13 +68,19 @@ namespace UnitySample
 
             private void OnApplicationUpdated(string previousVersion, string currentVersion)
             {
-                Analytics?.Track("Application Updated",
-                    new JsonObject {["previous_version"] = previousVersion, ["version"] = currentVersion});
+                Analytics?.Track("Application Updated",new JsonObject
+                {
+                    ["previous_version"] = previousVersion,
+                    ["version"] = currentVersion
+                });
             }
 
             private void OnApplicationInstalled(string currentVersion)
             {
-                Analytics?.Track("Application Installed", new JsonObject {["version"] = currentVersion});
+                Analytics?.Track("Application Installed", new JsonObject
+                {
+                    ["version"] = currentVersion
+                });
             }
         }
 
