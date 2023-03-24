@@ -177,7 +177,7 @@ namespace UnitySample
             }
         }
 
-        private void Awake()
+        protected virtual void Awake()
         {
             if (s_instance == null)
             {
