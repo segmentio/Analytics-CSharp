@@ -1,19 +1,15 @@
-using global::System;
 using global::System.Net.Http;
 using global::System.Net.Http.Headers;
-using global::System.Text;
 using global::System.Threading.Tasks;
 using Segment.Serialization;
 
 namespace Segment.Analytics.Utilities
 {
-    public class HTTPClient
+    public abstract class HTTPClient
     {
         internal const string DefaultAPIHost = "api.segment.io/v1";
 
         internal const string DefaultCdnHost = "cdn-settings.segment.com/v1";
-
-        private readonly HttpClient _httpClient;
 
         private readonly string _apiKey;
 
@@ -21,15 +17,11 @@ namespace Segment.Analytics.Utilities
 
         private readonly string _cdnHost;
 
-        private readonly string _authHeader;
-
         public HTTPClient(string apiKey, string apiHost = null, string cdnHost = null)
         {
             _apiKey = apiKey;
             _apiHost = apiHost ?? DefaultAPIHost;
             _cdnHost = cdnHost ?? DefaultCdnHost;
-            _authHeader = AuthorizationHeader(apiKey);
-            _httpClient = new HttpClient();
         }
 
         public string SegmentURL(string host, string path) => "https://" + host + path;
@@ -37,7 +29,7 @@ namespace Segment.Analytics.Utilities
         public virtual async Task<Settings?> Settings()
         {
             string settingsURL = SegmentURL(_cdnHost, "/projects/" + _apiKey + "/settings");
-            HttpResponseMessage response = await DoGet(settingsURL);
+            Response response = await DoGet(settingsURL);
             Settings? result = null;
 
             if (!response.IsSuccessStatusCode)
@@ -46,26 +38,22 @@ namespace Segment.Analytics.Utilities
             }
             else
             {
-                string json = await response.Content.ReadAsStringAsync();
+                string json = response.Content;
                 result = JsonUtility.FromJson<Settings>(json);
             }
-
-            response.Dispose();
             return result;
         }
 
         public virtual async Task<bool> Upload(byte[] data)
         {
             string uploadURL = SegmentURL(_apiHost, "/b");
-            HttpResponseMessage response = await DoPost(uploadURL, data);
+            Response response = await DoPost(uploadURL, data);
 
             if (!response.IsSuccessStatusCode)
             {
                 Analytics.s_logger?.LogError("Error " + response.StatusCode + " uploading to url");
-                int responseCode = (int)response.StatusCode;
-                response.Dispose();
 
-                switch (responseCode)
+                switch (response.StatusCode)
                 {
                     case var n when n >= 1 && n < 300:
                         return false;
@@ -81,32 +69,68 @@ namespace Segment.Analytics.Utilities
                 }
             }
 
-            response.Dispose();
             return true;
         }
 
-        public async Task<HttpResponseMessage> DoGet(string url)
+        public abstract Task<Response> DoGet(string url);
+
+        public abstract Task<Response> DoPost(string url, byte[] data);
+
+        public class Response
+        {
+            public int StatusCode { get; set; }
+            public string Content { get; set; }
+            public bool IsSuccessStatusCode => StatusCode >= 200 && StatusCode < 300;
+        }
+    }
+
+    public class DefaultHTTPClient : HTTPClient
+    {
+
+        private readonly HttpClient _httpClient;
+
+        public DefaultHTTPClient(string apiKey, string apiHost = null, string cdnHost = null) : base(apiKey, apiHost, cdnHost)
+        {
+            _httpClient = new HttpClient();
+        }
+
+        public override async Task<Response> DoGet(string url)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            return await _httpClient.SendAsync(request);
+            HttpResponseMessage response = await _httpClient.SendAsync(request);
+            return new Response
+            {
+                StatusCode = (int)response.StatusCode,
+                Content = await response.Content.ReadAsStringAsync()
+            };
         }
 
-        public async Task<HttpResponseMessage> DoPost(string url, byte[] data)
+        public override async Task<Response> DoPost(string url, byte[] data)
         {
             var request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
-            request.Headers.Authorization = new AuthenticationHeaderValue("Basic", _authHeader);
             request.Content = new ByteArrayContent(data);
 
-            return await _httpClient.SendAsync(request);
+            HttpResponseMessage response = await _httpClient.SendAsync(request);
+            return new Response
+            {
+                StatusCode = (int)response.StatusCode
+            };
         }
+    }
 
-        private string AuthorizationHeader(string writeKey)
+    public interface IHTTPClientProvider
+    {
+        HTTPClient CreateHTTPClient(string apiKey, string apiHost = null, string cdnHost = null);
+    }
+
+    public class DefaultHTTPClientProvider : IHTTPClientProvider
+    {
+        public HTTPClient CreateHTTPClient(string apiKey, string apiHost = null, string cdnHost = null)
         {
-            byte[] bytesToEncode = Encoding.UTF8.GetBytes(writeKey + ":");
-            return Convert.ToBase64String(bytesToEncode);
+            return new DefaultHTTPClient(apiKey, apiHost, cdnHost);
         }
     }
 }
