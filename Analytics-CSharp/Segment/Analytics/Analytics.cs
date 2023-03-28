@@ -71,7 +71,7 @@ namespace Segment.Analytics
 
         /// <summary>
         /// Retrieve the anonymousId in a blocking way.
-        /// 
+        ///
         /// Note: this method forces internal async methods to run in a synchronized way,
         /// it's not recommended to be used in async method.
         /// </summary>
@@ -81,7 +81,7 @@ namespace Segment.Analytics
 
         /// <summary>
         /// Retrieve the userId registered by a previous <see cref="Identify(string,JsonObject)"/> call in a blocking way.
-        /// 
+        ///
         /// Note: this method forces internal async methods to run in a synchronized way,
         /// it's not recommended to be used in async method.
         /// </summary>
@@ -91,7 +91,7 @@ namespace Segment.Analytics
 
         /// <summary>
         /// Retrieve the traits registered by a previous <see cref="Identify(string,JsonObject)"/> call in a blocking way.
-        /// 
+        ///
         /// Note: this method forces internal async methods to run in a synchronized way,
         /// it's not recommended to be used in async method.
         /// </summary>
@@ -156,7 +156,7 @@ namespace Segment.Analytics
 
         /// <summary>
         /// Retrieve the settings  in a blocking way.
-        /// 
+        ///
         /// Note: this method forces internal async methods to run in a synchronized way,
         /// it's not recommended to be used in async method.
         /// </summary>
@@ -190,7 +190,7 @@ namespace Segment.Analytics
 
         #region Startup
 
-        private void Startup(HTTPClient httpClient = null)
+        private void Startup()
         {
             Add(new StartupQueue());
             Add(new ContextPlugin());
@@ -219,7 +219,7 @@ namespace Segment.Analytics
                     Add(new SegmentDestination());
                 }
 
-                await CheckSettings(httpClient);
+                await CheckSettings();
                 // TODO: Add lifecycle events to call CheckSettings when app is brought to foreground (not launched)
             });
         }

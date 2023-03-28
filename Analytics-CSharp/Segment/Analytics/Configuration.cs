@@ -25,6 +25,8 @@ namespace Segment.Analytics
 
         public IStorageProvider StorageProvider { get; }
 
+        public IHTTPClientProvider HttpClientProvider { get; }
+
         /// <summary>
         /// Configuration that analytics can use
         /// </summary>
@@ -37,12 +39,18 @@ namespace Segment.Analytics
         /// <param name="apiHost">set a default apiHost to which Segment sends events, defaults to <c>api.segment.io/v1</c></param>
         /// <param name="cdnHost">set a default cdnHost to which Segment fetches settings, defaults to <c>cdn-settings.segment.com/v1</c></param>
         /// <param name="exceptionHandler">set an exception handler to handle errors happened in async methods within the analytics scope</param>
-        /// <param name="storageProvider">set a storage provide to tell the analytics where to store your data:
+        /// <param name="storageProvider">set a storage provider to tell the analytics where to store your data:
         ///     <list type="bullet">
         ///         <item><description><see cref="InMemoryStorageProvider"/> stores data only in memory and ignores the persistentDataPath</description></item>
         ///         <item><description><see cref="DefaultStorageProvider"/> persists data in local disk. This is used by default</description></item>
         ///     </list>
         ///     defaults to DefaultStorageProvider
+        /// </param>
+        /// <param name="httpClientProvider">set a http client provider for analytics use to do network activities:
+        ///     <list type="bullet">
+        ///         <item><description><see cref="DefaultHTTPClientProvider"/> uses System.Net.Http for network activities</description></item>
+        ///     </list>
+        ///     defaults to DefaultHTTPClientProvider
         /// </param>
         public Configuration(string writeKey,
             int flushAt = 20,
@@ -53,7 +61,8 @@ namespace Segment.Analytics
             string apiHost = null,
             string cdnHost = null,
             ICoroutineExceptionHandler exceptionHandler = null,
-            IStorageProvider storageProvider = default)
+            IStorageProvider storageProvider = default,
+            IHTTPClientProvider httpClientProvider = default)
         {
             WriteKey = writeKey;
             FlushAt = flushAt;
@@ -65,6 +74,7 @@ namespace Segment.Analytics
             CdnHost = cdnHost;
             ExceptionHandler = exceptionHandler;
             StorageProvider = storageProvider ?? new DefaultStorageProvider();
+            HttpClientProvider = httpClientProvider ?? new DefaultHTTPClientProvider();
         }
     }
 

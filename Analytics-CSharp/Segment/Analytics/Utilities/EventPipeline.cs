@@ -5,7 +5,7 @@ using Segment.Concurrent;
 
 namespace Segment.Analytics.Utilities
 {
-    internal partial class EventPipeline
+    internal class EventPipeline
     {
         private readonly Analytics _analytics;
 
@@ -50,7 +50,7 @@ namespace Segment.Analytics.Utilities
             _writeChannel = new Channel<string>();
             _uploadChannel = new Channel<string>();
             _eventCount = new AtomicInteger(0);
-            _httpClient = new HTTPClient(apiKey);
+            _httpClient = analytics.Configuration.HttpClientProvider.CreateHTTPClient(apiKey);
             _storage = analytics.Storage;
             Running = false;
         }
@@ -151,7 +151,7 @@ namespace Segment.Analytics.Utilities
 
                     // use delay to do periodical task
                     // this is doable in coroutine, since delay only suspends, allowing thread to
-                    // do other work and then come back. 
+                    // do other work and then come back.
                     await Task.Delay((int)_flushIntervalInMillis);
                 }
             }
