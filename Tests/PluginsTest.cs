@@ -21,19 +21,19 @@ namespace Tests
             _settings = JsonUtility.FromJson<Settings?>(
                 "{\"integrations\":{\"Segment.io\":{\"apiKey\":\"1vNgUqwJeCHmqgI9S1sOm9UHCyfYqbaQ\"}},\"plan\":{},\"edgeFunction\":{}}");
 
-            var config = new Configuration(
-                writeKey: "123",
-                storageProvider: new DefaultStorageProvider("tests"),
-                autoAddSegmentDestination: false,
-                userSynchronizeDispatcher: true
-            );
-
             var mockHttpClient = new Mock<HTTPClient>(null, null, null);
             mockHttpClient
                 .Setup(httpClient => httpClient.Settings())
                 .ReturnsAsync(_settings);
 
-            _analytics = new Analytics(config, httpClient: mockHttpClient.Object);
+            var config = new Configuration(
+                writeKey: "123",
+                storageProvider: new DefaultStorageProvider("tests"),
+                autoAddSegmentDestination: false,
+                userSynchronizeDispatcher: true,
+                httpClientProvider: new MockHttpClientProvider(mockHttpClient)
+            );
+            _analytics = new Analytics(config);
         }
 
         [Fact]
