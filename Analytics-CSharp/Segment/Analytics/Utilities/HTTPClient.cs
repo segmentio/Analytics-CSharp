@@ -100,11 +100,14 @@ namespace Segment.Analytics.Utilities
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             HttpResponseMessage response = await _httpClient.SendAsync(request);
-            return new Response
+            var result = new Response
             {
                 StatusCode = (int)response.StatusCode,
                 Content = await response.Content.ReadAsStringAsync()
             };
+            response.Dispose();
+
+            return result;
         }
 
         public override async Task<Response> DoPost(string url, byte[] data)
@@ -114,10 +117,13 @@ namespace Segment.Analytics.Utilities
             request.Content = new ByteArrayContent(data);
 
             HttpResponseMessage response = await _httpClient.SendAsync(request);
-            return new Response
+            var result = new Response
             {
                 StatusCode = (int)response.StatusCode
             };
+            response.Dispose();
+
+            return result;
         }
     }
 
