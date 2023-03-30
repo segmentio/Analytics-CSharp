@@ -9,7 +9,8 @@ namespace UnitySample
 
     /// <summary>
     /// Track your lifecycle events such as: installed, updated, opened, and backgrounded.
-    /// Copy and paste the classes in this file to your unity project, and add the following one-liner:
+    /// Copy and paste the classes in this file and the <see cref="Singleton{T}"/> class to your unity project,
+    /// and add the following one-liner:
     /// <code>
     /// analytics.Add(new LifecyclePlugin());
     /// </code>
@@ -55,7 +56,7 @@ namespace UnitySample
     /// </summary>
     public class Lifecycle : Singleton<Lifecycle>, IObservable<Lifecycle.State>
     {
-        private readonly List<IObserver<State>> _observers = new();
+        private readonly List<IObserver<State>> _observers = new List<IObserver<State>>();
 
         private const string AppVersionKey = "app_version";
 
@@ -144,50 +145,6 @@ namespace UnitySample
         {
             public string Message { get; set; }
             public JsonObject Properties { get; set; }
-        }
-    }
-
-    #endregion
-
-    #region Singleton Tempalte
-
-    /// <summary>
-    /// A singleton template that adds component to the scene automatically and persists across scenes
-    /// </summary>
-    /// <typeparam name="T">Type of the Component</typeparam>
-    public class Singleton<T> : MonoBehaviour where T : Component
-    {
-        private static T s_instance;
-
-        public static T Instance
-        {
-            get
-            {
-                if (s_instance == null)
-                {
-                    s_instance = FindObjectOfType<T>();
-                    if (s_instance == null)
-                    {
-                        s_instance = new GameObject("Segment Singleton").AddComponent<T>();
-                        DontDestroyOnLoad(s_instance.gameObject);
-                    }
-                }
-
-                return s_instance;
-            }
-        }
-
-        protected virtual void Awake()
-        {
-            if (s_instance == null)
-            {
-                s_instance = this as T;
-                DontDestroyOnLoad(gameObject);
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
         }
     }
 
