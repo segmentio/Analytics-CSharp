@@ -17,9 +17,9 @@ namespace Segment.Analytics
     {
         internal void Update(Settings settings, UpdateType type) => Timeline.Apply(plugin => plugin.Update(settings, type));
 
-        private async Task CheckSettings(HTTPClient httpClient = null)
+        private async Task CheckSettings()
         {
-            httpClient = httpClient ?? new HTTPClient(Configuration.WriteKey, cdnHost: Configuration.CdnHost);
+            var httpClient = Configuration.HttpClientProvider.CreateHTTPClient(Configuration.WriteKey, cdnHost: Configuration.CdnHost);
             System systemState = await Store.CurrentState<System>();
             bool hasSettings = systemState._settings.Integrations != null && systemState._settings.Plan != null;
             UpdateType updateType = hasSettings ? UpdateType.Refresh : UpdateType.Initial;

@@ -4,6 +4,7 @@ using Moq;
 using Segment.Analytics;
 using Segment.Analytics.Utilities;
 using Segment.Serialization;
+using Tests.Utils;
 using Xunit;
 
 namespace Tests.Utilities
@@ -18,7 +19,7 @@ namespace Tests.Utilities
 
         private readonly Mock<HTTPClient> _mockHttpClient;
 
-        private readonly string file;
+        private readonly string _file;
 
         private readonly byte[] _bytes;
 
@@ -26,15 +27,6 @@ namespace Tests.Utilities
         {
             Settings? settings = JsonUtility.FromJson<Settings?>(
                 "{\"integrations\":{\"Segment.io\":{\"apiKey\":\"1vNgUqwJeCHmqgI9S1sOm9UHCyfYqbaQ\"}},\"plan\":{},\"edgeFunction\":{}}");
-
-            var config = new Configuration(
-                writeKey: "123",
-                storageProvider: new DefaultStorageProvider("tests"),
-                autoAddSegmentDestination: false,
-                userSynchronizeDispatcher: true,
-                flushInterval: 0,
-                flushAt: 2
-            );
 
             _mockHttpClient = new Mock<HTTPClient>(null, null, null);
             _mockHttpClient
@@ -45,12 +37,19 @@ namespace Tests.Utilities
                 .ReturnsAsync(true);
 
             _storage = new Mock<IStorage>();
-            _analytics = new Analytics(config,
-                httpClient: _mockHttpClient.Object,
-                storage: _storage.Object);
+
+            var config = new Configuration(
+                writeKey: "123",
+                autoAddSegmentDestination: false,
+                userSynchronizeDispatcher: true,
+                flushInterval: 0,
+                flushAt: 2,
+                httpClientProvider: new MockHttpClientProvider(_mockHttpClient),
+                storageProvider: new MockStorageProvider(_storage)
+            );
+            _analytics = new Analytics(config);
             _eventPipeline = new EventPipeline(
                 _analytics,
-                httpClient: _mockHttpClient.Object,
                 logTag: "key",
                 apiKey: _analytics.Configuration.WriteKey,
                 flushCount: _analytics.Configuration.FlushAt,
@@ -58,11 +57,11 @@ namespace Tests.Utilities
                 apiHost: _analytics.Configuration.ApiHost
             );
 
-            file = Guid.NewGuid().ToString();
-            _bytes = file.GetBytes();
+            _file = Guid.NewGuid().ToString();
+            _bytes = _file.GetBytes();
             _storage
                 .Setup(o => o.Read(StorageConstants.Events))
-                .Returns(file);
+                .Returns(_file);
             _storage
                 .Setup(o => o.ReadAsBytes(It.IsAny<string>()))
                 .Returns(_bytes);
@@ -91,7 +90,7 @@ namespace Tests.Utilities
             _storage.Verify(o => o.Rollover(), Times.Exactly(1));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
             _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(1));
-            _storage.Verify(o => o.RemoveFile(file), Times.Exactly(1));
+            _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(1));
         }
 
         [Fact]
@@ -120,7 +119,7 @@ namespace Tests.Utilities
             _storage.Verify(o => o.Rollover(), Times.Exactly(1));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
             _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(1));
-            _storage.Verify(o => o.RemoveFile(file), Times.Exactly(1));
+            _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(1));
         }
 
         [Fact]
@@ -128,7 +127,6 @@ namespace Tests.Utilities
         {
             _eventPipeline = new EventPipeline(
                 _analytics,
-                httpClient: _mockHttpClient.Object,
                 logTag: "key",
                 apiKey: _analytics.Configuration.WriteKey,
                 flushCount: _analytics.Configuration.FlushAt,
@@ -143,7 +141,7 @@ namespace Tests.Utilities
             _storage.Verify(o => o.Rollover(), Times.Exactly(2));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(2));
             _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(2));
-            _storage.Verify(o => o.RemoveFile(file), Times.Exactly(2));
+            _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(2));
         }
 
         [Fact]
@@ -162,7 +160,7 @@ namespace Tests.Utilities
             _storage.Verify(o => o.Rollover(), Times.Exactly(1));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
             _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(0));
-            _storage.Verify(o => o.RemoveFile(file), Times.Exactly(0));
+            _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(0));
         }
     }
 }

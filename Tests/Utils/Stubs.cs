@@ -1,5 +1,8 @@
+using System;
 using System.Runtime.Serialization;
+using Moq;
 using Segment.Analytics;
+using Segment.Analytics.Utilities;
 using Segment.Serialization;
 
 namespace Tests.Utils
@@ -40,5 +43,29 @@ namespace Tests.Utils
     public class StubEventPlugin : EventPlugin
     {
         public override PluginType Type => PluginType.Before;
+    }
+
+    public class MockStorageProvider : IStorageProvider
+    {
+        public Mock<IStorage> Mock { get; set; }
+
+        public MockStorageProvider(Mock<IStorage> mock) => Mock = mock;
+
+        public IStorage CreateStorage(params object[] parameters)
+        {
+            return Mock.Object;
+        }
+    }
+
+    public class MockHttpClientProvider : IHTTPClientProvider
+    {
+        public Mock<HTTPClient> Mock { get; set; }
+
+        public MockHttpClientProvider(Mock<HTTPClient> mock) => Mock = mock;
+
+        public HTTPClient CreateHTTPClient(string apiKey, string apiHost = null, string cdnHost = null)
+        {
+            return Mock.Object;
+        }
     }
 }
