@@ -1,6 +1,9 @@
-using global::System.Net.Http;
-using global::System.Net.Http.Headers;
-using global::System.Threading.Tasks;
+using System.IO;
+using System.IO.Compression;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
 using Segment.Serialization;
 
 namespace Segment.Analytics.Utilities
@@ -91,7 +94,10 @@ namespace Segment.Analytics.Utilities
 
         public DefaultHTTPClient(string apiKey, string apiHost = null, string cdnHost = null) : base(apiKey, apiHost, cdnHost)
         {
-            _httpClient = new HttpClient();
+            _httpClient = new HttpClient(new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            });
         }
 
         public override async Task<Response> DoGet(string url)
@@ -112,18 +118,27 @@ namespace Segment.Analytics.Utilities
 
         public override async Task<Response> DoPost(string url, byte[] data)
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, url);
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
-            request.Content = new ByteArrayContent(data);
-
-            HttpResponseMessage response = await _httpClient.SendAsync(request);
-            var result = new Response
+            using (MemoryStream ms = new MemoryStream())
             {
-                StatusCode = (int)response.StatusCode
-            };
-            response.Dispose();
+                using (GZipStream gzip = new GZipStream(ms, CompressionMode.Compress, true))
+                {
+                    gzip.Write(data, 0, data.Length);
+                }
 
-            return result;
+                ms.Position = 0;
+                StreamContent streamContent = new StreamContent(ms);
+                streamContent.Headers.Add("Content-Encoding", "gzip");
+
+                var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
+                request.Content = streamContent;
+
+                HttpResponseMessage response = await _httpClient.SendAsync(request);
+                var result = new Response {StatusCode = (int)response.StatusCode};
+                response.Dispose();
+
+                return result;
+            }
         }
     }
 
