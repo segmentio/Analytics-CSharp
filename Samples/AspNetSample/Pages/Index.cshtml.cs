@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using Segment.Analytics;
 
 namespace AspNetSample.Pages
 {
@@ -12,9 +13,12 @@ namespace AspNetSample.Pages
     {
         private readonly ILogger<IndexModel> _logger;
 
-        public IndexModel(ILogger<IndexModel> logger)
+        private readonly Analytics _analytics;
+
+        public IndexModel(ILogger<IndexModel> logger, Analytics analytics)
         {
             _logger = logger;
+            _analytics = analytics;
         }
 
         public void OnGet()
