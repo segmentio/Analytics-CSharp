@@ -26,14 +26,14 @@ namespace AspNetSample
         public void ConfigureServices(IServiceCollection services)
         {
             // use `InMemoryStorageProvider` to make Analytics stateless
-            var configuration = new Configuration("YOUR WRITE KEY",
+            var configuration = new Configuration("261hmr7zuMPf7smDed6HaHVNuvmaI6q4",
                 flushAt: 1,
                 flushInterval: 10,
                 storageProvider: new InMemoryStorageProvider());
             var analytics = new Analytics(configuration);
 
             services.AddRazorPages();
-            services.AddSingleton(o => analytics);
+            services.AddSingleton(_ => analytics);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

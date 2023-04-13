@@ -9,16 +9,10 @@ using Segment.Analytics;
 
 namespace AspNetSample.Pages
 {
-    public class IndexModel : PageModel
+    public class IndexModel : AnalyticsPageModel
     {
-        private readonly ILogger<IndexModel> _logger;
-
-        private readonly Analytics _analytics;
-
-        public IndexModel(ILogger<IndexModel> logger, Analytics analytics)
+        public IndexModel(Analytics analytics) : base(analytics)
         {
-            _logger = logger;
-            _analytics = analytics;
         }
 
         public void OnGet()

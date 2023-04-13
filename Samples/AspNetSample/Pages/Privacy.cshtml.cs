@@ -5,17 +5,16 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using Segment.Analytics;
 
 namespace AspNetSample.Pages
 {
-    public class PrivacyModel : PageModel
+    public class PrivacyModel : AnalyticsPageModel
     {
-        private readonly ILogger<PrivacyModel> _logger;
-
-        public PrivacyModel(ILogger<PrivacyModel> logger)
+        public PrivacyModel(Analytics analytics) : base(analytics)
         {
-            _logger = logger;
         }
+
 
         public void OnGet()
         {

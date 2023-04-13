@@ -1,4 +1,8 @@
-﻿<!DOCTYPE html>
+﻿@model AspNetSample.AnalyticsPageModel
+@{
+    Model.analytics.Screen(ViewData["Title"]?.ToString());
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
