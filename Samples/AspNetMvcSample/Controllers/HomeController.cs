@@ -6,32 +6,38 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using AspNetMvcSample.Models;
+using AspNetMvcSample.Services;
+using Segment.Analytics;
 
 namespace AspNetMvcSample.Controllers
 {
-    public class HomeController : Controller
+    public class HomeController : AnalyticsController
     {
-        private readonly ILogger<HomeController> _logger;
-
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(Analytics analytics) : base(analytics)
         {
-            _logger = logger;
         }
 
         public IActionResult Index()
         {
-            return View();
+            return View(viewModel);
+        }
+
+        public IActionResult Pizza()
+        {
+            return RedirectToAction("Index", "Pizza");
         }
 
         public IActionResult Privacy()
         {
-            return View();
+            return View(viewModel);
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
-            return View(new ErrorViewModel {RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier});
+            viewModel.ErrorViewModel =
+                new ErrorViewModel {RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier};
+            return View(viewModel);
         }
     }
 }
