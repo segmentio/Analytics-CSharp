@@ -30,10 +30,9 @@ namespace AspNetSample
                 flushAt: 1,
                 flushInterval: 10,
                 storageProvider: new InMemoryStorageProvider());
-            var analytics = new Analytics(configuration);
 
             services.AddRazorPages();
-            services.AddSingleton(_ => analytics);
+            services.AddScoped(_ => new Analytics(configuration));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
