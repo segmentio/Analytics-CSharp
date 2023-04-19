@@ -8,7 +8,7 @@ namespace Segment.Analytics.Utilities
     {
         public static string GetAppFolder()
         {
-            var type = Type.GetType("UnityEngine.Application, UnityEngine");
+            var type = Type.GetType("UnityEngine.Application, UnityEngine.CoreModule");
             string unityPath = type?.GetProperty("persistentDataPath")?.GetValue(null, null).ToString();
             return unityPath ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         }
@@ -17,7 +17,7 @@ namespace Segment.Analytics.Utilities
         {
             string type = "";
 
-            if (Type.GetType("UnityEngine.Application, UnityEngine") != null)
+            if (Type.GetType("UnityEngine.Application, UnityEngine.CoreModule") != null)
             {
                 type = "Unity";
             }
