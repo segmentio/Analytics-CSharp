@@ -7,8 +7,5 @@
     <assembly fullname="System.Core">
         <type fullname="System.Linq.Expressions.Interpreter.LightLambda" preserve="all" />
     </assembly>
-    <assembly fullname="UnityEngine">
-      <type fullname="UnityEngine.Application" preserve="all" />
-    </assembly>
 </linker>
 
