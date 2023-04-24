@@ -70,32 +70,23 @@ namespace Segment.Analytics
         #region System Modifiers
 
         /// <summary>
-        /// Retrieve the anonymousId in a blocking way.
-        ///
-        /// Note: this method forces internal async methods to run in a synchronized way,
-        /// it's not recommended to be used in async method.
+        /// Retrieve the anonymousId.
         /// </summary>
         /// <returns>Anonymous Id</returns>
         public string AnonymousId() => _userInfo._anonymousId;
 
 
         /// <summary>
-        /// Retrieve the userId registered by a previous <see cref="Identify(string,JsonObject)"/> call in a blocking way.
-        ///
-        /// Note: this method forces internal async methods to run in a synchronized way,
-        /// it's not recommended to be used in async method.
+        /// Retrieve the userId registered by a previous <see cref="Identify(string,JsonObject)"/> call
         /// </summary>
         /// <returns>User Id</returns>
         public string UserId() => _userInfo._userId;
 
 
         /// <summary>
-        /// Retrieve the traits registered by a previous <see cref="Identify(string,JsonObject)"/> call in a blocking way.
-        ///
-        /// Note: this method forces internal async methods to run in a synchronized way,
-        /// it's not recommended to be used in async method.
+        /// Retrieve the traits registered by a previous <see cref="Identify(string,JsonObject)"/> call
         /// </summary>
-        /// <returns><see cref="JsonObject"/> instance of Traits</returns>
+        /// <returns><see cref="JsonObject"/>Instance of Traits</returns>
         public JsonObject Traits() => _userInfo._traits;
 
 

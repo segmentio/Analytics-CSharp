@@ -39,25 +39,76 @@ namespace Segment.Analytics.Utilities
 
     #endregion
 
+    /// <summary>
+    /// The protocol of how events are read and stored.
+    /// Implement this interface if you wanna your events
+    /// to be read and stored in a the way you want (for
+    /// example: from/to remote server, from/to local database).
+    /// By default, we have implemented read and store events
+    /// from/to memory and file storage.
+    /// </summary>
     public interface IStorage
     {
+        /// <summary>
+        /// Initialization of the storage.
+        /// All prerequisite setups should be done in this method.
+        /// </summary>
+        /// <returns>Awaitable task</returns>
         Task Initialize();
 
+        /// <summary>
+        /// Write the key/value pair to storage
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <param name="value">Value</param>
+        /// <returns>Awaitable task</returns>
         Task Write(StorageConstants key, string value);
 
+        /// <summary>
+        /// Write the key/value pair to IPreferences
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <param name="value">Value</param>
         void WritePrefs(StorageConstants key, string value);
 
+        /// <summary>
+        /// Close and finish the current batch and start a new batch
+        /// </summary>
+        /// <returns>Awaitable task</returns>
         Task Rollover();
 
+        /// <summary>
+        /// Read the value of a given key
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <returns>Value</returns>
         string Read(StorageConstants key);
 
+        /// <summary>
+        /// Remove the data of a given key
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <returns>Result of the removal</returns>
         bool Remove(StorageConstants key);
 
+        /// <summary>
+        /// Remove a batch of given name
+        /// </summary>
+        /// <param name="filePath">Name of the batch</param>
+        /// <returns>Result of the removal</returns>
         bool RemoveFile(string filePath);
 
+        /// <summary>
+        /// Read the given batch as bytes
+        /// </summary>
+        /// <param name="source">The fullname/identifier of a batch</param>
+        /// <returns>Bytes of the content</returns>
         byte[] ReadAsBytes(string source);
     }
 
+    /// <summary>
+    /// A provider protocol that creates a concrete storage with the given parameters
+    /// </summary>
     public interface IStorageProvider
     {
         IStorage CreateStorage(params object[] parameters);
