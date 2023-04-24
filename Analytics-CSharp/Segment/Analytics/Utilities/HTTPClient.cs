@@ -8,6 +8,12 @@ using Segment.Serialization;
 
 namespace Segment.Analytics.Utilities
 {
+    /// <summary>
+    /// The template that defines the common logic that is required
+    /// for a HTTPClient to fetch settings and to upload batches from/to Segment.
+    /// Extend this class and implement the abstract methods if you want to handle
+    /// http requests with a different library other than System.Net.
+    /// </summary>
     public abstract class HTTPClient
     {
         internal const string DefaultAPIHost = "api.segment.io/v1";
@@ -75,14 +81,40 @@ namespace Segment.Analytics.Utilities
             return true;
         }
 
+        /// <summary>
+        /// Handle GET request
+        /// </summary>
+        /// <param name="url">URL where the GET request sent to</param>
+        /// <returns>Awaitable response of the GET request</returns>
         public abstract Task<Response> DoGet(string url);
 
+        /// <summary>
+        /// Handle POST request
+        /// </summary>
+        /// <param name="url">URL where the POST request sent to</param>
+        /// <param name="data">data to upload</param>
+        /// <returns>Awaitable response of the POST request</returns>
         public abstract Task<Response> DoPost(string url, byte[] data);
 
+        /// <summary>
+        /// A wrapper class for http response, so that the HTTPClient is
+        /// not dependent on a specific network library.
+        /// </summary>
         public class Response
         {
+            /// <summary>
+            /// Status code of the http request
+            /// </summary>
             public int StatusCode { get; set; }
+
+            /// <summary>
+            /// Response content of the http request
+            /// </summary>
             public string Content { get; set; }
+
+            /// <summary>
+            /// A convenient method to check if the http request is successful
+            /// </summary>
             public bool IsSuccessStatusCode => StatusCode >= 200 && StatusCode < 300;
         }
     }
@@ -142,6 +174,9 @@ namespace Segment.Analytics.Utilities
         }
     }
 
+    /// <summary>
+    /// A provider protocol that creates a HTTPClient with the given parameters
+    /// </summary>
     public interface IHTTPClientProvider
     {
         HTTPClient CreateHTTPClient(string apiKey, string apiHost = null, string cdnHost = null);

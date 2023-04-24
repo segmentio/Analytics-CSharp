@@ -9,22 +9,69 @@ using Segment.Serialization;
 
 namespace Segment.Analytics.Utilities
 {
+    /// <summary>
+    /// A protocol of how key/value pairs are read and stored
+    /// Implement this interface if you wanna your key/value pairs
+    /// to be read and stored in a the way you want.
+    /// </summary>
     public interface IPreferences
     {
+        /// <summary>
+        /// Read the value of a given key as integer
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <param name="defaultValue">Fallback value to use</param>
+        /// <returns>Value</returns>
         int GetInt(string key, int defaultValue = -1);
 
+        /// <summary>
+        /// Read the value of a given key as float
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <param name="defaultValue">Fallback value to use</param>
+        /// <returns>Value</returns>
         float GetFloat(string key, float defaultValue = -1.0f);
 
+        /// <summary>
+        /// Read the value of a given key as string
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <param name="defaultValue">Fallback value to use</param>
+        /// <returns>Value</returns>
         string GetString(string key, string defaultValue = null);
 
+        /// <summary>
+        /// Check if the given key exists
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <returns>Results of whether the key exists</returns>
         bool Contains(string key);
 
+        /// <summary>
+        /// Store the key/value pair to preference
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <param name="value">Value</param>
         void Put(string key, int value);
 
+        /// <summary>
+        /// Store the key/value pair to preference
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <param name="value">Value</param>
         void Put(string key, float value);
 
+        /// <summary>
+        /// Store the key/value pair to preference
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <param name="value">Value</param>
         void Put(string key, string value);
 
+        /// <summary>
+        /// Remove the given key from preference
+        /// </summary>
+        /// <param name="key">Key</param>
         void Remove(string key);
     }
 

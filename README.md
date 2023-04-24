@@ -1,4 +1,18 @@
 # Analytics-CSharp
+- [Analytics-CSharp](#analytics-csharp)
+  - [Getting Started](#getting-started)
+  - [Tracking Methods](#tracking-methods)
+  - [Plugin Architecture](#plugin-architecture)
+  - [Adding a plugin](#adding-a-plugin)
+  - [Utility Methods](#utility-methods)
+  - [Samples](#samples)
+  - [Compatibility](#compatibility)
+  - [Changelog](#changelog)
+  - [Contributing](#contributing)
+  - [Integrating with Segment](#integrating-with-segment)
+  - [Code of Conduct](#code-of-conduct)
+  - [License](#license)
+
 
 The hassle-free way to add Segment analytics to your .Net app (Unity/Xamarin/.Net). Analytics helps you measure your users, product, and business. It unlocks insights into your app's funnel, core business metrics, and whether you have product-market fit.
 
@@ -324,6 +338,20 @@ The `reset` method clears the SDK’s internal stores for the current user and g
 ```c#
 analytics.Reset()
 ```
+
+## Samples
+
+For samples usage of the SDK in specific platforms, checkout the following:
+
+| Platform    | Sample                                                                                                                   |
+|-------------|--------------------------------------------------------------------------------------------------------------------------|
+| Asp.Net     | [Setup with dependency injection](https://github.com/segmentio/Analytics-CSharp/tree/main/Samples/AspNetSample)          |
+| Asp.Net MVC | [Setup with Dependency injection](https://github.com/segmentio/Analytics-CSharp/blob/main/Samples/AspNetMvcSample)       |
+| Console     | [Basic setups](https://github.com/segmentio/Analytics-CSharp/tree/main/Samples/ConsoleSample)                            |
+| Unity       | [Singleton Analytics](https://github.com/segmentio/Analytics-CSharp/blob/main/Samples/UnitySample/SingletonAnalytics.cs) |
+|             | [Lifecycle plugin](https://github.com/segmentio/Analytics-CSharp/blob/main/Samples/UnitySample/LifecyclePlugin.cs)       |
+|             | [Custom HTTPClient](https://github.com/segmentio/Analytics-CSharp/blob/main/Samples/UnitySample/UnityHTTPClient.cs)      |
+| Xamarin     | [Basic setups](https://github.com/segmentio/Analytics-CSharp/tree/main/Samples/XamarinSample)                            |
 
 ## Compatibility
 This library targets `.NET Standard 2.0`. Checkout [here](https://docs.microsoft.com/en-us/dotnet/standard/net-standard?tabs=net-standard-2-0) for compatible platforms.

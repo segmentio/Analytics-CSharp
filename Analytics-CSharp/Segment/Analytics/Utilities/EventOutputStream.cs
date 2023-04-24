@@ -7,24 +7,71 @@ using global::System.Threading.Tasks;
 
 namespace Segment.Analytics.Utilities
 {
+    /// <summary>
+    /// The protocol of how events are read and stored.
+    /// Implement this interface if you wanna your events
+    /// to be read and stored in a the way you want (for
+    /// example: from/to remote server, from/to local database).
+    /// By default, we have implemented read and store events
+    /// from/to memory and file storage.
+    /// </summary>
     public interface IEventStream
     {
+        /// <summary>
+        /// Length of current stream/batch
+        /// </summary>
         long Length { get; }
 
+        /// <summary>
+        /// Check if a batch/connection is opened
+        /// </summary>
         bool IsOpened { get; }
 
+        /// <summary>
+        /// Open the batch with the given name. Creates a new one if not already exists.
+        /// </summary>
+        /// <param name="file">Name of the batch</param>
+        /// <param name="newFile">Outputs the result whether the file is newly created</param>
         void OpenOrCreate(string file, out bool newFile);
 
+        /// <summary>
+        /// Append content to the opening batch
+        /// </summary>
+        /// <param name="content">Content to append</param>
+        /// <returns>Awaitable task</returns>
         Task Write(string content);
 
+        /// <summary>
+        /// Read the name of existing finished batches.
+        /// Unfinished batch should not be returned.
+        /// </summary>
+        /// <returns>The name of existing batches</returns>
         IEnumerable<string> Read();
 
+        /// <summary>
+        /// Remove the batch with the given name
+        /// </summary>
+        /// <param name="file">name of the batch</param>
         void Remove(string file);
 
+        /// <summary>
+        /// Close the current opening batch without finish it,
+        /// so that the batch can be opened for future appends.
+        /// </summary>
         void Close();
 
+        /// <summary>
+        /// Close and finish the current opening batch.
+        /// </summary>
+        /// <param name="extension">The extension to the batch name, so that we can differentiates finished batches.</param>
         void FinishAndClose(string extension = default);
 
+        /// <summary>
+        /// Read the batch with the given name as bytes.
+        /// The HTTPClient use this method to upload data.
+        /// </summary>
+        /// <param name="source">The fullname/identifier of a batch</param>
+        /// <returns></returns>
         byte[] ReadAsBytes(string source);
     }
 
