@@ -34,9 +34,9 @@ Analytics-CSharp is supported across the following platforms:
     * android
     * pc, mac, linux
 
-**NOTE: This project is currently only available in Pilot phase and is covered by Segment's [First Access & Beta Preview Terms](https://segment.com/legal/first-access-beta-preview/).  We encourage you to try out this new library. Please provide feedback via Github issues/PRs, and feel free to submit pull requests.**
+**NOTE: This project is currently only available in Beta phase and is covered by Segment's [First Access & Beta Preview Terms](https://segment.com/legal/first-access-beta-preview/).  We encourage you to try out this new library. Please provide feedback via Github issues/PRs, and feel free to submit pull requests.**
 
-### BREAKING CHANGES ALERT: if you are upgrading from 1.+ to 2.0.0, check out the breaking changes list [here](https://github.com/segmentio/Analytics-CSharp/releases/tag/2.0.0).
+### BREAKING CHANGES ALERT: if you are upgrading from 1.+ to 2.+, check out the breaking changes list [here](https://github.com/segmentio/Analytics-CSharp/releases/tag/2.0.0).
 
 ## Getting Started
 
