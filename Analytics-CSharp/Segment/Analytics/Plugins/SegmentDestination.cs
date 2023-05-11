@@ -1,6 +1,5 @@
 using Segment.Analytics.Utilities;
 using Segment.Serialization;
-using NotImplementedException = global::System.NotImplementedException;
 
 namespace Segment.Analytics.Plugins
 {
@@ -86,7 +85,10 @@ namespace Segment.Analytics.Plugins
             }
         }
 
-        public override void Reset() => throw new NotImplementedException();
+        public override void Reset()
+        {
+
+        }
 
         public override void Flush() => _pipeline.Flush();
 

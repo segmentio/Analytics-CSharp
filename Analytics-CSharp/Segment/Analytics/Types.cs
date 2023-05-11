@@ -27,12 +27,22 @@ namespace Segment.Analytics
             Integrations = rawEvent.Integrations;
         }
 
-        internal void ApplyRawEventData()
+        internal void ApplyRawEventData(UserInfo userInfo)
         {
             MessageId = Guid.NewGuid().ToString();
             Context = new JsonObject();
             Timestamp = DateTime.UtcNow.ToString("o"); // iso8601
             Integrations = new JsonObject();
+
+            // attach the latest in-memory copy of anonId and userId if not present
+            if (string.IsNullOrEmpty(AnonymousId))
+            {
+                AnonymousId = userInfo._anonymousId;
+            }
+            if (string.IsNullOrEmpty(UserId))
+            {
+                UserId = userInfo._userId;
+            }
         }
     }
 
@@ -65,7 +75,7 @@ namespace Segment.Analytics
             Traits = traits;
         }
 
-        internal IdentifyEvent(IdentifyEvent existing) : this(existing.UserId, existing.Traits) => ApplyRawEventData(existing);
+        internal IdentifyEvent(IdentifyEvent existing) => ApplyRawEventData(existing);
     }
 
     public sealed class ScreenEvent : RawEvent
@@ -137,6 +147,6 @@ namespace Segment.Analytics
             PreviousId = previousId;
         }
 
-        internal AliasEvent(AliasEvent existing) : this(existing.UserId, null) => ApplyRawEventData(existing);
+        internal AliasEvent(AliasEvent existing) => ApplyRawEventData(existing);
     }
 }

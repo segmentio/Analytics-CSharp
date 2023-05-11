@@ -66,16 +66,17 @@ namespace Segment.Analytics
                 traits = new JsonObject();
             }
 
+            // update cache and persist copy
+            _userInfo._userId = userId;
+            _userInfo._traits = traits;
             AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
                 await Store.Dispatch<UserInfo.SetUserIdAndTraitsAction, UserInfo>(
                 new UserInfo.SetUserIdAndTraitsAction(userId, traits));
-
-                // need to process in scope to prevent
-                // user id being overwritten when apply event data
-                var identifyEvent = new IdentifyEvent(userId, traits);
-                Process(identifyEvent);
             });
+
+            var identifyEvent = new IdentifyEvent(userId, traits);
+            Process(identifyEvent);
         }
 
         /// <summary>
@@ -99,14 +100,16 @@ namespace Segment.Analytics
                 traits = new JsonObject();
             }
 
+            // update cache and persist copy
+            _userInfo._traits = traits;
             AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
                 await Store.Dispatch<UserInfo.SetTraitsAction, UserInfo>(
                     new UserInfo.SetTraitsAction(traits));
-
-                var identifyEvent = new IdentifyEvent(traits: traits);
-                Process(identifyEvent);
             });
+
+            var identifyEvent = new IdentifyEvent(_userInfo._userId, traits);
+            Process(identifyEvent);
         }
 
         /// <summary>
@@ -298,19 +301,18 @@ namespace Segment.Analytics
         /// <param name="newId">The new ID you want to alias the existing ID to. The existing ID will be either
         /// the previousId if you have called identify, or the anonymous ID.
         /// </param>
-        public void Alias(string newId) => AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
-                                                    {
-                                                        UserInfo currentUserInfo = await Store.CurrentState<UserInfo>();
-                                                        if (!currentUserInfo.IsNull)
-                                                        {
-                                                            var aliasEvent = new AliasEvent(newId, currentUserInfo._userId ?? currentUserInfo._anonymousId);
-                                                            await Store.Dispatch<UserInfo.SetUserIdAction, UserInfo>(new UserInfo.SetUserIdAction(newId));
-                                                            Process(aliasEvent);
-                                                        }
-                                                        else
-                                                        {
-                                                            s_logger?.LogError("failed to fetch current userinfo state");
-                                                        }
-                                                    });
+        public void Alias(string newId)
+        {
+            var aliasEvent = new AliasEvent(newId, _userInfo._userId ?? _userInfo._anonymousId);
+
+            // update cache and persist copy
+            _userInfo._userId = newId;
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
+            {
+                await Store.Dispatch<UserInfo.SetUserIdAction, UserInfo>(new UserInfo.SetUserIdAction(newId));
+            });
+
+            Process(aliasEvent);
+        }
     }
 }

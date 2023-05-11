@@ -115,14 +115,18 @@ namespace Tests
                 CallBase = true
             };
             plugin.Setup(o => o.Reset()).Verifiable();
+            plugin.Setup(o => o.Key).Returns("mock");
 
+            string anonIdOld = _analytics.AnonymousId();
             _analytics.Add(plugin.Object);
             _analytics.Identify("test");
             _analytics.Reset();
 
             string actual = _analytics.UserId();
+            string anonIdNew = _analytics.AnonymousId();
             plugin.Verify(o => o.Reset(), Times.Exactly(1));
             Assert.Null(actual);
+            Assert.NotEqual(anonIdOld, anonIdNew);
         }
 
         [Fact]
