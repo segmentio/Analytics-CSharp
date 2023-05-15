@@ -63,8 +63,11 @@ namespace Segment.Analytics
         /// <param name="incomingEvent">An event conforming to RawEvent to be processed in the timeline</param>
         public void Process(RawEvent incomingEvent)
         {
-            incomingEvent.ApplyRawEventData();
-            Timeline.Process(incomingEvent);
+            incomingEvent.ApplyRawEventData(_userInfo);
+            AnalyticsScope.Launch(AnalyticsDispatcher, () =>
+            {
+                Timeline.Process(incomingEvent);
+            });
         }
 
         #region System Modifiers
@@ -116,9 +119,9 @@ namespace Segment.Analytics
         /// </summary>
         public void Reset()
         {
+            // update cache and persist storage
             string newAnonymousId = Guid.NewGuid().ToString();
             _userInfo = new UserInfo(newAnonymousId, null, null);
-
             AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
                 await Store.Dispatch<UserInfo.ResetAction, UserInfo>(new UserInfo.ResetAction(newAnonymousId));
@@ -130,7 +133,6 @@ namespace Segment.Analytics
                     }
                 });
             });
-
         }
 
         /// <summary>
@@ -185,7 +187,6 @@ namespace Segment.Analytics
         {
             Add(new StartupQueue());
             Add(new ContextPlugin());
-            Add(new UserInfoPlugin());
 
             // use Wait() for this coroutine to force completion,
             // since Store must be setup before any event call happened.
