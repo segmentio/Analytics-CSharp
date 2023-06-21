@@ -92,7 +92,7 @@ namespace Segment.Analytics
         public override PluginType Type => PluginType.Destination;
         public abstract string Key { get; }
 
-        private bool _enabled = false;
+        internal bool _enabled = false;
 
         private readonly Timeline _timeline = new Timeline();
 

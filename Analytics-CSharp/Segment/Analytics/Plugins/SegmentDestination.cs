@@ -60,7 +60,8 @@ namespace Segment.Analytics.Plugins
         {
             base.Configure(analytics);
 
-            // TODO: Add DestinationMetadata enrichment plugin
+            // Add DestinationMetadata enrichment plugin
+            Add(new DestinationMetadataPlugin());
 
             _pipeline = new EventPipeline(
                     analytics,
