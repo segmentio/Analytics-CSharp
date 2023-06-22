@@ -3,6 +3,13 @@ using Segment.Serialization;
 
 namespace Segment.Analytics
 {
+    public class DestinationMetadata
+    {
+        public JsonArray Bundled { get; set; }
+        public JsonArray Unbundled { get; set; }
+        public JsonArray BundledIds { get; set; }
+    }
+
     public abstract class RawEvent
     {
         public virtual string Type { get; set; }
@@ -16,6 +23,8 @@ namespace Segment.Analytics
         public JsonObject Integrations { get; set; }
 
         public JsonArray Metrics { get; set; }
+
+        public DestinationMetadata _metadata { get; set; }
 
         internal void ApplyRawEventData(RawEvent rawEvent)
         {

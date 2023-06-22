@@ -93,9 +93,7 @@ namespace Segment.Analytics
                 {
                     // Check if the settings have this destination
                     Settings settings = systemState._settings;
-                    JsonObject integrations = settings.Integrations;
-                    integrations[_key] = true;
-                    settings.Integrations = integrations;
+                    settings.Integrations[_key] = true;
 
                     result = new System(systemState._configuration, settings, systemState._running);
                 }

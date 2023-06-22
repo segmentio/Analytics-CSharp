@@ -92,7 +92,7 @@ namespace Segment.Analytics
         public override PluginType Type => PluginType.Destination;
         public abstract string Key { get; }
 
-        private bool _enabled = false;
+        internal bool _enabled = false;
 
         private readonly Timeline _timeline = new Timeline();
 
@@ -131,7 +131,7 @@ namespace Segment.Analytics
         /// <param name="type">value of <see cref="UpdateType"/>. is the update an initialization or refreshment</param>
         public override void Update(Settings settings, UpdateType type)
         {
-            _enabled = settings.Integrations?.ContainsKey(Key) ?? false;
+            _enabled = Key != null && (settings.Integrations?.ContainsKey(Key) ?? false);
             _timeline.Apply(plugin => plugin.Update(settings, type));
         }
 
@@ -246,5 +246,21 @@ namespace Segment.Analytics
         /// <param name="destinationKey">the key of <see cref="DestinationPlugin"/></param>
         /// <returns></returns>
         public DestinationPlugin Find(string destinationKey) => Timeline.Find(destinationKey);
+
+        /// <summary>
+        /// Manually enable a destination plugin.  This is useful when a given DestinationPlugin doesn't have any Segment tie-ins at all.
+        /// This will allow the destination to be processed in the same way within this library.
+        /// </summary>
+        /// <param name="plugin">Destination plugin that needs to be enabled</param>
+        public void ManuallyEnableDestination(DestinationPlugin plugin)
+        {
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
+            {
+                await Store.Dispatch<System.AddDestinationToSettingsAction, System>(
+                    new System.AddDestinationToSettingsAction(plugin.Key));
+            });
+
+            Find(plugin.Key)._enabled = true;
+        }
     }
 }
