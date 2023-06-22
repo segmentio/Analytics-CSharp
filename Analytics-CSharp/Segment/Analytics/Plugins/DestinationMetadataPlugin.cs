@@ -18,12 +18,16 @@ namespace Segment.Analytics.Plugins
 
         public override RawEvent Execute(RawEvent incomingEvent)
         {
-            IEnumerable<Plugin> enabledDestinations = Analytics.Timeline._plugins[PluginType.Destination]._plugins.Where(o =>
-                o is DestinationPlugin plugin && !(plugin is SegmentDestination) && plugin._enabled);
-            DestinationMetadata metadata = new DestinationMetadata();
-
-            HashSet<string> bundled = new HashSet<string>(enabledDestinations.Select(o => ((DestinationPlugin)o).Key));
+            HashSet<string> bundled = new HashSet<string>();
             HashSet<string> unbundled = new HashSet<string>();
+
+            foreach (Plugin plugin in Analytics.Timeline._plugins[PluginType.Destination]._plugins)
+            {
+                if (plugin is DestinationPlugin destinationPlugin && !(plugin is SegmentDestination) && destinationPlugin._enabled)
+                {
+                    bundled.Add(destinationPlugin.Key);
+                }
+            }
 
             // All active integrations, not in `bundled` are put in `unbundled`
             foreach (string integration in _settings.Integrations.Keys)
