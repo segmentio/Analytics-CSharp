@@ -131,7 +131,7 @@ namespace Segment.Analytics
         /// <param name="type">value of <see cref="UpdateType"/>. is the update an initialization or refreshment</param>
         public override void Update(Settings settings, UpdateType type)
         {
-            _enabled = settings.Integrations?.ContainsKey(Key) ?? false;
+            _enabled = Key != null && (settings.Integrations?.ContainsKey(Key) ?? false);
             _timeline.Apply(plugin => plugin.Update(settings, type));
         }
 
