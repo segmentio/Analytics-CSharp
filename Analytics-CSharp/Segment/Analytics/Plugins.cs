@@ -246,5 +246,16 @@ namespace Segment.Analytics
         /// <param name="destinationKey">the key of <see cref="DestinationPlugin"/></param>
         /// <returns></returns>
         public DestinationPlugin Find(string destinationKey) => Timeline.Find(destinationKey);
+
+        public void ManuallyEnableDestination(DestinationPlugin plugin)
+        {
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
+            {
+                await Store.Dispatch<System.AddDestinationToSettingsAction, System>(
+                    new System.AddDestinationToSettingsAction(plugin.Key));
+            });
+
+            Find(plugin.Key)._enabled = true;
+        }
     }
 }
