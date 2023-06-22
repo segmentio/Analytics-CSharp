@@ -247,6 +247,11 @@ namespace Segment.Analytics
         /// <returns></returns>
         public DestinationPlugin Find(string destinationKey) => Timeline.Find(destinationKey);
 
+        /// <summary>
+        /// Manually enable a destination plugin.  This is useful when a given DestinationPlugin doesn't have any Segment tie-ins at all.
+        /// This will allow the destination to be processed in the same way within this library.
+        /// </summary>
+        /// <param name="plugin">Destination plugin that needs to be enabled</param>
         public void ManuallyEnableDestination(DestinationPlugin plugin)
         {
             AnalyticsScope.Launch(AnalyticsDispatcher, async () =>

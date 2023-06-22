@@ -34,7 +34,7 @@ namespace Segment.Analytics
             // Enrichment is like middleware, a chance to update the event across the board before going to destinations.
             RawEvent enrichmentResult = ApplyPlugins(PluginType.Enrichment, beforeResult);
 
-            // Make sure not to update the events during this next cycle. Since each destination may want different 
+            // Make sure not to update the events during this next cycle. Since each destination may want different
             // data than other destinations we don't want them conflicting and changing what a real result should be
             ApplyPlugins(PluginType.Destination, enrichmentResult);
 
@@ -155,15 +155,11 @@ namespace Segment.Analytics
         {
             _plugins.Add(plugin);
 
-            Analytics analytics = plugin.Analytics;
-            analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () =>
+            Settings? settings = plugin.Analytics.Settings();
+            if (settings.HasValue)
             {
-                Settings? settings = await plugin.Analytics.SettingsAsync();
-                if (settings.HasValue)
-                {
-                    plugin.Update(settings.Value, UpdateType.Initial);
-                }
-            });
+                plugin.Update(settings.Value, UpdateType.Initial);
+            }
         }
 
         internal void Remove(Plugin plugin) => _plugins.RemoveAll(tempPlugin => tempPlugin == plugin);
