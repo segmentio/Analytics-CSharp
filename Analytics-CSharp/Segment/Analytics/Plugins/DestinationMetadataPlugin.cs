@@ -18,6 +18,7 @@ namespace Segment.Analytics.Plugins
 
         public override RawEvent Execute(RawEvent incomingEvent)
         {
+            // TODO: Precompute the metadata instead of compute it for every events once we have Sovran changed to synchronize mode
             HashSet<string> bundled = new HashSet<string>();
             HashSet<string> unbundled = new HashSet<string>();
 
