@@ -45,6 +45,16 @@ namespace Tests.Utils
         public override PluginType Type => PluginType.Before;
     }
 
+    public class StubDestinationPlugin : DestinationPlugin
+    {
+        public override string Key { get; }
+
+        public StubDestinationPlugin(string key)
+        {
+            Key = key;
+        }
+    }
+
     public class MockStorageProvider : IStorageProvider
     {
         public Mock<IStorage> Mock { get; set; }
