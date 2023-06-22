@@ -155,11 +155,15 @@ namespace Segment.Analytics
         {
             _plugins.Add(plugin);
 
-            Settings? settings = plugin.Analytics.Settings();
-            if (settings.HasValue)
+            Analytics analytics = plugin.Analytics;
+            analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () =>
             {
-                plugin.Update(settings.Value, UpdateType.Initial);
-            }
+                Settings? settings = await plugin.Analytics.SettingsAsync();
+                if (settings.HasValue)
+                {
+                    plugin.Update(settings.Value, UpdateType.Initial);
+                }
+            });
         }
 
         internal void Remove(Plugin plugin) => _plugins.RemoveAll(tempPlugin => tempPlugin == plugin);
