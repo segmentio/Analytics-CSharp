@@ -335,8 +335,23 @@ namespace Segment.Analytics.Utilities
         {
             var userInfo = (UserInfo)state;
             WritePrefs(StorageConstants.AnonymousId, userInfo._anonymousId);
-            WritePrefs(StorageConstants.UserId, userInfo._userId);
-            WritePrefs(StorageConstants.Traits, JsonUtility.ToJson(userInfo._traits));
+            if (userInfo._userId != null)
+            {
+                WritePrefs(StorageConstants.UserId, userInfo._userId);
+            }
+            else
+            {
+                Remove(StorageConstants.UserId);
+            }
+
+            if (userInfo._traits != null)
+            {
+                WritePrefs(StorageConstants.Traits, JsonUtility.ToJson(userInfo._traits));
+            }
+            else
+            {
+                Remove(StorageConstants.Traits);
+            }
         }
 
         public void SystemUpdate(IState state)
