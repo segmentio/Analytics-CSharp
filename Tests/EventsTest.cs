@@ -217,6 +217,40 @@ namespace Tests
             Assert.Equal(expectedUserId, actualUserId);
         }
 
+
+        [Fact]
+        public void TestIdentifyReload()
+        {
+            string expectedUserId = "newUserId";
+            var actualIdentify = new List<IdentifyEvent>();
+            var actualTrack = new List<TrackEvent>();
+            _plugin.Setup(o => o.Identify(Capture.In(actualIdentify)));
+            _plugin.Setup(o => o.Track(Capture.In(actualTrack)));
+
+            _analytics.Add(_plugin.Object);
+            _analytics.Identify(expectedUserId);
+
+            string actualUserId = _analytics.UserId();
+
+            Assert.NotEmpty(actualIdentify);
+            Assert.Equal(expectedUserId, actualIdentify[0].UserId);
+            Assert.Equal(expectedUserId, actualUserId);
+
+            var userIdFilled = UserInfo.DefaultState(_analytics.Storage);
+            Assert.Equal(expectedUserId, userIdFilled._userId);
+
+            // Now validate null ID get set            
+            _analytics.Identify(null, null);
+
+            string emptyUserId = _analytics.UserId();
+
+            Assert.Null(emptyUserId);
+            Assert.Null(actualIdentify[1].UserId);
+
+            var userIdEmpty = UserInfo.DefaultState(_analytics.Storage);
+            Assert.Null(userIdEmpty._userId);
+        }
+
         [Fact]
         public void TestScreen()
         {
