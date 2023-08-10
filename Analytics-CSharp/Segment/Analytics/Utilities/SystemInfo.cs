@@ -1,4 +1,6 @@
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using global::System;
 using global::System.Runtime.InteropServices;
 
@@ -9,8 +11,15 @@ namespace Segment.Analytics.Utilities
         public static string GetAppFolder()
         {
             var type = Type.GetType("UnityEngine.Application, UnityEngine.CoreModule");
-            string unityPath = type?.GetProperty("persistentDataPath")?.GetValue(null, null).ToString();
-            return unityPath ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string unityPath = type?.GetRuntimeProperty("persistentDataPath")?.GetValue(null, null).ToString();
+
+            if (unityPath != null) return unityPath;
+
+#if NETSTANDARD2_0
+            return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+#else
+            return Directory.GetCurrentDirectory();
+#endif
         }
 
         public static string GetPlatform()
@@ -37,42 +46,24 @@ namespace Segment.Analytics.Utilities
 
         public static string GetOs()
         {
-            OperatingSystem os = Environment.OSVersion;
-            global::System.Version vs = os.Version;
-
-            string operatingSystem = "";
-
-            switch (os.Platform)
-            {
-
-                case PlatformID.Win32S:
-                    operatingSystem = "Win32S";
-                    break;
-                case PlatformID.Win32Windows:
-                    operatingSystem = "Win32Windows";
-                    break;
-                case PlatformID.Win32NT:
-                    operatingSystem = "Win32NT";
-                    break;
-                case PlatformID.WinCE:
-                    operatingSystem = "WinCE";
-                    break;
-                case PlatformID.Unix:
-                    operatingSystem = "Unix";
-                    break;
-                case PlatformID.Xbox:
-                    operatingSystem = "Xbox";
-                    break;
-                case PlatformID.MacOSX:
-                    operatingSystem = "MacOSX";
-                    break;
-            }
-            return operatingSystem + " - " + vs.Major + "." + vs.Minor;
+            return RuntimeInformation.OSDescription;
         }
 
-        public static bool AssemblyExists(string prefix)
+        public static bool AssemblyExists(string assembly)
         {
-            return AppDomain.CurrentDomain.GetAssemblies().Where(a => a.ToString().StartsWith(prefix)).Count() > 0;
+#if NETSTANDARD2_0
+            return AppDomain.CurrentDomain.GetAssemblies().Where(a => a.ToString().StartsWith(assembly)).Count() > 0;
+#else
+            try
+            {
+                Assembly.Load(new AssemblyName(assembly));
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+#endif
         }
     }
 }

@@ -225,7 +225,7 @@ namespace Segment.Analytics.Utilities
 
         public void Close()
         {
-            _fs?.Close();
+            _fs?.Dispose();
             _fs = null;
             _file = null;
         }
@@ -237,7 +237,7 @@ namespace Segment.Analytics.Utilities
         /// <param name="extension">extension without dot</param>
         public void FinishAndClose(string extension = default)
         {
-            _fs?.Close();
+            _fs?.Dispose();
             _fs = null;
 
 

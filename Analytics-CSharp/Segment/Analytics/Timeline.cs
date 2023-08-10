@@ -1,3 +1,4 @@
+using System.Reflection;
 using global::System;
 using global::System.Collections.Generic;
 using global::System.Linq;
@@ -185,8 +186,8 @@ namespace Segment.Analytics
             return result;
         }
 
-        public T Find<T>() where T : Plugin => (T)_plugins.FirstOrDefault(typeof(T).IsInstanceOfType);
+        public T Find<T>() where T : Plugin => (T)_plugins.FirstOrDefault(o => typeof(T).GetTypeInfo().IsAssignableFrom(o.GetType().GetTypeInfo()));
 
-        public IEnumerable<T> FindAll<T>() where T : Plugin => _plugins.Where(typeof(T).IsInstanceOfType).Cast<T>();
+        public IEnumerable<T> FindAll<T>() where T : Plugin => _plugins.Where(o => typeof(T).GetTypeInfo().IsAssignableFrom(o.GetType().GetTypeInfo())).Cast<T>();
     }
 }
