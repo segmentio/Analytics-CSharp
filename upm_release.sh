@@ -67,6 +67,8 @@ cd Analytics-CSharp || exit
 
 echo "fetching the current version of project ..."
 VERSION=$(grep '<Version>' Analytics-CSharp/Analytics-CSharp.csproj | sed "s@.*<Version>\(.*\)</Version>.*@\1@")
+echo "copy README.md ..."
+README=$(<README.md)
 echo "releasing version $VERSION ..."
 
 git checkout upm
@@ -80,17 +82,18 @@ then
 fi
 # update version in package.json
 echo "$(jq --arg VERSION "$VERSION" '.version=$VERSION' Analytics-CSharp/package.json)" > Analytics-CSharp/package.json
+echo "$README" > Analytics-CSharp/README.md
 # remove all files in Plugins folder recursively
 rm -rf Analytics-CSharp/Plugins/*
 # download analytics-csharp and its dependencies from nuget
 nuget install Segment.Analytics.CSharp -Version "$VERSION" -OutputDirectory Analytics-CSharp/Plugins
-# remove dependencies related to System.Text.Json as they are satisfied through package.json
+# remove dependencies related to Newtonsoft.Json as they are satisfied through package.json
 rm -rf Analytics-CSharp/Plugins/Newtonsoft.Json.*
-# loop over all the libs and remove any non-netstandard2.0 libs
+# loop over all the libs and remove any non-netstandard1.3 libs
 for dir in Analytics-CSharp/Plugins/*; do
   if [ -d "$dir" ]; then
     for lib in "$dir"/lib/*; do
-      if [ "$lib" != "$dir/lib/netstandard2.0" ]; then
+      if [ "$lib" != "$dir/lib/netstandard1.3" ]; then
         echo $lib
         rm -rf "$lib"
       fi
