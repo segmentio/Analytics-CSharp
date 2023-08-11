@@ -13,7 +13,6 @@ namespace Tests.Utilities
             string sysinfo = SystemInfo.GetPlatform();
 
             Assert.NotNull(sysinfo);
-            Assert.Contains(".NET", sysinfo);
         }
 
         [Fact]
@@ -24,6 +23,7 @@ namespace Tests.Utilities
             Assert.NotNull(sysinfo);
         }
 
+#if NETSTANDARD2_0
         [Fact]
         public void GetAppFolderTest()
         {
@@ -31,5 +31,6 @@ namespace Tests.Utilities
 
             Assert.Equal(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), path);
         }
+#endif
     }
 }

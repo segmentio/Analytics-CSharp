@@ -381,7 +381,7 @@ namespace Segment.Analytics.Utilities
                 string json = JsonUtility.ToJson(_cache);
                 byte[] bytes = json.GetBytes();
                 fs.Write(bytes, 0, bytes.Length);
-                fs.Close();
+                fs.Dispose();
 
                 // successfully updated file, can safely delete backup and return
                 _backupFile.Delete();
@@ -391,7 +391,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                fs?.Close();
+                fs?.Dispose();
                 Analytics.s_logger?.LogError(e, "Error encountered updating file.");
             }
 
