@@ -87,8 +87,23 @@ echo "$README" > Analytics-CSharp/README.md
 rm -rf Analytics-CSharp/Plugins/*
 # download analytics-csharp and its dependencies from nuget
 nuget install Segment.Analytics.CSharp -Version "$VERSION" -OutputDirectory Analytics-CSharp/Plugins
-# remove dependencies related to Newtonsoft.Json as they are satisfied through package.json
-rm -rf Analytics-CSharp/Plugins/Newtonsoft.Json.*
+# remove dependencies that are not required
+declare -a deps=(Analytics-CSharp/Plugins/Coroutine.NET.* Analytics-CSharp/Plugins/Serialization.NET.* Analytics-CSharp/Plugins/Sovran.NET.* Analytics-CSharp/Plugins/Segment.Analytics.CSharp.*)
+for dir in Analytics-CSharp/Plugins/*; do
+  if [ -d "$dir" ]; then
+    in_deps=false
+    for dep in "${deps[@]}"; do
+        if [[ $dir == $dep ]]; then
+            in_deps=true
+            break
+        fi
+    done
+
+    if [ $in_deps == false ]; then
+        rm -rf "$dir"
+    fi
+  fi
+done
 # loop over all the libs and remove any non-netstandard1.3 libs
 for dir in Analytics-CSharp/Plugins/*; do
   if [ -d "$dir" ]; then
