@@ -1,4 +1,23 @@
 # Analytics-CSharp
+![Nuget](https://img.shields.io/nuget/v/Segment.Analytics.CSharp)
+[![openupm](https://img.shields.io/npm/v/com.segment.analytics.csharp?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.segment.analytics.csharp/)
+[![](https://github.com/segmentio/analytics-csharp/actions/workflows/build.yml/badge.svg)](https://github.com/segmentio/analytics-csharp/actions)
+[![](https://img.shields.io/github/license/segmentio/analytics-csharp)](https://github.com/segmentio/analytics-csharp/blob/main/LICENSE)
+
+- [Analytics-CSharp](#analytics-csharp)
+  - [Getting Started](#getting-started)
+  - [Tracking Methods](#tracking-methods)
+  - [Plugin Architecture](#plugin-architecture)
+  - [Adding a plugin](#adding-a-plugin)
+  - [Utility Methods](#utility-methods)
+  - [Samples](#samples)
+  - [Compatibility](#compatibility)
+  - [Changelog](#changelog)
+  - [Contributing](#contributing)
+  - [Integrating with Segment](#integrating-with-segment)
+  - [Code of Conduct](#code-of-conduct)
+  - [License](#license)
+
 
 The hassle-free way to add Segment analytics to your .Net app (Unity/Xamarin/.Net). Analytics helps you measure your users, product, and business. It unlocks insights into your app's funnel, core business metrics, and whether you have product-market fit.
 
@@ -15,9 +34,11 @@ Analytics-CSharp is supported across the following platforms:
     * android
     * pc, mac, linux
 
-**NOTE: This project is currently only available in Pilot phase and is covered by Segment's [First Access & Beta Preview Terms](https://segment.com/legal/first-access-beta-preview/).  We encourage you to try out this new library. Please provide feedback via Github issues/PRs, and feel free to submit pull requests.**
+**NOTE: This project is currently only available in Beta phase and is covered by Segment's [First Access & Beta Preview Terms](https://segment.com/legal/first-access-beta-preview/).  We encourage you to try out this new library. Please provide feedback via Github issues/PRs, and feel free to submit pull requests.**
 
-### BREAKING CHANGES ALERT: if you are upgrading from 1.+ to 2.0.0, check out the breaking changes list [here](https://github.com/segmentio/Analytics-CSharp/releases/tag/2.0.0).
+**NOTE: Migrating from Analytics.NET and Analytics.Xamarin? See our migration guide [here](https://segment.com/docs/connections/sources/catalog/libraries/server/csharp/migration-guide/)**
+
+### BREAKING CHANGES ALERT: if you are upgrading from 1.+ to 2.+, check out the breaking changes list [here](https://github.com/segmentio/Analytics-CSharp/releases/tag/2.0.0).
 
 ## Getting Started
 
@@ -324,6 +345,20 @@ The `reset` method clears the SDK’s internal stores for the current user and g
 ```c#
 analytics.Reset()
 ```
+
+## Samples
+
+For samples usage of the SDK in specific platforms, checkout the following:
+
+| Platform    | Sample                                                                                                                   |
+|-------------|--------------------------------------------------------------------------------------------------------------------------|
+| Asp.Net     | [Setup with dependency injection](https://github.com/segmentio/Analytics-CSharp/tree/main/Samples/AspNetSample)          |
+| Asp.Net MVC | [Setup with Dependency injection](https://github.com/segmentio/Analytics-CSharp/blob/main/Samples/AspNetMvcSample)       |
+| Console     | [Basic setups](https://github.com/segmentio/Analytics-CSharp/tree/main/Samples/ConsoleSample)                            |
+| Unity       | [Singleton Analytics](https://github.com/segmentio/Analytics-CSharp/blob/main/Samples/UnitySample/SingletonAnalytics.cs) |
+|             | [Lifecycle plugin](https://github.com/segmentio/Analytics-CSharp/blob/main/Samples/UnitySample/LifecyclePlugin.cs)       |
+|             | [Custom HTTPClient](https://github.com/segmentio/Analytics-CSharp/blob/main/Samples/UnitySample/UnityHTTPClient.cs)      |
+| Xamarin     | [Basic setups](https://github.com/segmentio/Analytics-CSharp/tree/main/Samples/XamarinSample)                            |
 
 ## Compatibility
 This library targets `.NET Standard 2.0`. Checkout [here](https://docs.microsoft.com/en-us/dotnet/standard/net-standard?tabs=net-standard-2-0) for compatible platforms.
