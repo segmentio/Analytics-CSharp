@@ -89,7 +89,7 @@ namespace Segment.Analytics.Utilities
                     }
                     catch (Exception exception)
                     {
-                        Analytics.s_logger?.LogError(exception, _logTag + ": Error writing events to storage.");
+                        Analytics.Logger?.Log(LogLevel.Error, exception, _logTag + ": Error writing events to storage.");
                     }
                 }
 
@@ -130,7 +130,7 @@ namespace Segment.Analytics.Utilities
                     }
                     catch (Exception e)
                     {
-                        Analytics.s_logger?.LogError(e, _logTag + ": Error uploading to url");
+                        Analytics.Logger?.Log(LogLevel.Error, e, _logTag + ": Error uploading to url");
                     }
 
                     if (shouldCleanup)

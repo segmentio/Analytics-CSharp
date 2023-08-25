@@ -364,7 +364,7 @@ namespace Segment.Analytics.Utilities
                     }
                     catch (Exception e)
                     {
-                        Analytics.s_logger?.LogError(e, "Error encountered renaming file.");
+                        Analytics.Logger?.Log(LogLevel.Error, e, "Error encountered renaming file.");
                         return;
                     }
                 }
@@ -392,7 +392,7 @@ namespace Segment.Analytics.Utilities
             catch (Exception e)
             {
                 fs?.Dispose();
-                Analytics.s_logger?.LogError(e, "Error encountered updating file.");
+                Analytics.Logger?.Log(LogLevel.Error, e, "Error encountered updating file.");
             }
 
             // exception happens during update, remove partial updated file
@@ -440,7 +440,7 @@ namespace Segment.Analytics.Utilities
                 }
                 catch (Exception e)
                 {
-                    Analytics.s_logger?.LogError(e, "Error on restoring user prefs.");
+                    Analytics.Logger?.Log(LogLevel.Error, e, "Error on restoring user prefs.");
                     thrown = e;
                 }
             }
@@ -461,7 +461,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                Analytics.s_logger?.LogError(e, "Error on deserializing cached user prefs.");
+                Analytics.Logger?.Log(LogLevel.Error, e, "Error on deserializing cached user prefs.");
                 thrown = e;
             }
 

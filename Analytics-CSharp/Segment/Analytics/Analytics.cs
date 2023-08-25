@@ -23,7 +23,7 @@ namespace Segment.Analytics
         internal IDispatcher NetworkIODispatcher { get; }
         internal IDispatcher AnalyticsDispatcher { get; }
 
-        internal static ILogger s_logger = null;
+        public static ILoggerCallback Logger = null;
 
         internal UserInfo _userInfo;
 
@@ -218,11 +218,5 @@ namespace Segment.Analytics
 
         #endregion
 
-    }
-
-    internal interface ILogger
-    {
-        void LogError(Exception exception, string message);
-        void LogError(string message);
     }
 }

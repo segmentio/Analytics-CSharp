@@ -1,5 +1,6 @@
 using global::System;
 using global::System.Collections.Generic;
+using Segment.Analytics.Utilities;
 using Segment.Serialization;
 
 namespace Segment.Analytics
@@ -119,7 +120,7 @@ namespace Segment.Analytics
             }
             catch (Exception e)
             {
-                Analytics.s_logger?.LogError(e, "Error applying event in timeline.");
+                Analytics.Logger?.Log(LogLevel.Error, e, "Error applying event in timeline.");
             }
         }
 
