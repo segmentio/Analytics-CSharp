@@ -120,7 +120,7 @@ namespace Segment.Analytics
             }
             catch (Exception e)
             {
-                Analytics.Logger?.Log(LogLevel.Error, e, "Error applying event in timeline.");
+                Analytics.Logger.Log(LogLevel.Error, e, "Error applying event in timeline.");
             }
         }
 

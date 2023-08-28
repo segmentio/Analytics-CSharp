@@ -23,7 +23,7 @@ namespace Segment.Analytics
         internal IDispatcher NetworkIODispatcher { get; }
         internal IDispatcher AnalyticsDispatcher { get; }
 
-        public static ISegmentLogger Logger = null;
+        public static ISegmentLogger Logger = new StubLogger();
 
         internal UserInfo _userInfo;
 

@@ -322,7 +322,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                Analytics.Logger?.Log(LogLevel.Error, e, "Failed to remove file path.");
+                Analytics.Logger.Log(LogLevel.Error, e, "Failed to remove file path.");
                 return false;
             }
         }
@@ -423,7 +423,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                Analytics.Logger?.Log(LogLevel.Error, e, "Error editing preference file.");
+                Analytics.Logger.Log(LogLevel.Error, e, "Error editing preference file.");
                 return false;
             }
         }
