@@ -85,6 +85,7 @@ namespace Segment.Analytics.Utilities
                 {
                     try
                     {
+                        Analytics.Logger?.Log(LogLevel.Debug, message: _logTag + " running " + e);
                         await _storage.Write(StorageConstants.Events, e);
                     }
                     catch (Exception exception)
@@ -106,6 +107,7 @@ namespace Segment.Analytics.Utilities
             while (!_uploadChannel.isCancelled)
             {
                 await _uploadChannel.Receive();
+                Analytics.Logger?.Log(LogLevel.Debug, message: _logTag + " performing flush");
 
                 await Scope.WithContext(_analytics.FileIODispatcher, async () => await _storage.Rollover());
 
@@ -127,6 +129,7 @@ namespace Segment.Analytics.Utilities
                     try
                     {
                         shouldCleanup = await _httpClient.Upload(data);
+                        Analytics.Logger?.Log(LogLevel.Debug, message: _logTag + " uploaded " + url);
                     }
                     catch (Exception e)
                     {
