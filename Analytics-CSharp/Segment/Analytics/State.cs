@@ -142,7 +142,7 @@ namespace Segment.Analytics
             }
             catch (Exception e)
             {
-                Analytics.Logger?.Log(LogLevel.Error, e,  "Failed to load cached traits from storage, creating an empty traits");
+                Analytics.Logger?.Log(LogLevel.Error, e, "Failed to load cached traits from storage, creating an empty traits");
                 traits = new JsonObject();
             }
 

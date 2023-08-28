@@ -19,7 +19,7 @@ namespace Segment.Analytics
 
         private async Task CheckSettings()
         {
-            var httpClient = Configuration.HttpClientProvider.CreateHTTPClient(Configuration.WriteKey, cdnHost: Configuration.CdnHost);
+            HTTPClient httpClient = Configuration.HttpClientProvider.CreateHTTPClient(Configuration.WriteKey, cdnHost: Configuration.CdnHost);
             System systemState = await Store.CurrentState<System>();
             bool hasSettings = systemState._settings.Integrations != null && systemState._settings.Plan != null;
             UpdateType updateType = hasSettings ? UpdateType.Refresh : UpdateType.Initial;
