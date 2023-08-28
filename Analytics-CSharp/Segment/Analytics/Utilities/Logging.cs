@@ -2,7 +2,7 @@ using System;
 
 namespace Segment.Analytics.Utilities
 {
-    public interface ILoggerCallback
+    public interface ISegmentLogger
     {
         void Log(LogLevel logLevel, Exception exception = null, string message = null);
     }

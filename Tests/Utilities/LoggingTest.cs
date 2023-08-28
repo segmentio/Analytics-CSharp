@@ -41,7 +41,7 @@ namespace Tests.Utilities
         [Fact]
         public void TestLog()
         {
-            var logger = new Mock<ILoggerCallback>();
+            var logger = new Mock<ISegmentLogger>();
             Analytics.Logger = logger.Object;
             var exception = new Exception();
             _storage
