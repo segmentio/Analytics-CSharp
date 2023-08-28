@@ -36,7 +36,7 @@ namespace Segment.Analytics
             }
             catch (Exception e)
             {
-                Analytics.s_logger?.LogError(e, "Failed to load settings from storage. Switch to default settings provided through configuration.");
+                Analytics.Logger.Log(LogLevel.Error, e, "Failed to load settings from storage. Switch to default settings provided through configuration.");
                 settings = configuration.DefaultSettings;
             }
 
@@ -142,7 +142,7 @@ namespace Segment.Analytics
             }
             catch (Exception e)
             {
-                Analytics.s_logger?.LogError(e, "Failed to load cached traits from storage, creating an empty traits");
+                Analytics.Logger.Log(LogLevel.Error, e, "Failed to load cached traits from storage, creating an empty traits");
                 traits = new JsonObject();
             }
 

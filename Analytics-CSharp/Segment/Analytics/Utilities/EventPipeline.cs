@@ -85,11 +85,12 @@ namespace Segment.Analytics.Utilities
                 {
                     try
                     {
+                        Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " running " + e);
                         await _storage.Write(StorageConstants.Events, e);
                     }
                     catch (Exception exception)
                     {
-                        Analytics.s_logger?.LogError(exception, _logTag + ": Error writing events to storage.");
+                        Analytics.Logger.Log(LogLevel.Error, exception, _logTag + ": Error writing events to storage.");
                     }
                 }
 
@@ -106,6 +107,7 @@ namespace Segment.Analytics.Utilities
             while (!_uploadChannel.isCancelled)
             {
                 await _uploadChannel.Receive();
+                Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " performing flush");
 
                 await Scope.WithContext(_analytics.FileIODispatcher, async () => await _storage.Rollover());
 
@@ -127,10 +129,11 @@ namespace Segment.Analytics.Utilities
                     try
                     {
                         shouldCleanup = await _httpClient.Upload(data);
+                        Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " uploaded " + url);
                     }
                     catch (Exception e)
                     {
-                        Analytics.s_logger?.LogError(e, _logTag + ": Error uploading to url");
+                        Analytics.Logger.Log(LogLevel.Error, e, _logTag + ": Error uploading to url");
                     }
 
                     if (shouldCleanup)

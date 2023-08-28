@@ -1,4 +1,5 @@
 using global::System.Collections.Concurrent;
+using Segment.Analytics.Utilities;
 using Segment.Concurrent;
 using Segment.Sovran;
 
@@ -27,6 +28,7 @@ namespace Segment.Analytics.Plugins
         {
             if (!_running.Get() && incomingEvent != null)
             {
+                Analytics.Logger.Log(LogLevel.Debug, message: "SegmentStartupQueue queueing event");
                 // The timeline hasn't started, we need to start queueing so we don't lose events
                 if (_queuedEvents.Count >= s_maxSize)
                 {
@@ -36,12 +38,13 @@ namespace Segment.Analytics.Plugins
                 _queuedEvents.Enqueue(incomingEvent);
                 return null;
             }
-            // The timeline has started, just let the event pass on to the next plugin 
+            // The timeline has started, just let the event pass on to the next plugin
             return incomingEvent;
         }
 
         private void RunningUpdate(System state)
         {
+            Analytics.Logger.Log(LogLevel.Debug, message: "Analytics starting = " + state._running);
             _running.Set(state._running);
             if (_running.Get())
             {
