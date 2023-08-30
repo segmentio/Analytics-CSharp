@@ -149,7 +149,7 @@ namespace Tests.Utilities
         [Fact]
         public void ReadTest()
         {
-            var files = new[] { "test1", "test2.json", "test3.tmp", "test4.json" }.ToList();
+            string[] files = new[] { "test1", "test2.json", "test3.tmp", "test4.json" };
             _stream.Setup(o => o.Read()).Returns(files);
             _prefs.Put(StorageConstants.UserId, "userId");
 

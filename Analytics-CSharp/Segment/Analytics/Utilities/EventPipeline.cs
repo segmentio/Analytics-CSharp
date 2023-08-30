@@ -111,7 +111,7 @@ namespace Segment.Analytics.Utilities
 
                 await Scope.WithContext(_analytics.FileIODispatcher, async () => await _storage.Rollover());
 
-                var fileUrlList = _storage.Read(StorageConstants.Events).Split(',').ToList();
+                string[] fileUrlList = _storage.Read(StorageConstants.Events).Split(',');
                 foreach (string url in fileUrlList)
                 {
                     if (string.IsNullOrEmpty(url))

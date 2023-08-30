@@ -93,7 +93,7 @@ namespace Segment.Analytics
         internal void Remove(Plugin plugin)
         {
             // Remove all plugins with this name in every category
-            foreach (KeyValuePair<PluginType, Mediator> item in _plugins.ToList())
+            foreach (KeyValuePair<PluginType, Mediator> item in _plugins)
             {
                 Mediator mediator = item.Value;
                 mediator.Remove(plugin);
