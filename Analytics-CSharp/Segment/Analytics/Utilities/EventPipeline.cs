@@ -51,6 +51,7 @@ namespace Segment.Analytics.Utilities
             _uploadChannel = new Channel<string>();
             _eventCount = new AtomicInteger(0);
             _httpClient = analytics.Configuration.HttpClientProvider.CreateHTTPClient(apiKey);
+            _httpClient.AnalyticsRef = analytics;
             _storage = analytics.Storage;
             Running = false;
         }

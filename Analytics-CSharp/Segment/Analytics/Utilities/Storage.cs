@@ -138,7 +138,10 @@ namespace Segment.Analytics.Utilities
             var userPrefs = new UserPrefs(rootDir + Path.DirectorySeparatorChar +
                                        "segment.prefs" + Path.DirectorySeparatorChar + config.WriteKey, config.ExceptionHandler);
             var eventStream = new FileEventStream(storageDirectory);
-            return new Storage(userPrefs, eventStream, analytics.Store, config.WriteKey, analytics.FileIODispatcher);
+            return new Storage(userPrefs, eventStream, analytics.Store, config.WriteKey, analytics.FileIODispatcher)
+            {
+                AnalyticsRef = analytics
+            };
         }
     }
 
@@ -155,7 +158,10 @@ namespace Segment.Analytics.Utilities
             var analytics = (Analytics)parameters[0];
             var userPrefs = new InMemoryPrefs();
             var eventStream = new InMemoryEventStream();
-            return new Storage(userPrefs, eventStream, analytics.Store, analytics.Configuration.WriteKey, analytics.FileIODispatcher);
+            return new Storage(userPrefs, eventStream, analytics.Store, analytics.Configuration.WriteKey, analytics.FileIODispatcher)
+            {
+                AnalyticsRef = analytics
+            };
         }
     }
 
@@ -221,6 +227,20 @@ namespace Segment.Analytics.Utilities
 
         private const string FileExtension = "json";
 
+        private readonly WeakReference<Analytics> _reference = new WeakReference<Analytics>(null);
+
+        internal Analytics AnalyticsRef
+        {
+            get
+            {
+                return _reference.TryGetTarget(out Analytics analytics) ? analytics : null;
+            }
+            set
+            {
+                _reference.SetTarget(value);
+            }
+        }
+
         public Storage(IPreferences userPrefs, IEventStream eventStream, Store store, string writeKey, IDispatcher ioDispatcher = default)
         {
             _userPrefs = userPrefs;
@@ -259,7 +279,7 @@ namespace Segment.Analytics.Utilities
                     }
                     else
                     {
-                        throw new Exception("enqueued payload is too large");
+                        AnalyticsRef.ReportInternalError(AnalyticsErrorType.PayloadInvalid, message: "enqueued payload is too large");
                     }
                     break;
                 default:
@@ -322,7 +342,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                Analytics.Logger.Log(LogLevel.Error, e, "Failed to remove file path.");
+                AnalyticsRef.ReportInternalError(AnalyticsErrorType.StorageUnableToRemove, e, "Failed to remove file path.");
                 return false;
             }
         }
@@ -394,9 +414,16 @@ namespace Segment.Analytics.Utilities
             {
                 contents.Append(',');
             }
-
             contents.Append(@event);
-            await _eventStream.Write(contents.ToString());
+
+            try
+            {
+                await _eventStream.Write(contents.ToString());
+            }
+            catch (Exception e)
+            {
+                AnalyticsRef.ReportInternalError(AnalyticsErrorType.StorageUnableToWrite, e);
+            }
         });
 
 
@@ -407,8 +434,15 @@ namespace Segment.Analytics.Utilities
                 return;
             }
 
-            await _eventStream.Write(End);
-            _eventStream.FinishAndClose(FileExtension);
+            try
+            {
+                await _eventStream.Write(End);
+                _eventStream.FinishAndClose(FileExtension);
+            }
+            catch (Exception e)
+            {
+                AnalyticsRef.ReportInternalError(AnalyticsErrorType.StorageUnableToRename, e);
+            }
 
             IncrementFileIndex();
         }
@@ -423,7 +457,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                Analytics.Logger.Log(LogLevel.Error, e, "Error editing preference file.");
+                AnalyticsRef.ReportInternalError(AnalyticsErrorType.StorageUnableToCreate, e, "Error editing preference file.");
                 return false;
             }
         }
