@@ -35,7 +35,7 @@ namespace Segment.Analytics
         public Analytics(Configuration configuration)
         {
             Configuration = configuration;
-            AnalyticsScope = new Scope(configuration.ExceptionHandler);
+            AnalyticsScope = new Scope(configuration.AnalyticsErrorHandler);
             if (configuration.UseSynchronizeDispatcher)
             {
                 IDispatcher dispatcher = new SynchronizeDispatcher();
@@ -50,7 +50,7 @@ namespace Segment.Analytics
                 AnalyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
             }
 
-            Store = new Store(configuration.UseSynchronizeDispatcher, configuration.ExceptionHandler);
+            Store = new Store(configuration.UseSynchronizeDispatcher, configuration.AnalyticsErrorHandler);
             Storage = configuration.StorageProvider.CreateStorage(this);
             Timeline = new Timeline();
 

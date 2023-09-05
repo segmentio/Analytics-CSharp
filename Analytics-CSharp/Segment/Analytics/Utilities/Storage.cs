@@ -136,7 +136,7 @@ namespace Segment.Analytics.Utilities
                                    "events";
 
             var userPrefs = new UserPrefs(rootDir + Path.DirectorySeparatorChar +
-                                       "segment.prefs" + Path.DirectorySeparatorChar + config.WriteKey, config.ExceptionHandler);
+                                       "segment.prefs" + Path.DirectorySeparatorChar + config.WriteKey, config.AnalyticsErrorHandler);
             var eventStream = new FileEventStream(storageDirectory);
             return new Storage(userPrefs, eventStream, analytics.Store, config.WriteKey, analytics.FileIODispatcher)
             {
