@@ -279,7 +279,7 @@ namespace Segment.Analytics.Utilities
                     }
                     else
                     {
-                        AnalyticsRef.ReportInternalError(AnalyticsErrorType.PayloadInvalid, message: "enqueued payload is too large");
+                        AnalyticsRef?.ReportInternalError(AnalyticsErrorType.PayloadInvalid, message: "enqueued payload is too large");
                     }
                     break;
                 default:
@@ -342,7 +342,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                AnalyticsRef.ReportInternalError(AnalyticsErrorType.StorageUnableToRemove, e, "Failed to remove file path.");
+                AnalyticsRef?.ReportInternalError(AnalyticsErrorType.StorageUnableToRemove, e, "Failed to remove file path.");
                 return false;
             }
         }
@@ -422,7 +422,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                AnalyticsRef.ReportInternalError(AnalyticsErrorType.StorageUnableToWrite, e);
+                AnalyticsRef?.ReportInternalError(AnalyticsErrorType.StorageUnableToWrite, e);
             }
         });
 
@@ -441,7 +441,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                AnalyticsRef.ReportInternalError(AnalyticsErrorType.StorageUnableToRename, e);
+                AnalyticsRef?.ReportInternalError(AnalyticsErrorType.StorageUnableToRename, e);
             }
 
             IncrementFileIndex();
@@ -457,7 +457,7 @@ namespace Segment.Analytics.Utilities
             }
             catch (Exception e)
             {
-                AnalyticsRef.ReportInternalError(AnalyticsErrorType.StorageUnableToCreate, e, "Error editing preference file.");
+                AnalyticsRef?.ReportInternalError(AnalyticsErrorType.StorageUnableToCreate, e, "Error editing preference file.");
                 return false;
             }
         }

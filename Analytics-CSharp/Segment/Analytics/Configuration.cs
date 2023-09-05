@@ -90,8 +90,6 @@ namespace Segment.Analytics
             HttpClientProvider = httpClientProvider ?? new DefaultHTTPClientProvider();
         }
 
-        [Obsolete(
-            "ICoroutineExceptionHandler is deprecated. Please pass an instance of IAnalyticsErrorHandler instead")]
         public Configuration(string writeKey,
             int flushAt = 20,
             int flushInterval = 30,
@@ -111,7 +109,7 @@ namespace Segment.Analytics
                 userSynchronizeDispatcher,
                 apiHost,
                 cdnHost,
-                new AnalyticsErrorHandlerAdapter(exceptionHandler),
+                exceptionHandler == null ? null : new AnalyticsErrorHandlerAdapter(exceptionHandler),
                 storageProvider,
                 httpClientProvider)
         {

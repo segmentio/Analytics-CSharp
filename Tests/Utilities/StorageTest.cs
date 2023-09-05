@@ -104,6 +104,17 @@ namespace Tests.Utilities
         [Fact]
         public async Task LargePayloadCauseExceptionTest()
         {
+            var errorHandler = new Mock<IAnalyticsErrorHandler>();
+            var config = new Configuration(
+                writeKey: "123",
+                storageProvider: new DefaultStorageProvider("tests"),
+                autoAddSegmentDestination: false,
+                useSynchronizeDispatcher: true,
+                analyticsErrorHandler: errorHandler.Object
+            );
+            var analytics = new Analytics(config);
+            _storage.AnalyticsRef = analytics;
+
             string letters = "abcdefghijklmnopqrstuvwxyz1234567890";
             var largePayload = new StringBuilder();
             for (int i = 0; i < 1000; i++)
@@ -111,9 +122,8 @@ namespace Tests.Utilities
                 largePayload.Append(letters);
             }
 
-            await Assert.ThrowsAsync<Exception>(async () =>
-                await _storage.Write(StorageConstants.Events, largePayload.ToString())
-            );
+            await _storage.Write(StorageConstants.Events, largePayload.ToString());
+            errorHandler.Verify(o => o.OnExceptionThrown(It.IsAny<Exception>()));
         }
 
         [Fact]
