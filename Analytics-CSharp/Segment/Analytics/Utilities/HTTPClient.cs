@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
@@ -26,6 +27,20 @@ namespace Segment.Analytics.Utilities
 
         private readonly string _cdnHost;
 
+        private readonly WeakReference<Analytics> _reference = new WeakReference<Analytics>(null);
+
+        internal Analytics AnalyticsRef
+        {
+            get
+            {
+                return _reference.TryGetTarget(out Analytics analytics) ? analytics : null;
+            }
+            set
+            {
+                _reference.SetTarget(value);
+            }
+        }
+
         public HTTPClient(string apiKey, string apiHost = null, string cdnHost = null)
         {
             _apiKey = apiKey;
@@ -43,7 +58,7 @@ namespace Segment.Analytics.Utilities
 
             if (!response.IsSuccessStatusCode)
             {
-                Analytics.Logger.Log(LogLevel.Error, message: "Error " + response.StatusCode + " getting from settings url");
+                AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode, message: "Error " + response.StatusCode + " getting from settings url");
             }
             else
             {
@@ -67,11 +82,13 @@ namespace Segment.Analytics.Utilities
                     case var n when n >= 1 && n < 300:
                         return false;
                     case var n when n >= 300 && n < 400:
+                        AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode, message: "Response code: " + n);
                         return false;
                     case 429:
+                        AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerLimited, message: "Response code: 429");
                         return false;
                     case var n when n >= 400 && n < 500:
-                        Analytics.Logger.Log(LogLevel.Error, message: "Payloads were rejected by server. Marked for removal.");
+                        AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerRejected, message: "Response code: " + n + ". Payloads were rejected by server. Marked for removal.");
                         return true;
                     default:
                         return false;
