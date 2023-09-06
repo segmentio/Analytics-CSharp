@@ -69,6 +69,7 @@ namespace Segment.Analytics
             Store = new Store(configuration.UseSynchronizeDispatcher, configuration.AnalyticsErrorHandler);
             Storage = configuration.StorageProvider.CreateStorage(this);
             Timeline = new Timeline();
+            Enable = true;
 
             // Start everything
             Startup();
