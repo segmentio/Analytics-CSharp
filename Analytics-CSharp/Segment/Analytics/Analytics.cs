@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using global::System;
 using global::System.Runtime.Serialization;
 using global::System.Threading.Tasks;
@@ -50,7 +51,7 @@ namespace Segment.Analytics
         public Analytics(Configuration configuration)
         {
             Configuration = configuration;
-            AnalyticsScope = new Scope(configuration.ExceptionHandler);
+            AnalyticsScope = new Scope(configuration.AnalyticsErrorHandler);
             if (configuration.UseSynchronizeDispatcher)
             {
                 IDispatcher dispatcher = new SynchronizeDispatcher();
@@ -65,7 +66,7 @@ namespace Segment.Analytics
                 AnalyticsDispatcher = new Dispatcher(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
             }
 
-            Store = new Store(configuration.UseSynchronizeDispatcher, configuration.ExceptionHandler);
+            Store = new Store(configuration.UseSynchronizeDispatcher, configuration.AnalyticsErrorHandler);
             Storage = configuration.StorageProvider.CreateStorage(this);
             Timeline = new Timeline();
 
@@ -236,5 +237,57 @@ namespace Segment.Analytics
 
         #endregion
 
+        #region Storage
+
+        /// <summary>
+        /// Provides a list of finished, but unsent events.
+        /// </summary>
+        /// <returns>A list of finished, but unsent events</returns>
+        public IEnumerable<string> PendingUploads()
+        {
+            return Storage.Read(StorageConstants.Events).Split(',');
+        }
+
+        /// <summary>
+        /// Purge all pending event upload files.
+        /// </summary>
+        public void PurgeStorage()
+        {
+            AnalyticsScope.Launch(FileIODispatcher, () =>
+            {
+                foreach (string file in PendingUploads())
+                {
+                    try
+                    {
+                        Storage.RemoveFile(file);
+                    }
+                    catch (Exception ex)
+                    {
+                        this.ReportInternalError(AnalyticsErrorType.StorageUnableToRemove, ex);
+                    }
+                }
+            });
+        }
+
+        /// <summary>
+        /// Purge a single event upload file
+        /// </summary>
+        /// <param name="filePath">Path to the file to be purged</param>
+        public void PurgeStorage(string filePath)
+        {
+            AnalyticsScope.Launch(FileIODispatcher, () =>
+            {
+                try
+                {
+                    Storage.RemoveFile(filePath);
+                }
+                catch (Exception ex)
+                {
+                    this.ReportInternalError(AnalyticsErrorType.StorageUnableToRemove, ex);
+                }
+            });
+        }
+
+        #endregion
     }
 }

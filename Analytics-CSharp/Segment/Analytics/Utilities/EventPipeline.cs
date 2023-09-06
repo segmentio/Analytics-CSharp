@@ -51,6 +51,7 @@ namespace Segment.Analytics.Utilities
             _uploadChannel = new Channel<string>();
             _eventCount = new AtomicInteger(0);
             _httpClient = analytics.Configuration.HttpClientProvider.CreateHTTPClient(apiKey);
+            _httpClient.AnalyticsRef = analytics;
             _storage = analytics.Storage;
             Running = false;
         }
@@ -122,7 +123,7 @@ namespace Segment.Analytics.Utilities
 
                 await Scope.WithContext(_analytics.FileIODispatcher, async () => await _storage.Rollover());
 
-                var fileUrlList = _storage.Read(StorageConstants.Events).Split(',').ToList();
+                string[] fileUrlList = _storage.Read(StorageConstants.Events).Split(',');
                 foreach (string url in fileUrlList)
                 {
                     if (string.IsNullOrEmpty(url))
