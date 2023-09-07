@@ -68,8 +68,7 @@ namespace Segment.Analytics.Plugins
                     analytics,
                     Key,
                     analytics.Configuration.WriteKey,
-                    analytics.Configuration.FlushAt,
-                    analytics.Configuration.FlushInterval * 1000L,
+                    analytics.Configuration.FlushPolicies,
                     analytics.Configuration.ApiHost
                 );
 
@@ -101,9 +100,7 @@ namespace Segment.Analytics.Plugins
         private void Enqueue<T>(T payload) where T : RawEvent
         {
             // TODO: filter out empty userid and traits values
-
-            string str = JsonUtility.ToJson(payload);
-            _pipeline?.Put(str);
+            _pipeline?.Put(payload);
         }
 
         private void OnEnableToggled(System state)
