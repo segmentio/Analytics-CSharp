@@ -22,7 +22,7 @@ namespace Tests.Utilities
                 writeKey: "123",
                 storageProvider: new DefaultStorageProvider("tests"),
                 autoAddSegmentDestination: false,
-                userSynchronizeDispatcher: true
+                useSynchronizeDispatcher: true
             );
             _analytics = new Mock<Analytics>(config);
         }

@@ -32,7 +32,7 @@ namespace Tests
             _configuration = new Configuration(
                 writeKey: "123",
                 autoAddSegmentDestination: false,
-                userSynchronizeDispatcher: true,
+                useSynchronizeDispatcher: true,
                 defaultSettings: _settings
             );
             _storage = new Mock<IStorage>();
@@ -133,7 +133,7 @@ namespace Tests
                 writeKey: "123",
                 storageProvider: new DefaultStorageProvider("tests"),
                 autoAddSegmentDestination: false,
-                userSynchronizeDispatcher: true
+                useSynchronizeDispatcher: true
             );
             _storage = new Mock<IStorage>();
         }

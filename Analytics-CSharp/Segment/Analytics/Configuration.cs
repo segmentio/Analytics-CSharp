@@ -103,6 +103,7 @@ namespace Segment.Analytics
         }
 
         public Configuration(string writeKey,
+            ICoroutineExceptionHandler exceptionHandler,
             int flushAt = 20,
             int flushInterval = 30,
             Settings defaultSettings = new Settings(),
@@ -110,7 +111,6 @@ namespace Segment.Analytics
             bool userSynchronizeDispatcher = false,
             string apiHost = null,
             string cdnHost = null,
-            ICoroutineExceptionHandler exceptionHandler = null,
             IStorageProvider storageProvider = default,
             IHTTPClientProvider httpClientProvider = default) : this(
                 writeKey,

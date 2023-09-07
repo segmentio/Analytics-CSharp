@@ -43,7 +43,7 @@ namespace Tests.Utilities
             var config = new Configuration(
                 writeKey: "123",
                 autoAddSegmentDestination: false,
-                userSynchronizeDispatcher: true,
+                useSynchronizeDispatcher: true,
                 flushInterval: 0,
                 flushAt: 2,
                 httpClientProvider: new MockHttpClientProvider(_mockHttpClient),
