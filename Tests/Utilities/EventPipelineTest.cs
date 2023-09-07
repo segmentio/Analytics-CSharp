@@ -2,6 +2,8 @@ using System;
 using System.Threading.Tasks;
 using Moq;
 using Segment.Analytics;
+using Segment.Analytics.Plugins;
+using Segment.Analytics.Policies;
 using Segment.Analytics.Utilities;
 using Segment.Serialization;
 using Tests.Utils;
@@ -52,8 +54,7 @@ namespace Tests.Utilities
                 _analytics,
                 logTag: "key",
                 apiKey: _analytics.Configuration.WriteKey,
-                flushCount: _analytics.Configuration.FlushAt,
-                flushIntervalInMillis: _analytics.Configuration.FlushInterval * 1000L,
+                flushPolicies: _analytics.Configuration.FlushPolicies,
                 apiHost: _analytics.Configuration.ApiHost
             );
 
@@ -71,7 +72,7 @@ namespace Tests.Utilities
         public async Task TestPut()
         {
             _eventPipeline.Start();
-            _eventPipeline.Put("test");
+            _eventPipeline.Put(new ScreenEvent("test"));
 
             await Task.Delay(1000);
 
@@ -82,7 +83,7 @@ namespace Tests.Utilities
         public async Task TestFlush()
         {
             _eventPipeline.Start();
-            _eventPipeline.Put("test");
+            _eventPipeline.Put(new ScreenEvent("test"));
             _eventPipeline.Flush();
 
             await Task.Delay(1000);
@@ -107,7 +108,7 @@ namespace Tests.Utilities
             Assert.False(_eventPipeline.Running);
 
             // make sure writeChannel is stopped
-            _eventPipeline.Put("test");
+            _eventPipeline.Put(new ScreenEvent("test"));
             await Task.Delay(1000);
             _storage.Verify(o => o.Write(StorageConstants.Events, It.IsAny<string>()), Times.Never);
 
@@ -124,8 +125,8 @@ namespace Tests.Utilities
         public async Task TestFlushCausedByOverflow()
         {
             _eventPipeline.Start();
-            _eventPipeline.Put("event 1");
-            _eventPipeline.Put("event 2");
+            _eventPipeline.Put(new ScreenEvent("event 1"));
+            _eventPipeline.Put(new ScreenEvent("event 2"));
 
             await Task.Delay(1000);
 
@@ -138,16 +139,30 @@ namespace Tests.Utilities
         [Fact]
         public async Task TestPeriodicalFlush()
         {
+            foreach (IFlushPolicy policy in _analytics.Configuration.FlushPolicies)
+            {
+                if (policy is FrequencyFlushPolicy frequencyFlushPolicy)
+                {
+                    frequencyFlushPolicy.FlushIntervalInMills = 1000L;
+                }
+            }
+
+            // since we set autoAddSegmentDestination = false, we need to manually add it to analytics.
+            // we need a mocked SegmentDestination so we can redirect Flush call to this _eventPipeline.
+            var segmentDestination = new Mock<SegmentDestination>();
+            segmentDestination.Setup(o => o.Flush()).Callback(() => _eventPipeline.Flush());
+            segmentDestination.Setup(o => o.Analytics).Returns(_analytics);
+            _analytics.Add(segmentDestination.Object);
+
             _eventPipeline = new EventPipeline(
                 _analytics,
                 logTag: "key",
                 apiKey: _analytics.Configuration.WriteKey,
-                flushCount: _analytics.Configuration.FlushAt,
-                flushIntervalInMillis: 1000L,
+                flushPolicies: _analytics.Configuration.FlushPolicies,
                 apiHost: _analytics.Configuration.ApiHost
             );
             _eventPipeline.Start();
-            _eventPipeline.Put("test");
+            _eventPipeline.Put(new ScreenEvent("test"));
 
             await Task.Delay(1500);
 
