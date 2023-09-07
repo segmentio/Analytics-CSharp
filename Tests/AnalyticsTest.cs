@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Moq;
 using Segment.Analytics;
+using Segment.Analytics.Plugins;
 using Segment.Analytics.Utilities;
 using Segment.Serialization;
 using Tests.Utils;
@@ -147,6 +149,29 @@ namespace Tests
         {
             Settings? actual = await _analytics.SettingsAsync();
             Assert.Equal(_settings, actual);
+        }
+
+        [Fact]
+        public void TestDisable()
+        {
+            _analytics.Enable = false;
+            var actual = new TrackEvent("test", new JsonObject());
+            _analytics.Process(actual);
+            Assert.Null(actual.MessageId);
+            Assert.Null(actual.Context);
+            Assert.Null(actual.Timestamp);
+            Assert.Null(actual.UserId);
+            Assert.Null(actual.AnonymousId);
+            Assert.Null(actual.Integrations);
+
+            _analytics.Enable = true;
+            actual = new TrackEvent("test", new JsonObject());
+            _analytics.Process(actual);
+            Assert.NotNull(actual.MessageId);
+            Assert.NotNull(actual.Context);
+            Assert.NotNull(actual.Timestamp);
+            Assert.True(actual.UserId != null || actual.AnonymousId != null);
+            Assert.NotNull(actual.Integrations);
         }
     }
 }

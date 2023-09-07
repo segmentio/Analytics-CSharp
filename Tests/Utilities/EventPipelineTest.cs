@@ -101,10 +101,23 @@ namespace Tests.Utilities
         }
 
         [Fact]
-        public void TestStop()
+        public async void TestStop()
         {
             _eventPipeline.Stop();
             Assert.False(_eventPipeline.Running);
+
+            // make sure writeChannel is stopped
+            _eventPipeline.Put("test");
+            await Task.Delay(1000);
+            _storage.Verify(o => o.Write(StorageConstants.Events, It.IsAny<string>()), Times.Never);
+
+            // make sure uploadChannel is stopped
+            _eventPipeline.Flush();
+            await Task.Delay(1000);
+            _storage.Verify(o => o.Rollover(), Times.Never);
+            _storage.Verify(o => o.Read(StorageConstants.Events), Times.Never);
+            _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Never);
+            _storage.Verify(o => o.RemoveFile(_file), Times.Never);
         }
 
         [Fact]

@@ -15,6 +15,20 @@ namespace Segment.Analytics
     {
         public Timeline Timeline { get; }
 
+        public bool Enable
+        {
+            get => _enable;
+            set
+            {
+                _enable = value;
+                AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
+                {
+                    await Store.Dispatch<System.ToggleEnabledAction, System>(
+                        new System.ToggleEnabledAction(value));
+                });
+            }
+        }
+
         internal Configuration Configuration { get; }
         internal Store Store { get; }
         internal IStorage Storage { get; }
@@ -27,6 +41,8 @@ namespace Segment.Analytics
         public static ISegmentLogger Logger = new StubLogger();
 
         internal UserInfo _userInfo;
+
+        private bool _enable;
 
         /// <summary>
         /// Public constructor of Analytics.
@@ -53,6 +69,7 @@ namespace Segment.Analytics
             Store = new Store(configuration.UseSynchronizeDispatcher, configuration.AnalyticsErrorHandler);
             Storage = configuration.StorageProvider.CreateStorage(this);
             Timeline = new Timeline();
+            Enable = true;
 
             // Start everything
             Startup();
@@ -64,6 +81,8 @@ namespace Segment.Analytics
         /// <param name="incomingEvent">An event conforming to RawEvent to be processed in the timeline</param>
         public void Process(RawEvent incomingEvent)
         {
+            if (!Enable) return;
+
             incomingEvent.ApplyRawEventData(_userInfo);
             AnalyticsScope.Launch(AnalyticsDispatcher, () =>
             {

@@ -15,9 +15,9 @@ namespace Segment.Analytics.Utilities
 
         private readonly long _flushIntervalInMillis;
 
-        private readonly Channel<string> _writeChannel;
+        private Channel<string> _writeChannel;
 
-        private readonly Channel<string> _uploadChannel;
+        private Channel<string> _uploadChannel;
 
         private readonly AtomicInteger _eventCount;
 
@@ -62,6 +62,15 @@ namespace Segment.Analytics.Utilities
 
         public void Start()
         {
+            if (Running) return;
+
+            // avoid to re-establish a channel if the pipeline just gets created
+            if (_writeChannel.isCancelled)
+            {
+                _writeChannel = new Channel<string>();
+                _uploadChannel = new Channel<string>();
+            }
+
             Running = true;
             Schedule();
             Write();
@@ -70,9 +79,11 @@ namespace Segment.Analytics.Utilities
 
         public void Stop()
         {
+            if (!Running) return;
+            Running = false;
+
             _uploadChannel.Cancel();
             _writeChannel.Cancel();
-            Running = false;
         }
 
         private void Write() => _analytics.AnalyticsScope.Launch(_analytics.FileIODispatcher, async () =>
