@@ -18,12 +18,14 @@ namespace Segment.Analytics
         internal Configuration _configuration;
         internal Settings _settings;
         internal bool _running;
+        internal bool _enable;
 
-        internal System(Configuration configuration, Settings settings, bool running)
+        internal System(Configuration configuration, Settings settings, bool running, bool enable)
         {
             _configuration = configuration;
             _settings = settings;
             _running = running;
+            _enable = enable;
         }
 
         internal static System DefaultState(Configuration configuration, IStorage storage)
@@ -40,7 +42,7 @@ namespace Segment.Analytics
                 settings = configuration.DefaultSettings;
             }
 
-            return new System(configuration, settings, false);
+            return new System(configuration, settings, false, true);
         }
 
         internal struct UpdateSettingsAction : IAction
@@ -54,7 +56,7 @@ namespace Segment.Analytics
                 IState result = null;
                 if (state is System systemState)
                 {
-                    result = new System(systemState._configuration, _settings, systemState._running);
+                    result = new System(systemState._configuration, _settings, systemState._running, systemState._enable);
                 }
 
                 return result;
@@ -72,7 +74,7 @@ namespace Segment.Analytics
                 IState result = null;
                 if (state is System systemState)
                 {
-                    result = new System(systemState._configuration, systemState._settings, _running);
+                    result = new System(systemState._configuration, systemState._settings, _running, systemState._enable);
                 }
 
                 return result;
@@ -95,7 +97,25 @@ namespace Segment.Analytics
                     Settings settings = systemState._settings;
                     settings.Integrations[_key] = true;
 
-                    result = new System(systemState._configuration, settings, systemState._running);
+                    result = new System(systemState._configuration, settings, systemState._running, systemState._enable);
+                }
+
+                return result;
+            }
+        }
+
+        internal readonly struct ToggleEnabledAction : IAction
+        {
+            private readonly bool _enable;
+
+            public ToggleEnabledAction(bool enable) => _enable = enable;
+
+            public IState Reduce(IState state)
+            {
+                IState result = null;
+                if (state is System systemState)
+                {
+                    result = new System(systemState._configuration, systemState._settings, systemState._running, _enable);
                 }
 
                 return result;

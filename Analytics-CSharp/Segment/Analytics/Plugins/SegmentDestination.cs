@@ -1,5 +1,6 @@
 using Segment.Analytics.Utilities;
 using Segment.Serialization;
+using Segment.Sovran;
 
 namespace Segment.Analytics.Plugins
 {
@@ -12,9 +13,9 @@ namespace Segment.Analytics.Plugins
     /// <item><description>We upload events on a dedicated thread using the batch api</description></item>
     /// </list>
     /// </summary>
-    public class SegmentDestination : DestinationPlugin
+    public class SegmentDestination : DestinationPlugin, ISubscriber
     {
-        private EventPipeline _pipeline;
+        private EventPipeline _pipeline = null;
 
         public override string Key => "Segment.io";
 
@@ -71,7 +72,11 @@ namespace Segment.Analytics.Plugins
                     analytics.Configuration.FlushInterval * 1000L,
                     analytics.Configuration.ApiHost
                 );
-            _pipeline.Start();
+
+            analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () =>
+            {
+                await analytics.Store.Subscribe<System>(this, state => OnEnableToggled((System)state), true);
+            });
         }
 
         public override void Update(Settings settings, UpdateType type)
@@ -80,7 +85,7 @@ namespace Segment.Analytics.Plugins
 
             JsonObject segmentInfo = settings.Integrations?.GetJsonObject(Key);
             string apiHost = segmentInfo?.GetString(ApiHost);
-            if (apiHost != null)
+            if (apiHost != null && _pipeline != null)
             {
                 _pipeline.ApiHost = apiHost;
             }
@@ -91,14 +96,26 @@ namespace Segment.Analytics.Plugins
 
         }
 
-        public override void Flush() => _pipeline.Flush();
+        public override void Flush() => _pipeline?.Flush();
 
         private void Enqueue<T>(T payload) where T : RawEvent
         {
             // TODO: filter out empty userid and traits values
 
             string str = JsonUtility.ToJson(payload);
-            _pipeline.Put(str);
+            _pipeline?.Put(str);
+        }
+
+        private void OnEnableToggled(System state)
+        {
+            if (state._enable)
+            {
+                _pipeline?.Start();
+            }
+            else
+            {
+                _pipeline?.Stop();
+            }
         }
     }
 }
