@@ -24,7 +24,7 @@ namespace Tests.Utilities
                 autoAddSegmentDestination: false,
                 useSynchronizeDispatcher: true
             );
-            _analytics = new Mock<Analytics>(config);
+            _analytics = new Mock<Analytics>(config){CallBase = true};
         }
 
         [Fact]
