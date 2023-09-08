@@ -33,10 +33,10 @@ namespace Segment.Analytics
         internal Store Store { get; }
         internal IStorage Storage { get; }
 
-        internal Scope AnalyticsScope { get; }
-        internal IDispatcher FileIODispatcher { get; }
-        internal IDispatcher NetworkIODispatcher { get; }
-        internal IDispatcher AnalyticsDispatcher { get; }
+        internal virtual Scope AnalyticsScope { get; }
+        internal virtual IDispatcher FileIODispatcher { get; }
+        internal virtual IDispatcher NetworkIODispatcher { get; }
+        internal virtual IDispatcher AnalyticsDispatcher { get; }
 
         public static ISegmentLogger Logger = new StubLogger();
 
@@ -124,7 +124,7 @@ namespace Segment.Analytics
         /// <summary>
         /// Force all the <see cref="EventPlugin"/> registered in analytics to flush
         /// </summary>
-        public void Flush() => Apply(plugin =>
+        public virtual void Flush() => Apply(plugin =>
         {
             if (plugin is EventPlugin eventPlugin)
             {

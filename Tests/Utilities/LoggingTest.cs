@@ -32,7 +32,7 @@ namespace Tests.Utilities
             _configuration = new Configuration(
                 writeKey: "123",
                 autoAddSegmentDestination: false,
-                userSynchronizeDispatcher: true,
+                useSynchronizeDispatcher: true,
                 defaultSettings: _settings
             );
             _storage = new Mock<IStorage>();

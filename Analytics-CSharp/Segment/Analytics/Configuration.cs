@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Segment.Analytics.Policies;
 using Segment.Analytics.Utilities;
 using Segment.Concurrent;
 
@@ -40,6 +42,8 @@ namespace Segment.Analytics
 
         public IHTTPClientProvider HttpClientProvider { get; }
 
+        public IList<IFlushPolicy> FlushPolicies { get; }
+
         /// <summary>
         /// Configuration that analytics can use
         /// </summary>
@@ -65,6 +69,7 @@ namespace Segment.Analytics
         ///     </list>
         ///     defaults to DefaultHTTPClientProvider
         /// </param>
+        /// <param name="flushPolicies">set custom flush policies to tell analytics when and how to flush. If a value is given, it overwrites flushAt and flushInterval</param>
         public Configuration(string writeKey,
             int flushAt = 20,
             int flushInterval = 30,
@@ -75,7 +80,8 @@ namespace Segment.Analytics
             string cdnHost = null,
             IAnalyticsErrorHandler analyticsErrorHandler = null,
             IStorageProvider storageProvider = default,
-            IHTTPClientProvider httpClientProvider = default)
+            IHTTPClientProvider httpClientProvider = default,
+            IList<IFlushPolicy> flushPolicies = default)
         {
             WriteKey = writeKey;
             FlushAt = flushAt;
@@ -88,9 +94,16 @@ namespace Segment.Analytics
             AnalyticsErrorHandler = analyticsErrorHandler;
             StorageProvider = storageProvider ?? new DefaultStorageProvider();
             HttpClientProvider = httpClientProvider ?? new DefaultHTTPClientProvider();
+            FlushPolicies = flushPolicies ?? new List<IFlushPolicy>();
+            if (FlushPolicies.Count == 0)
+            {
+                FlushPolicies.Add(new CountFlushPolicy(flushAt));
+                FlushPolicies.Add(new FrequencyFlushPolicy(flushInterval * 1000L));
+            }
         }
 
         public Configuration(string writeKey,
+            ICoroutineExceptionHandler exceptionHandler,
             int flushAt = 20,
             int flushInterval = 30,
             Settings defaultSettings = new Settings(),
@@ -98,7 +111,6 @@ namespace Segment.Analytics
             bool userSynchronizeDispatcher = false,
             string apiHost = null,
             string cdnHost = null,
-            ICoroutineExceptionHandler exceptionHandler = null,
             IStorageProvider storageProvider = default,
             IHTTPClientProvider httpClientProvider = default) : this(
                 writeKey,
