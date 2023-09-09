@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using global::System;
 using global::System.Linq;
-using global::System.Threading.Tasks;
+using Segment.Analytics.Policies;
 using Segment.Concurrent;
+using Segment.Serialization;
 
 namespace Segment.Analytics.Utilities
 {
@@ -11,15 +13,11 @@ namespace Segment.Analytics.Utilities
 
         private readonly string _logTag;
 
-        private readonly int _flushCount;
+        private readonly IList<IFlushPolicy> _flushPolicies;
 
-        private readonly long _flushIntervalInMillis;
-
-        private Channel<string> _writeChannel;
+        private Channel<RawEvent> _writeChannel;
 
         private Channel<string> _uploadChannel;
-
-        private readonly AtomicInteger _eventCount;
 
         private readonly HTTPClient _httpClient;
 
@@ -31,34 +29,33 @@ namespace Segment.Analytics.Utilities
 
         internal const string FlushPoison = "#!flush";
 
+        internal static readonly RawEvent s_flushEvent = new ScreenEvent(FlushPoison, FlushPoison);
+
         internal const string UploadSig = "#!upload";
 
         public EventPipeline(
             Analytics analytics,
             string logTag,
             string apiKey,
-            int flushCount = 20,
-            long flushIntervalInMillis = 30_000,
+            IList<IFlushPolicy> flushPolicies,
             string apiHost = HTTPClient.DefaultAPIHost)
         {
             _analytics = analytics;
             _logTag = logTag;
-            _flushCount = flushCount;
-            _flushIntervalInMillis = flushIntervalInMillis;
+            _flushPolicies = flushPolicies;
             ApiHost = apiHost;
 
-            _writeChannel = new Channel<string>();
+            _writeChannel = new Channel<RawEvent>();
             _uploadChannel = new Channel<string>();
-            _eventCount = new AtomicInteger(0);
             _httpClient = analytics.Configuration.HttpClientProvider.CreateHTTPClient(apiKey);
             _httpClient.AnalyticsRef = analytics;
             _storage = analytics.Storage;
             Running = false;
         }
 
-        public void Put(string @event) => _writeChannel.Send(@event);
+        public void Put(RawEvent @event) => _writeChannel.Send(@event);
 
-        public void Flush() => _writeChannel.Send(FlushPoison);
+        public void Flush() => _writeChannel.Send(s_flushEvent);
 
         public void Start()
         {
@@ -67,7 +64,7 @@ namespace Segment.Analytics.Utilities
             // avoid to re-establish a channel if the pipeline just gets created
             if (_writeChannel.isCancelled)
             {
-                _writeChannel = new Channel<string>();
+                _writeChannel = new Channel<RawEvent>();
                 _uploadChannel = new Channel<string>();
             }
 
@@ -84,21 +81,28 @@ namespace Segment.Analytics.Utilities
 
             _uploadChannel.Cancel();
             _writeChannel.Cancel();
+            Unschedule();
         }
 
         private void Write() => _analytics.AnalyticsScope.Launch(_analytics.FileIODispatcher, async () =>
         {
             while (!_writeChannel.isCancelled)
             {
-                string e = await _writeChannel.Receive();
-                bool isPoison = e.Equals(FlushPoison);
+                RawEvent e = await _writeChannel.Receive();
+                bool isPoison = e == s_flushEvent;
 
                 if (!isPoison)
                 {
                     try
                     {
-                        Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " running " + e);
-                        await _storage.Write(StorageConstants.Events, e);
+                        string str = JsonUtility.ToJson(e);
+                        Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " running " + str);
+                        await _storage.Write(StorageConstants.Events, str);
+
+                        foreach (IFlushPolicy flushPolicy in _flushPolicies)
+                        {
+                            flushPolicy.UpdateState(e);
+                        }
                     }
                     catch (Exception exception)
                     {
@@ -106,10 +110,13 @@ namespace Segment.Analytics.Utilities
                     }
                 }
 
-                if (_eventCount.IncrementAndGet() >= _flushCount || isPoison)
+                if (isPoison || _flushPolicies.Any(o => o.ShouldFlush()))
                 {
-                    _eventCount.Set(0);
                     _uploadChannel.Send(UploadSig);
+                    foreach (IFlushPolicy flushPolicy in _flushPolicies)
+                    {
+                        flushPolicy.Reset();
+                    }
                 }
             }
         });
@@ -156,20 +163,20 @@ namespace Segment.Analytics.Utilities
             }
         });
 
-        private void Schedule() => _analytics.AnalyticsScope.Launch(_analytics.FileIODispatcher, async () =>
+        private void Schedule()
         {
-            if (_flushIntervalInMillis > 0)
+            foreach (IFlushPolicy flushPolicy in _flushPolicies)
             {
-                while (Running)
-                {
-                    Flush();
-
-                    // use delay to do periodical task
-                    // this is doable in coroutine, since delay only suspends, allowing thread to
-                    // do other work and then come back.
-                    await Task.Delay((int)_flushIntervalInMillis);
-                }
+                flushPolicy.Schedule(_analytics);
             }
-        });
+        }
+
+        private void Unschedule()
+        {
+            foreach (IFlushPolicy flushPolicy in _flushPolicies)
+            {
+                flushPolicy.Unschedule();
+            }
+        }
     }
 }

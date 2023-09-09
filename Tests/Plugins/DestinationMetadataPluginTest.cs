@@ -30,7 +30,7 @@ namespace Tests.Plugins
                 writeKey: "123",
                 storageProvider: new DefaultStorageProvider("tests"),
                 autoAddSegmentDestination: false,
-                userSynchronizeDispatcher: true,
+                useSynchronizeDispatcher: true,
                 httpClientProvider: new MockHttpClientProvider(mockHttpClient)
             );
             _analytics = new Analytics(config);
