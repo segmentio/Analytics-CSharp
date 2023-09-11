@@ -23,7 +23,7 @@ namespace Segment.Analytics.Compat {
         public static void Track(this Analytics analytics, string userId, string eventName, Dictionary<string, object> properties)
         {
             properties.Add("userId", userId);
-            analytics.Track(eventName, new JsonObject(properties.ToDictionary(x=>x.Key, x=>x.Value as JsonElement)));
+            analytics.Track(eventName, JsonUtility.FromJson<Segment.Serialization.JsonObject>(JsonUtility.ToJson(properties)));
         }
 
         public static void Screen(this Analytics analytics, string userId, string eventName)
@@ -33,7 +33,7 @@ namespace Segment.Analytics.Compat {
         public static void Screen(this Analytics analytics, string userId, string eventName, Dictionary<string, object> properties)
         {
             properties.Add("userId", userId);
-            analytics.Screen(eventName, new JsonObject(properties.ToDictionary(x=>x.Key, x=>x.Value as JsonElement)));
+            analytics.Screen(eventName, JsonUtility.FromJson<Segment.Serialization.JsonObject>(JsonUtility.ToJson(properties)));
         }
 
         public static void Page(this Analytics analytics, string userId, string eventName)
@@ -43,13 +43,13 @@ namespace Segment.Analytics.Compat {
         public static void Page(this Analytics analytics, string userId, string eventName, Dictionary<string, object> properties)
         {
             properties.Add("userId", userId);
-            analytics.Page(eventName, new JsonObject(properties.ToDictionary(x=>x.Key, x=>x.Value as JsonElement)));
+            analytics.Page(eventName, JsonUtility.FromJson<Segment.Serialization.JsonObject>(JsonUtility.ToJson(properties)));
         }
 
         public static void Group(this Analytics analytics, string userId, string groupId, Dictionary<string, object> traits)
         {
             traits.Add("userId", userId);
-            analytics.Group(groupId, new JsonObject(traits.ToDictionary(x=>x.Key, x=>x.Value as JsonElement)));
+            analytics.Group(groupId, JsonUtility.FromJson<Segment.Serialization.JsonObject>(JsonUtility.ToJson(traits)));
         }
 
         public static void Alias(this Analytics analytics, string previousId, string userId)
@@ -59,48 +59,38 @@ namespace Segment.Analytics.Compat {
         }
     }   
 
-    class UserIdPlugin : EventPlugin 
+    class UserIdPlugin : EventPlugin
+{
+    public override PluginType Type => PluginType.Enrichment;
+
+    public override RawEvent Execute(RawEvent incomingEvent)
     {
-        public override PluginType Type => PluginType.Enrichment;
-
-        public override TrackEvent Track(TrackEvent trackEvent)
+        switch (incomingEvent)
         {
-            if (trackEvent.Properties.ContainsKey("userId"))
-            {
-                trackEvent.UserId = trackEvent.Properties.GetString("userId");
-                trackEvent.Properties.Remove("userId");
-            }
-            return trackEvent;
+            case TrackEvent e:
+                PatchUserId(e, e.Properties);
+                break;
+            case PageEvent e:
+                PatchUserId(e, e.Properties);
+                break;
+            case ScreenEvent e:
+                PatchUserId(e, e.Properties);
+                break;
+            case GroupEvent e:
+                PatchUserId(e, e.Traits);
+                break;
         }
 
-        public override ScreenEvent Screen(ScreenEvent screenEvent)
-        {
-            if (screenEvent.Properties.ContainsKey("userId"))
-            {
-                screenEvent.UserId = screenEvent.Properties.GetString("userId");
-                screenEvent.Properties.Remove("userId");
-            }
-            return screenEvent;
-        }
+        return incomingEvent;
+    }
 
-        public override PageEvent Page(PageEvent pageEvent)
+    private void PatchUserId(RawEvent @event, JsonObject jsonObject)
+    {
+        if (jsonObject.ContainsKey("userId"))
         {
-            if (pageEvent.Properties.ContainsKey("userId"))
-            {
-                pageEvent.UserId = pageEvent.Properties.GetString("user_id");
-                pageEvent.Properties.Remove("userId");
-            }
-            return pageEvent;
-        }
-
-        public override GroupEvent Group(GroupEvent groupEvent)
-        {
-            if (groupEvent.Traits.ContainsKey("userId"))
-            {
-                groupEvent.UserId = groupEvent.Traits.GetString("user_id");
-                groupEvent.Traits.Remove("userId");
-            }
-            return groupEvent;
+            @event.UserId = jsonObject.GetString("userId");
+            jsonObject.Remove("userId");
         }
     }
+}
 }
