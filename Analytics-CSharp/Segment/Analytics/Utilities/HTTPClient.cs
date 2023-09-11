@@ -48,7 +48,26 @@ namespace Segment.Analytics.Utilities
             _cdnHost = cdnHost ?? DefaultCdnHost;
         }
 
-        public string SegmentURL(string host, string path) => "https://" + host + path;
+        /// <summary>
+        /// Returns formatted url to Segment's server.
+        /// If you want to use your own server, override this method like the following
+        /// <code>
+        ///     public virtual string SegmentURL(string host, string path)
+        ///     {
+        ///         if (host is cdnHost)
+        ///         {
+        ///             return cdn url with your own path
+        ///         }
+        ///         else { // is apiHost
+        ///             return api url with your own path
+        ///         }
+        ///     }
+        /// </code>
+        /// </summary>
+        /// <param name="host">cdnHost or apiHost</param>
+        /// <param name="path">Path to segment's /settings endpoint or /b endpoints</param>
+        /// <returns>Formatted url</returns>
+        public virtual string SegmentURL(string host, string path) => "https://" + host + path;
 
         public virtual async Task<Settings?> Settings()
         {
