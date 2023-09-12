@@ -23,13 +23,13 @@ namespace Segment.Analytics.Utilities
 
         private readonly string _apiKey;
 
-        private readonly string _apiHost;
+        protected readonly string _apiHost;
 
-        private readonly string _cdnHost;
+        protected readonly string _cdnHost;
 
         private readonly WeakReference<Analytics> _reference = new WeakReference<Analytics>(null);
 
-        internal Analytics AnalyticsRef
+        public Analytics AnalyticsRef
         {
             get
             {

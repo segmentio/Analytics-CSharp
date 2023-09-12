@@ -36,7 +36,7 @@ namespace Segment.Analytics
             }
         }
 
-        public IAnalyticsErrorHandler AnalyticsErrorHandler { get; private set; }
+        public IAnalyticsErrorHandler AnalyticsErrorHandler { get; set; }
 
         public IStorageProvider StorageProvider { get; }
 
@@ -94,12 +94,12 @@ namespace Segment.Analytics
             AnalyticsErrorHandler = analyticsErrorHandler;
             StorageProvider = storageProvider ?? new DefaultStorageProvider();
             HttpClientProvider = httpClientProvider ?? new DefaultHTTPClientProvider();
-            FlushPolicies = flushPolicies ?? new List<IFlushPolicy>();
-            if (FlushPolicies.Count == 0)
+            FlushPolicies = flushPolicies ?? new List<IFlushPolicy>
             {
-                FlushPolicies.Add(new CountFlushPolicy(flushAt));
-                FlushPolicies.Add(new FrequencyFlushPolicy(flushInterval * 1000L));
-            }
+                new CountFlushPolicy(flushAt),
+                new FrequencyFlushPolicy(flushInterval * 1000L),
+                new StartupFlushPolicy()
+            };
         }
 
         public Configuration(string writeKey,
