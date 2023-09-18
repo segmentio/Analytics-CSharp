@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using global::System;
 using global::System.Collections.Generic;
@@ -12,15 +13,15 @@ namespace Segment.Analytics
     /// </summary>
     public class Timeline
     {
-        internal Dictionary<PluginType, Mediator> _plugins;
+        internal IDictionary<PluginType, Mediator> _plugins;
 
-        public Timeline() => _plugins = new Dictionary<PluginType, Mediator>()
+        public Timeline() => _plugins = new ConcurrentDictionary<PluginType, Mediator>
             {
-                { PluginType.Before, new Mediator() },
-                { PluginType.Enrichment, new Mediator() },
-                { PluginType.Destination, new Mediator() },
-                { PluginType.After, new Mediator() },
-                { PluginType.Utility, new Mediator() }
+                [PluginType.Before] = new Mediator(),
+                [PluginType.Enrichment] = new Mediator(),
+                [PluginType.Destination] = new Mediator(),
+                [PluginType.After] = new Mediator(),
+                [PluginType.Utility] = new Mediator()
             };
 
         /// <summary>

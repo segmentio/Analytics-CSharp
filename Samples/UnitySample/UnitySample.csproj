@@ -33,10 +33,10 @@
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="Coroutine.NET, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
-          <HintPath>..\..\packages\Coroutine.NET.1.1.0\lib\netstandard2.0\Coroutine.NET.dll</HintPath>
+          <HintPath>..\..\packages\Coroutine.NET.1.3.0\lib\netstandard2.0\Coroutine.NET.dll</HintPath>
         </Reference>
         <Reference Include="Serialization.NET">
-          <HintPath>..\..\..\..\.nuget\packages\serialization.net\1.2.0\lib\netstandard2.0\Serialization.NET.dll</HintPath>
+          <HintPath>..\..\..\..\.nuget\packages\serialization.net\1.4.0\lib\netstandard2.0\Serialization.NET.dll</HintPath>
         </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
@@ -59,7 +59,7 @@
       </ProjectReference>
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-    <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+    <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
          Other similar extension points exist, see Microsoft.Common.targets.
     <Target Name="BeforeBuild">
     </Target>

@@ -620,7 +620,6 @@ namespace Segment.Analytics.Utilities
                             if (!copyToDisk.ContainsKey(k))
                             {
                                 continue;
-                                ;
                             }
 
                             copyToDisk.Remove(k);
