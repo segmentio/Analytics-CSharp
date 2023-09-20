@@ -38,9 +38,9 @@
     <Folder Include="Segment\Analytics\Utilities\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Coroutine.NET" Version="1.3.0" />
+    <PackageReference Include="Coroutine.NET" Version="1.4.0" />
     <PackageReference Include="Serialization.NET" Version="1.4.0" />
-    <PackageReference Include="Sovran.NET" Version="1.3.0" />
+    <PackageReference Include="Sovran.NET" Version="1.4.0" />
   </ItemGroup>
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
