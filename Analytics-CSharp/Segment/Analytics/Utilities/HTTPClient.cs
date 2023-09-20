@@ -72,49 +72,65 @@ namespace Segment.Analytics.Utilities
         public virtual async Task<Settings?> Settings()
         {
             string settingsURL = SegmentURL(_cdnHost, "/projects/" + _apiKey + "/settings");
-            Response response = await DoGet(settingsURL);
             Settings? result = null;
+            try
+            {
+                Response response = await DoGet(settingsURL);
+                if (!response.IsSuccessStatusCode)
+                {
+                    AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode, message: "Error " + response.StatusCode + " getting from settings url");
+                }
+                else
+                {
+                    string json = response.Content;
+                    result = JsonUtility.FromJson<Settings>(json);
+                }
+            }
+            catch (Exception e)
+            {
+                AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnknown, e, "Unknown network error when getting from settings url");
+            }
 
-            if (!response.IsSuccessStatusCode)
-            {
-                AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode, message: "Error " + response.StatusCode + " getting from settings url");
-            }
-            else
-            {
-                string json = response.Content;
-                result = JsonUtility.FromJson<Settings>(json);
-            }
             return result;
         }
 
         public virtual async Task<bool> Upload(byte[] data)
         {
             string uploadURL = SegmentURL(_apiHost, "/b");
-            Response response = await DoPost(uploadURL, data);
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                Analytics.Logger.Log(LogLevel.Error, message: "Error " + response.StatusCode + " uploading to url");
+                Response response = await DoPost(uploadURL, data);
 
-                switch (response.StatusCode)
+                if (!response.IsSuccessStatusCode)
                 {
-                    case var n when n >= 1 && n < 300:
-                        return false;
-                    case var n when n >= 300 && n < 400:
-                        AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode, message: "Response code: " + n);
-                        return false;
-                    case 429:
-                        AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerLimited, message: "Response code: 429");
-                        return false;
-                    case var n when n >= 400 && n < 500:
-                        AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerRejected, message: "Response code: " + n + ". Payloads were rejected by server. Marked for removal.");
-                        return true;
-                    default:
-                        return false;
+                    Analytics.Logger.Log(LogLevel.Error, message: "Error " + response.StatusCode + " uploading to url");
+
+                    switch (response.StatusCode)
+                    {
+                        case var n when n >= 1 && n < 300:
+                            return false;
+                        case var n when n >= 300 && n < 400:
+                            AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode, message: "Response code: " + n);
+                            return false;
+                        case 429:
+                            AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerLimited, message: "Response code: 429");
+                            return false;
+                        case var n when n >= 400 && n < 500:
+                            AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerRejected, message: "Response code: " + n + ". Payloads were rejected by server. Marked for removal.");
+                            return true;
+                        default:
+                            return false;
+                    }
                 }
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnknown, e, "Unknown network error when uploading to url");
             }
 
-            return true;
+            return false;
         }
 
         /// <summary>

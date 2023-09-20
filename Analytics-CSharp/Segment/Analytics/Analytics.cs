@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using global::System;
 using global::System.Runtime.Serialization;
 using global::System.Threading.Tasks;
@@ -208,22 +209,31 @@ namespace Segment.Analytics
             Add(new StartupQueue());
             Add(new ContextPlugin());
 
-            // use Wait() for this coroutine to force completion,
+            // use semaphore for this coroutine to force completion,
             // since Store must be setup before any event call happened.
-            // Note: Task.Wait() forces internal async methods to run in a synchronized way,
-            // we should avoid of doing it whenever possible.
+            SemaphoreSlim semaphore = new SemaphoreSlim(0);
             AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
-                // load memory with initial value
-                _userInfo = UserInfo.DefaultState(Storage);
-                await Store.Provide(_userInfo);
-                await Store.Provide(System.DefaultState(Configuration, Storage));
-                await Storage.Initialize();
-            }).Wait();
+                try
+                {
+                    // load memory with initial value
+                    _userInfo = UserInfo.DefaultState(Storage);
+                    await Store.Provide(_userInfo);
+                    await Store.Provide(System.DefaultState(Configuration, Storage));
+                    await Storage.Initialize();
+                }
+                catch (Exception e)
+                {
+                    ReportInternalError(AnalyticsErrorType.StorageUnknown, e, message: "Unknown Error when restoring settings from storage");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+            semaphore.Wait();
 
-            // check settings over the network,
-            // we don't have to Wait() here, because events are piped in
-            // StartupQueue until settings is ready
+            // check settings over the network
             AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
             {
                 if (Configuration.AutoAddSegmentDestination)

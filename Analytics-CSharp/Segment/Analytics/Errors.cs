@@ -40,7 +40,7 @@ namespace Segment.Analytics
         public static void ReportInternalError(this Analytics analytics, AnalyticsError error)
         {
             analytics.Configuration.AnalyticsErrorHandler?.OnExceptionThrown(error);
-            Analytics.ReportInternalError(error);
+            Analytics.ReportInternalError(error, error.Message);
         }
 
         /// <summary>
@@ -55,12 +55,7 @@ namespace Segment.Analytics
         {
             var error = new AnalyticsError(type, message, exception);
             analytics.Configuration.AnalyticsErrorHandler?.OnExceptionThrown(error);
-            Analytics.ReportInternalError(error);
-        }
-
-        public static void ToAnalyticsErrorHandler(this ICoroutineExceptionHandler handler)
-        {
-
+            Analytics.ReportInternalError(error, error.Message);
         }
     }
 
