@@ -26,21 +26,23 @@ namespace Segment.Analytics
             UpdateType updateType = hasSettings ? UpdateType.Refresh : UpdateType.Initial;
 
             await Store.Dispatch<System.ToggleRunningAction, System>(new System.ToggleRunningAction(false));
-
+            Settings? settings = null;
             await Scope.WithContext(NetworkIODispatcher, async () =>
             {
-                Settings? settings = await httpClient.Settings();
-
-                await Scope.WithContext(AnalyticsDispatcher, async () =>
-                {
-                    if (settings != null)
-                    {
-                        await Store.Dispatch<System.UpdateSettingsAction, System>(new System.UpdateSettingsAction(settings.Value));
-                        Update(settings.Value, updateType);
-                    }
-                    await Store.Dispatch<System.ToggleRunningAction, System>(new System.ToggleRunningAction(true));
-                });
+                settings = await httpClient.Settings();
             });
+
+            if (settings != null)
+            {
+                await Store.Dispatch<System.UpdateSettingsAction, System>(new System.UpdateSettingsAction(settings.Value));
+            }
+            else
+            {
+                settings = systemState._settings;
+            }
+
+            Update(settings.Value, updateType);
+            await Store.Dispatch<System.ToggleRunningAction, System>(new System.ToggleRunningAction(true));
         }
     }
 }
