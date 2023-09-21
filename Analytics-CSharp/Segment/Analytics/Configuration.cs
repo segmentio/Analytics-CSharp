@@ -96,11 +96,8 @@ namespace Segment.Analytics
             StorageProvider = storageProvider ?? new DefaultStorageProvider();
             HttpClientProvider = httpClientProvider ?? new DefaultHTTPClientProvider();
             FlushPolicies = flushPolicies == null ? new ConcurrentList<IFlushPolicy>() : new ConcurrentList<IFlushPolicy>(flushPolicies);
-            {
-                new CountFlushPolicy(flushAt),
-                new FrequencyFlushPolicy(flushInterval * 1000L),
-                new StartupFlushPolicy()
-            };
+            FlushPolicies.Add(new CountFlushPolicy(flushAt));
+            FlushPolicies.Add(new FrequencyFlushPolicy(flushInterval * 1000L));
         }
 
         public Configuration(string writeKey,
