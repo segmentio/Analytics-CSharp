@@ -56,7 +56,9 @@ namespace UnitySample
     /// </summary>
     public class Lifecycle : Singleton<Lifecycle>, IObservable<Lifecycle.State>
     {
-        private readonly List<IObserver<State>> _observers = new List<IObserver<State>>();
+        // use Segment's ConcurrentList to avoid modification during enumeration
+        // or you have to make a copy for iterating the observers.
+        private readonly IList<IObserver<State>> _observers = new ConcurrentList<IObserver<State>>();
 
         private const string AppVersionKey = "app_version";
 
@@ -122,10 +124,10 @@ namespace UnitySample
 
         private class Unsubscriber : IDisposable
         {
-            private List<IObserver<State>> _observers;
+            private IList<IObserver<State>> _observers;
             private IObserver<State> _observer;
 
-            public Unsubscriber(List<IObserver<State>> observers, IObserver<State> observer)
+            public Unsubscriber(IList<IObserver<State>> observers, IObserver<State> observer)
             {
                 _observers = observers;
                 _observer = observer;

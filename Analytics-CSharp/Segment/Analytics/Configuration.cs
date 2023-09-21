@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Segment.Analytics.Policies;
 using Segment.Analytics.Utilities;
 using Segment.Concurrent;
+using Segment.Serialization;
 
 namespace Segment.Analytics
 {
@@ -94,7 +95,7 @@ namespace Segment.Analytics
             AnalyticsErrorHandler = analyticsErrorHandler;
             StorageProvider = storageProvider ?? new DefaultStorageProvider();
             HttpClientProvider = httpClientProvider ?? new DefaultHTTPClientProvider();
-            FlushPolicies = flushPolicies ?? new List<IFlushPolicy>
+            FlushPolicies = flushPolicies == null ? new ConcurrentList<IFlushPolicy>() : new ConcurrentList<IFlushPolicy>(flushPolicies);
             {
                 new CountFlushPolicy(flushAt),
                 new FrequencyFlushPolicy(flushInterval * 1000L),
