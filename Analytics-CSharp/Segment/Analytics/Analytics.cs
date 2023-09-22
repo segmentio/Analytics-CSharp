@@ -4,6 +4,7 @@ using global::System;
 using global::System.Runtime.Serialization;
 using global::System.Threading.Tasks;
 using Segment.Analytics.Plugins;
+using Segment.Analytics.Policies;
 using Segment.Analytics.Utilities;
 using Segment.Concurrent;
 using Segment.Serialization;
@@ -297,6 +298,40 @@ namespace Segment.Analytics
                     this.ReportInternalError(AnalyticsErrorType.StorageUnableToRemove, ex);
                 }
             });
+        }
+
+        #endregion
+
+        #region Flush Policy
+
+        public void RemoveFlushPolicy(params IFlushPolicy[] policies)
+        {
+            foreach (IFlushPolicy policy in policies)
+            {
+                policy.Unschedule();
+                Configuration.FlushPolicies.Remove(policy);
+            }
+        }
+
+        public void ClearFlushPolicies()
+        {
+            foreach (IFlushPolicy policy in Configuration.FlushPolicies)
+            {
+                policy.Unschedule();
+            }
+            Configuration.FlushPolicies.Clear();
+        }
+
+        public void AddFlushPolicy(params IFlushPolicy[] policies)
+        {
+            foreach (IFlushPolicy policy in policies)
+            {
+                Configuration.FlushPolicies.Add(policy);
+                if (_enable)
+                {
+                    policy.Schedule(this);
+                }
+            }
         }
 
         #endregion

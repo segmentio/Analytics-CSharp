@@ -141,11 +141,12 @@ namespace Tests.Utilities
         {
             foreach (IFlushPolicy policy in _analytics.Configuration.FlushPolicies)
             {
-                if (policy is FrequencyFlushPolicy frequencyFlushPolicy)
+                if (policy is FrequencyFlushPolicy)
                 {
-                    frequencyFlushPolicy.FlushIntervalInMills = 1000L;
+                    _analytics.RemoveFlushPolicy(policy);
                 }
             }
+            _analytics.AddFlushPolicy(new FrequencyFlushPolicy(1000L));
 
             // since we set autoAddSegmentDestination = false, we need to manually add it to analytics.
             // we need a mocked SegmentDestination so we can redirect Flush call to this _eventPipeline.
@@ -164,7 +165,7 @@ namespace Tests.Utilities
             _eventPipeline.Start();
             _eventPipeline.Put(new ScreenEvent("test"));
 
-            await Task.Delay(1500);
+            await Task.Delay(2000);
 
             _storage.Verify(o => o.Rollover(), Times.Exactly(2));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(2));
