@@ -213,7 +213,8 @@ namespace Segment.Analytics.Utilities
                 return;
             }
 
-            await _fs.WriteAsync(content.GetBytes(), 0, content.Length);
+            byte[] bytes = content.GetBytes();
+            await _fs.WriteAsync(bytes, 0, bytes.Length);
             await _fs.FlushAsync();
             _file.Refresh();
         }
