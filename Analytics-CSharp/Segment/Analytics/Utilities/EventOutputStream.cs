@@ -201,8 +201,7 @@ namespace Segment.Analytics.Utilities
 
             if (_fs == null)
             {
-                _fs = _file.Open(FileMode.OpenOrCreate);
-                _fs.Seek(0, SeekOrigin.End);
+                _fs = _file.Open(FileMode.Append);
             }
             _file.Refresh();
         }
