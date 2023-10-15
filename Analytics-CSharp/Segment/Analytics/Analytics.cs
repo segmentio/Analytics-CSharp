@@ -13,7 +13,7 @@ using JsonUtility = Segment.Serialization.JsonUtility;
 
 namespace Segment.Analytics
 {
-    public partial class Analytics : ISubscriber
+    public partial class Analytics : IAnalytics, ISubscriber
     {
         public Timeline Timeline { get; }
 
