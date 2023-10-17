@@ -13,7 +13,7 @@ using JsonUtility = Segment.Serialization.JsonUtility;
 
 namespace Segment.Analytics
 {
-    public partial class Analytics : IAnalytics, ISubscriber
+    public partial class Analytics : ISubscriber
     {
         public Timeline Timeline { get; }
 
@@ -98,21 +98,21 @@ namespace Segment.Analytics
         /// Retrieve the anonymousId.
         /// </summary>
         /// <returns>Anonymous Id</returns>
-        public string AnonymousId() => _userInfo._anonymousId;
+        public virtual string AnonymousId() => _userInfo._anonymousId;
 
 
         /// <summary>
         /// Retrieve the userId registered by a previous <see cref="Identify(string,JsonObject)"/> call
         /// </summary>
         /// <returns>User Id</returns>
-        public string UserId() => _userInfo._userId;
+        public virtual string UserId() => _userInfo._userId;
 
 
         /// <summary>
         /// Retrieve the traits registered by a previous <see cref="Identify(string,JsonObject)"/> call
         /// </summary>
         /// <returns><see cref="JsonObject"/>Instance of Traits</returns>
-        public JsonObject Traits() => _userInfo._traits;
+        public virtual JsonObject Traits() => _userInfo._traits;
 
 
         /// <summary>
@@ -120,7 +120,7 @@ namespace Segment.Analytics
         /// </summary>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
         /// <returns>Traits</returns>
-        public T Traits<T>() where T : ISerializable => _userInfo._traits != null ? JsonUtility.FromJson<T>(_userInfo._traits.ToString()) : default;
+        public virtual T Traits<T>() where T : ISerializable => _userInfo._traits != null ? JsonUtility.FromJson<T>(_userInfo._traits.ToString()) : default;
 
 
         /// <summary>
@@ -139,7 +139,7 @@ namespace Segment.Analytics
         /// Reset the user identity info and all the event plugins. Should be invoked when
         /// user logs out
         /// </summary>
-        public void Reset()
+        public virtual void Reset()
         {
             // update cache and persist storage
             string newAnonymousId = Guid.NewGuid().ToString();
@@ -176,7 +176,7 @@ namespace Segment.Analytics
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>Instance of <see cref="Settings"/></returns>
-        public Settings? Settings()
+        public virtual Settings? Settings()
         {
             Task<Settings?> task = SettingsAsync();
             task.Wait();
@@ -187,7 +187,7 @@ namespace Segment.Analytics
         /// Retrieve the settings.
         /// </summary>
         /// <returns>Instance of <see cref="Settings"/></returns>
-        public async Task<Settings?> SettingsAsync()
+        public virtual async Task<Settings?> SettingsAsync()
         {
             Settings? returnSettings = null;
             IState system = await Store.CurrentState<System>();

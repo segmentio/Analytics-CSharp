@@ -12,7 +12,7 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="name">Name of the action</param>
         /// <param name="properties">Properties to describe the action</param>
-        public void Track(string name, JsonObject properties = default)
+        public virtual void Track(string name, JsonObject properties = default)
         {
             if (properties == null)
             {
@@ -31,7 +31,7 @@ namespace Segment.Analytics
         /// <param name="name">Name of the action</param>
         /// <param name="properties">Properties to describe the action</param>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public void Track<T>(string name, T properties = default) where T : ISerializable
+        public virtual void Track<T>(string name, T properties = default) where T : ISerializable
         {
             if (properties == null)
             {
@@ -59,7 +59,7 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="userId">Unique identifier which you recognize a user by in your own database</param>
         /// <param name="traits">Traits about the user</param>
-        public void Identify(string userId, JsonObject traits = default)
+        public virtual void Identify(string userId, JsonObject traits = default)
         {
             if (traits == null)
             {
@@ -93,7 +93,7 @@ namespace Segment.Analytics
         /// info.
         /// </summary>
         /// <param name="traits">Traits about the user</param>
-        public void Identify(JsonObject traits)
+        public virtual void Identify(JsonObject traits)
         {
             if (traits == null)
             {
@@ -128,7 +128,7 @@ namespace Segment.Analytics
         /// <param name="userId">Unique identifier which you recognize a user by in your own database</param>
         /// <param name="traits">Traits about the user</param>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public void Identify<T>(string userId, T traits = default) where T : ISerializable
+        public virtual void Identify<T>(string userId, T traits = default) where T : ISerializable
         {
             if (traits == null)
             {
@@ -156,7 +156,7 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="traits">Traits about the user</param>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public void Identify<T>(T traits) where T : ISerializable
+        public virtual void Identify<T>(T traits) where T : ISerializable
         {
             if (traits == null)
             {
@@ -177,7 +177,7 @@ namespace Segment.Analytics
         /// <param name="title">A name for the screen</param>
         /// <param name="properties">Properties to add extra information to this call</param>
         /// <param name="category">A category to describe the screen</param>
-        public void Screen(string title, JsonObject properties = default, string category = "")
+        public virtual void Screen(string title, JsonObject properties = default, string category = "")
         {
             if (properties == null)
             {
@@ -196,7 +196,7 @@ namespace Segment.Analytics
         /// <param name="properties">Properties to add extra information to this call</param>
         /// <param name="category">A category to describe the screen</param>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public void Screen<T>(string title, T properties = default, string category = "") where T : ISerializable
+        public virtual void Screen<T>(string title, T properties = default, string category = "") where T : ISerializable
         {
             if (properties == null)
             {
@@ -218,7 +218,7 @@ namespace Segment.Analytics
         /// <param name="title">A name for the page</param>
         /// <param name="properties">Properties to add extra information to this call</param>
         /// <param name="category">A category to describe the page</param>
-        public void Page(string title, JsonObject properties = default, string category = "")
+        public virtual void Page(string title, JsonObject properties = default, string category = "")
         {
             if (properties == null)
             {
@@ -237,7 +237,7 @@ namespace Segment.Analytics
         /// <param name="properties">Properties to add extra information to this call</param>
         /// <param name="category">A category to describe the page</param>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public void Page<T>(string title, T properties = default, string category = "") where T : ISerializable
+        public virtual void Page<T>(string title, T properties = default, string category = "") where T : ISerializable
         {
             if (properties == null)
             {
@@ -259,7 +259,7 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="groupId">Unique identifier which you recognize a group by in your own database</param>
         /// <param name="traits">Traits about the group</param>
-        public void Group(string groupId, JsonObject traits = default)
+        public virtual void Group(string groupId, JsonObject traits = default)
         {
             if (traits == null)
             {
@@ -279,7 +279,7 @@ namespace Segment.Analytics
         /// <param name="groupId">Unique identifier which you recognize a group by in your own database</param>
         /// <param name="traits">Traits about the group</param>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public void Group<T>(string groupId, T traits = default) where T : ISerializable
+        public virtual void Group<T>(string groupId, T traits = default) where T : ISerializable
         {
             if (traits == null)
             {
@@ -301,7 +301,7 @@ namespace Segment.Analytics
         /// <param name="newId">The new ID you want to alias the existing ID to. The existing ID will be either
         /// the previousId if you have called identify, or the anonymous ID.
         /// </param>
-        public void Alias(string newId)
+        public virtual void Alias(string newId)
         {
             var aliasEvent = new AliasEvent(newId, _userInfo._userId ?? _userInfo._anonymousId);
 
