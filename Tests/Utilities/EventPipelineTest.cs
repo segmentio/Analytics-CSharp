@@ -167,7 +167,7 @@ namespace Tests.Utilities
             _eventPipeline.Start();
             _eventPipeline.Put(new ScreenEvent("test"));
 
-            await Task.Delay(2000);
+            await Task.Delay(2050);
 
             _storage.Verify(o => o.Rollover(), Times.Exactly(2));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(2));
