@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Moq;
@@ -16,6 +17,8 @@ namespace Tests
     {
         private readonly Analytics _analytics;
 
+        private Mock<IStorage> _storage;
+
         private Settings? _settings;
 
         public AnalyticsTest()
@@ -28,9 +31,13 @@ namespace Tests
                 .Setup(httpClient => httpClient.Settings())
                 .ReturnsAsync(_settings);
 
+            _storage = new Mock<IStorage>();
+            _storage.Setup(Storage => Storage.RemoveFile("")).Returns(true);
+            _storage.Setup(Storage => Storage.Read(StorageConstants.Events)).Returns("test,foo");
+
             var config = new Configuration(
                 writeKey: "123",
-                storageProvider: new DefaultStorageProvider("tests"),
+                storageProvider: new MockStorageProvider(_storage),
                 autoAddSegmentDestination: false,
                 useSynchronizeDispatcher: true,
                 httpClientProvider: new MockHttpClientProvider(mockHttpClient)
@@ -172,6 +179,17 @@ namespace Tests
             Assert.NotNull(actual.Timestamp);
             Assert.True(actual.UserId != null || actual.AnonymousId != null);
             Assert.NotNull(actual.Integrations);
+        }
+
+        [Fact]
+        public void TestPurge()
+        {
+            _analytics.PurgeStorage();
+            _storage.Verify(o => o.RemoveFile("test"), Times.Exactly(1));
+            _storage.Verify(o => o.RemoveFile("foo"), Times.Exactly(1));
+
+            _analytics.PurgeStorage("bar");
+            _storage.Verify(o => o.RemoveFile("bar"), Times.Exactly(1));
         }
     }
 }

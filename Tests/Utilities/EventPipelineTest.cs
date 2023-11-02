@@ -104,6 +104,8 @@ namespace Tests.Utilities
         [Fact]
         public async void TestStop()
         {
+            _eventPipeline.Start();
+            Assert.True(_eventPipeline.Running);
             _eventPipeline.Stop();
             Assert.False(_eventPipeline.Running);
 

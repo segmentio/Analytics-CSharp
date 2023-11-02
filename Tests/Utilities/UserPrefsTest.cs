@@ -131,6 +131,31 @@ namespace Tests.Utilities
             Assert.Equal(expectedInt, _prefs.GetInt("int"));
             Assert.Equal(expectedFloat, _prefs.GetFloat("float"));
             Assert.Equal(expectedString, _prefs.GetString("string"));
+
+
+        }
+
+        [Fact]
+        public void EditorClearTest()
+        {
+            int expectedInt = 100;
+            float expectedFloat = 100f;
+            var userPrefs = (UserPrefs)_prefs;
+            Editor editor = userPrefs.Edit()
+                .PutInt("int", expectedInt)
+                .Clear()
+                .PutFloat("float", expectedFloat);
+
+            Assert.Equal(1, _prefs.GetInt("int"));
+            Assert.Equal(0.1f, _prefs.GetFloat("float"));
+            Assert.Equal("string", _prefs.GetString("string"));
+
+            // This should remove the string and int and use the new float value
+            editor.Apply();
+
+            Assert.Equal(-1, _prefs.GetInt("int")); // default value
+            Assert.Equal(expectedFloat, _prefs.GetFloat("float"));
+            Assert.Null(_prefs.GetString("string")); // default value
         }
     }
 }
