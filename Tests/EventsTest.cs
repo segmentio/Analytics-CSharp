@@ -93,6 +93,21 @@ namespace Tests
         }
 
         [Fact]
+        public void TestTrackTNullProperties()
+        {
+            string expectedEvent = "foo";
+            var actual = new List<TrackEvent>();
+            _plugin.Setup(o => o.Track(Capture.In(actual)));
+
+            _analytics.Add(_plugin.Object);
+            _analytics.Track(expectedEvent, (FooBar) null);
+
+            Assert.NotEmpty(actual);
+            Assert.True(actual[0].Properties.Count == 0);
+            Assert.Equal(expectedEvent, actual[0].Event);
+        }
+
+        [Fact]
         public void TestTrackTNoProperties()
         {
             string expectedEvent = "foo";
@@ -167,6 +182,23 @@ namespace Tests
         }
 
         [Fact]
+        public void TestIdentifyNoUserIdNullTraits()
+        {
+            var actual = new List<IdentifyEvent>();
+            _plugin.Setup(o => o.Identify(Capture.In(actual)));
+            string expectedUserId = _analytics.UserId();
+
+            _analytics.Add(_plugin.Object);
+            _analytics.Identify((JsonObject) null);
+
+            string actualUserId = _analytics.UserId();
+
+            Assert.NotEmpty(actual);
+            Assert.True(actual[0].Traits.Count == 0);
+            Assert.Equal(expectedUserId, actualUserId);
+        }
+
+        [Fact]
         public void TestIdentifyT()
         {
             var expected = new FooBar();
@@ -185,6 +217,23 @@ namespace Tests
         }
 
         [Fact]
+        public void TestIdentifyTNullTraits()
+        {
+            string expectedUserId = "newUserId";
+            var actual = new List<IdentifyEvent>();
+            _plugin.Setup(o => o.Identify(Capture.In(actual)));
+
+            _analytics.Add(_plugin.Object);
+            _analytics.Identify(expectedUserId, (FooBar) null);
+
+            string actualUserId = _analytics.UserId();
+
+            Assert.NotEmpty(actual);
+            Assert.True(actual[0].Traits.Count == 0);
+            Assert.Equal(expectedUserId, actualUserId);
+        }
+
+        [Fact]
         public void TestIdentifyTNoTraits()
         {
             string expectedUserId = "newUserId";
@@ -192,7 +241,7 @@ namespace Tests
             _plugin.Setup(o => o.Identify(Capture.In(actual)));
 
             _analytics.Add(_plugin.Object);
-            _analytics.Identify(expectedUserId);
+            _analytics.Identify(expectedUserId, (FooBar) null);
             string actualUserId = _analytics.UserId();
 
             Assert.NotEmpty(actual);
@@ -217,6 +266,21 @@ namespace Tests
             Assert.Equal(expectedUserId, actualUserId);
         }
 
+        [Fact]
+        public void TestIdentifyTNoUserIdNullTraits()
+        {
+            var actual = new List<IdentifyEvent>();
+            _plugin.Setup(o => o.Identify(Capture.In(actual)));
+            string expectedUserId = _analytics.UserId();
+
+            _analytics.Add(_plugin.Object);
+            _analytics.Identify((FooBar) null);
+            string actualUserId = _analytics.UserId();
+
+            Assert.NotEmpty(actual);
+            Assert.True(actual[0].Traits.Count == 0);
+            Assert.Equal(expectedUserId, actualUserId);
+        }
 
         [Fact]
         public void TestIdentifyReload()
@@ -297,7 +361,7 @@ namespace Tests
             _plugin.Setup(o => o.Screen(Capture.In(actual)));
 
             _analytics.Add(_plugin.Object);
-            _analytics.Screen(null, null, null);
+            _analytics.Screen(null, (FooBar) null, null);
 
             Assert.NotEmpty(actual);
             Assert.True(actual[0].Properties.Count == 0);
@@ -369,7 +433,7 @@ namespace Tests
             _plugin.Setup(o => o.Page(Capture.In(actual)));
 
             _analytics.Add(_plugin.Object);
-            _analytics.Page(null, null, null);
+            _analytics.Page(null, (FooBar) null, null);
 
             Assert.NotEmpty(actual);
             Assert.True(actual[0].Properties.Count == 0);
@@ -429,14 +493,14 @@ namespace Tests
         }
 
         [Fact]
-        public void TestGroupTNoProperties()
+        public void TestGroupTNullProperties()
         {
             string expectedGroupId = "foo";
             var actual = new List<GroupEvent>();
             _plugin.Setup(o => o.Group(Capture.In(actual)));
 
             _analytics.Add(_plugin.Object);
-            _analytics.Group(expectedGroupId);
+            _analytics.Group(expectedGroupId, (FooBar) null);
 
             Assert.NotEmpty(actual);
             Assert.True(actual[0].Traits.Count == 0);
