@@ -47,7 +47,7 @@ namespace Segment.Analytics.Utilities
 
             _writeChannel = new Channel<RawEvent>();
             _uploadChannel = new Channel<string>();
-            _httpClient = analytics.Configuration.HttpClientProvider.CreateHTTPClient(apiKey);
+            _httpClient = analytics.Configuration.HttpClientProvider.CreateHTTPClient(apiKey, apiHost: apiHost);
             _httpClient.AnalyticsRef = analytics;
             _storage = analytics.Storage;
             Running = false;
