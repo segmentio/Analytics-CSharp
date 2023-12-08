@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using global::System.Threading.Tasks;
 using Segment.Analytics.Utilities;
 using Segment.Concurrent;
@@ -17,11 +18,13 @@ namespace Segment.Analytics
     {
         internal async void Update(Settings settings) {
             System systemState = await Store.CurrentState<System>();
+            HashSet<int> initializedPlugins = new HashSet<int>();
             Timeline.Apply(async plugin => {
-                UpdateType type = systemState._initializedPlugins.Contains(plugin) ? UpdateType.Refresh : UpdateType.Initial;
+                UpdateType type = systemState._initializedPlugins.Contains(plugin.GetHashCode()) ? UpdateType.Refresh : UpdateType.Initial;
                 plugin.Update(settings, type);
-                await Store.Dispatch<System.AddInitializedPluginAction, System>(new System.AddInitializedPluginAction(plugin));
+                initializedPlugins.Add(plugin.GetHashCode());
             });
+            await Store.Dispatch<System.AddInitializedPluginAction, System>(new System.AddInitializedPluginAction(initializedPlugins));
         }
 
         internal async Task CheckSettings()

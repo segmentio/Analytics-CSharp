@@ -20,15 +20,15 @@ namespace Segment.Analytics
         internal Settings _settings;
         internal bool _running;
         internal bool _enable;
-        internal HashSet<Plugin> _initializedPlugins;
+        internal HashSet<int> _initializedPlugins;
 
-        internal System(Configuration configuration, Settings settings, bool running, bool enable, HashSet<Plugin> initializedPlugins = null)
+        internal System(Configuration configuration, Settings settings, bool running, bool enable, HashSet<int> initializedPlugins = null)
         {
             _configuration = configuration;
             _settings = settings;
             _running = running;
             _enable = enable;
-            _initializedPlugins = initializedPlugins ?? new HashSet<Plugin>();
+            _initializedPlugins = initializedPlugins ?? new HashSet<int>();
         }
 
         internal static System DefaultState(Configuration configuration, IStorage storage)
@@ -127,17 +127,17 @@ namespace Segment.Analytics
 
         internal readonly struct AddInitializedPluginAction : IAction
         {
-            private readonly Plugin _plugin;
+            private readonly HashSet<int> _pluginHashes;
 
-            public AddInitializedPluginAction(Plugin plugin) => _plugin = plugin;
+            public AddInitializedPluginAction(HashSet<int> pluginHashes) => _pluginHashes = pluginHashes;
 
             public IState Reduce(IState state)
             {
                 IState result = null;
                 if (state is System systemState)
                 {
-                    HashSet<Plugin> initializedPlugins = systemState._initializedPlugins;
-                    initializedPlugins.Add(_plugin);
+                    HashSet<int> initializedPlugins = systemState._initializedPlugins;
+                    initializedPlugins.UnionWith(_pluginHashes);
                     result = new System(systemState._configuration, systemState._settings, systemState._running, systemState._enable, initializedPlugins);
                 }
 

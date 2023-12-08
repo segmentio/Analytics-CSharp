@@ -51,9 +51,8 @@ namespace Tests.Utilities
             var plugin = new Mock<DestinationPlugin>();
             plugin.Setup(o => o.Key).Returns("mock");
             plugin.Setup(o => o.Analytics).Returns(_analytics); // This would normally be set by Configure
-            plugin.Setup(o => o.Update(It.IsAny<Settings>(), It.IsAny<UpdateType>())).Callback(() => System.Diagnostics.Debugger.Break());
 
-            // unlike kotlin, C# should always have settings, so this should run here.
+            // Ideally we'd interrupt init somehow to test adding plugins before, but we don't have a good way
             _analytics.Add(plugin.Object);
             plugin.Verify(p => p.Update(It.IsAny<Settings>(), UpdateType.Initial), Times.Once);
             plugin.Verify(p => p.Update(It.IsAny<Settings>(), UpdateType.Refresh), Times.Never);
@@ -63,7 +62,7 @@ namespace Tests.Utilities
             plugin.Verify(p => p.Update(It.IsAny<Settings>(), UpdateType.Initial), Times.Once);
             plugin.Verify(p => p.Update(It.IsAny<Settings>(), UpdateType.Refresh), Times.Once);
             Segment.Analytics.System system = await _analytics.Store.CurrentState<Segment.Analytics.System>();
-            Assert.Contains(plugin.Object, system._initializedPlugins);
+            Assert.Contains(plugin.Object.GetHashCode(), system._initializedPlugins);
 
             // readd plugin (why would you do this?)
             _analytics.Remove(plugin.Object);
