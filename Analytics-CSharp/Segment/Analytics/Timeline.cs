@@ -163,6 +163,7 @@ namespace Segment.Analytics
                 Settings? settings = await plugin.Analytics.SettingsAsync();
                 if (settings.HasValue)
                 {
+                    await analytics.Store.Dispatch<System.AddInitializedPluginAction, System>(new System.AddInitializedPluginAction(plugin));
                     plugin.Update(settings.Value, UpdateType.Initial);
                 }
             });
