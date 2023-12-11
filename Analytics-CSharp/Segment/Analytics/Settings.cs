@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using global::System.Threading.Tasks;
 using Segment.Analytics.Utilities;
 using Segment.Concurrent;
@@ -15,15 +16,22 @@ namespace Segment.Analytics
 
     public partial class Analytics
     {
-        internal void Update(Settings settings, UpdateType type) => Timeline.Apply(plugin => plugin.Update(settings, type));
+        internal async void Update(Settings settings) {
+            System systemState = await Store.CurrentState<System>();
+            HashSet<int> initializedPlugins = new HashSet<int>();
+            Timeline.Apply(plugin => {
+                UpdateType type = systemState._initializedPlugins.Contains(plugin.GetHashCode()) ? UpdateType.Refresh : UpdateType.Initial;
+                plugin.Update(settings, type);
+                initializedPlugins.Add(plugin.GetHashCode());
+            });
+            await Store.Dispatch<System.AddInitializedPluginAction, System>(new System.AddInitializedPluginAction(initializedPlugins));
+        }
 
-        private async Task CheckSettings()
+        internal async Task CheckSettings()
         {
             HTTPClient httpClient = Configuration.HttpClientProvider.CreateHTTPClient(Configuration.WriteKey, cdnHost: Configuration.CdnHost);
             httpClient.AnalyticsRef = this;
             System systemState = await Store.CurrentState<System>();
-            bool hasSettings = systemState._settings.Integrations != null && systemState._settings.Plan != null;
-            UpdateType updateType = hasSettings ? UpdateType.Refresh : UpdateType.Initial;
 
             await Store.Dispatch<System.ToggleRunningAction, System>(new System.ToggleRunningAction(false));
             Settings? settings = null;
@@ -41,7 +49,7 @@ namespace Segment.Analytics
                 settings = systemState._settings;
             }
 
-            Update(settings.Value, updateType);
+            Update(settings.Value);
             await Store.Dispatch<System.ToggleRunningAction, System>(new System.ToggleRunningAction(true));
         }
     }

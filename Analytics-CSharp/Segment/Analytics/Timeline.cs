@@ -161,8 +161,12 @@ namespace Segment.Analytics
             analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () =>
             {
                 Settings? settings = await plugin.Analytics.SettingsAsync();
-                if (settings.HasValue)
+                System system = await analytics.Store.CurrentState<System>();
+                // Don't initialize unless we have updated settings from the web.
+                // CheckSettings will initialize everything added before then, so wait until other inits have happened.
+                if (settings.HasValue && system._initializedPlugins.Count > 0)
                 {
+                    await analytics.Store.Dispatch<System.AddInitializedPluginAction, System>(new System.AddInitializedPluginAction(new HashSet<int>{plugin.GetHashCode()}));
                     plugin.Update(settings.Value, UpdateType.Initial);
                 }
             });

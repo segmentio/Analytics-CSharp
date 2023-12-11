@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using global::System;
 using Segment.Analytics.Utilities;
 using Segment.Serialization;
@@ -19,13 +20,15 @@ namespace Segment.Analytics
         internal Settings _settings;
         internal bool _running;
         internal bool _enable;
+        internal HashSet<int> _initializedPlugins;
 
-        internal System(Configuration configuration, Settings settings, bool running, bool enable)
+        internal System(Configuration configuration, Settings settings, bool running, bool enable, HashSet<int> initializedPlugins = null)
         {
             _configuration = configuration;
             _settings = settings;
             _running = running;
             _enable = enable;
+            _initializedPlugins = initializedPlugins ?? new HashSet<int>();
         }
 
         internal static System DefaultState(Configuration configuration, IStorage storage)
@@ -42,7 +45,7 @@ namespace Segment.Analytics
                 settings = configuration.DefaultSettings;
             }
 
-            return new System(configuration, settings, false, true);
+            return new System(configuration, settings, false, true, null);
         }
 
         internal struct UpdateSettingsAction : IAction
@@ -56,7 +59,7 @@ namespace Segment.Analytics
                 IState result = null;
                 if (state is System systemState)
                 {
-                    result = new System(systemState._configuration, _settings, systemState._running, systemState._enable);
+                    result = new System(systemState._configuration, _settings, systemState._running, systemState._enable, systemState._initializedPlugins);
                 }
 
                 return result;
@@ -74,7 +77,7 @@ namespace Segment.Analytics
                 IState result = null;
                 if (state is System systemState)
                 {
-                    result = new System(systemState._configuration, systemState._settings, _running, systemState._enable);
+                    result = new System(systemState._configuration, systemState._settings, _running, systemState._enable, systemState._initializedPlugins);
                 }
 
                 return result;
@@ -97,7 +100,7 @@ namespace Segment.Analytics
                     Settings settings = systemState._settings;
                     settings.Integrations[_key] = true;
 
-                    result = new System(systemState._configuration, settings, systemState._running, systemState._enable);
+                    result = new System(systemState._configuration, settings, systemState._running, systemState._enable, systemState._initializedPlugins);
                 }
 
                 return result;
@@ -115,7 +118,27 @@ namespace Segment.Analytics
                 IState result = null;
                 if (state is System systemState)
                 {
-                    result = new System(systemState._configuration, systemState._settings, systemState._running, _enable);
+                    result = new System(systemState._configuration, systemState._settings, systemState._running, _enable, systemState._initializedPlugins);
+                }
+
+                return result;
+            }
+        }
+
+        internal readonly struct AddInitializedPluginAction : IAction
+        {
+            private readonly HashSet<int> _pluginHashes;
+
+            public AddInitializedPluginAction(HashSet<int> pluginHashes) => _pluginHashes = pluginHashes;
+
+            public IState Reduce(IState state)
+            {
+                IState result = null;
+                if (state is System systemState)
+                {
+                    HashSet<int> initializedPlugins = systemState._initializedPlugins;
+                    initializedPlugins.UnionWith(_pluginHashes);
+                    result = new System(systemState._configuration, systemState._settings, systemState._running, systemState._enable, initializedPlugins);
                 }
 
                 return result;
