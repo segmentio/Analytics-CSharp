@@ -19,7 +19,7 @@ namespace Segment.Analytics
         internal async void Update(Settings settings) {
             System systemState = await Store.CurrentState<System>();
             HashSet<int> initializedPlugins = new HashSet<int>();
-            Timeline.Apply(async plugin => {
+            Timeline.Apply(plugin => {
                 UpdateType type = systemState._initializedPlugins.Contains(plugin.GetHashCode()) ? UpdateType.Refresh : UpdateType.Initial;
                 plugin.Update(settings, type);
                 initializedPlugins.Add(plugin.GetHashCode());
