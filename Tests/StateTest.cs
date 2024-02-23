@@ -56,6 +56,20 @@ namespace Tests
         }
 
         [Fact]
+        public void TestSystemDefaultStateEmpty()
+        {
+            _storage
+                .Setup(o => o.Read(It.IsAny<StorageConstants>()))
+                .Returns("");
+
+            var actual = Segment.Analytics.System.DefaultState(_configuration, _storage.Object);
+
+            Assert.Equal(_configuration, actual._configuration);
+            Assert.Equal(_settings.Integrations.ToString(), actual._settings.Integrations.ToString());
+            Assert.False(actual._running);
+        }
+
+        [Fact]
         public void TestSystemDefaultStateException()
         {
             _storage
