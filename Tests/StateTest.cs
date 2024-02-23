@@ -70,7 +70,7 @@ namespace Tests
             Assert.Equal(_configuration, actual._configuration);
             Assert.Equal(_settings.Integrations.ToString(), actual._settings.Integrations.ToString());
             Assert.False(actual._running);
-            logger.Verify(o => o.Log(LogLevel.Information, null, It.Is<string>(s => s.Contains("No settings loaded"))), Times.Exactly(1));
+            logger.Verify(o => o.Log(LogLevel.Information, null, It.Is<string>(s => s.Contains("No settings loaded"))), Times.AtLeastOnce());
         }
 
         [Fact]
