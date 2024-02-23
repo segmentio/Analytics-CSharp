@@ -37,7 +37,15 @@ namespace Segment.Analytics
             try
             {
                 string cache = storage.Read(StorageConstants.Settings) ?? "";
-                settings = JsonUtility.FromJson<Settings>(cache);
+                if (string.IsNullOrEmpty(cache))
+                {
+                    Analytics.Logger.Log(LogLevel.Information, null, "No settings loaded from storage. Switch to default settings provided through configuration.");
+                    settings = configuration.DefaultSettings;
+                }
+                else
+                {
+                    settings = JsonUtility.FromJson<Settings>(cache);
+                }
             }
             catch (Exception e)
             {

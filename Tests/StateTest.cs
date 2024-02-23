@@ -56,17 +56,40 @@ namespace Tests
         }
 
         [Fact]
-        public void TestSystemDefaultStateException()
+        public void TestSystemDefaultStateEmpty()
         {
+            var logger = new Mock<ISegmentLogger>();
+            Analytics.Logger = logger.Object;
+
             _storage
                 .Setup(o => o.Read(It.IsAny<StorageConstants>()))
-                .Throws<Exception>();
+                .Returns("");
 
             var actual = Segment.Analytics.System.DefaultState(_configuration, _storage.Object);
 
             Assert.Equal(_configuration, actual._configuration);
             Assert.Equal(_settings.Integrations.ToString(), actual._settings.Integrations.ToString());
             Assert.False(actual._running);
+            logger.Verify(o => o.Log(LogLevel.Information, null, It.Is<string>(s => s.Contains("No settings loaded"))), Times.Exactly(1));
+        }
+
+        [Fact]
+        public void TestSystemDefaultStateException()
+        {
+            var logger = new Mock<ISegmentLogger>();
+            Analytics.Logger = logger.Object;
+            var exception = new Exception();
+
+            _storage
+                .Setup(o => o.Read(It.IsAny<StorageConstants>()))
+                .Throws(exception);
+
+            var actual = Segment.Analytics.System.DefaultState(_configuration, _storage.Object);
+
+            Assert.Equal(_configuration, actual._configuration);
+            Assert.Equal(_settings.Integrations.ToString(), actual._settings.Integrations.ToString());
+            Assert.False(actual._running);
+            logger.Verify(o => o.Log(LogLevel.Error, exception, It.Is<string>(s => s.Contains("Failed to load"))), Times.Exactly(1));
         }
 
         [Fact]
