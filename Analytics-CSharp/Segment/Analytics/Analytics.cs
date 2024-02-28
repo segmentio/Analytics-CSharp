@@ -134,6 +134,19 @@ namespace Segment.Analytics
             }
         });
 
+        public virtual bool FlushSync()
+        {
+            bool finished = false;
+            Apply(plugin =>
+            {
+                if (plugin is EventPlugin eventPlugin)
+                {
+                    finished = eventPlugin.FlushSync();
+                }
+            });
+            return finished;
+        }
+
 
         /// <summary>
         /// Reset the user identity info and all the event plugins. Should be invoked when

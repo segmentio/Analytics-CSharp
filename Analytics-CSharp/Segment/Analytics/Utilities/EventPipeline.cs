@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using global::System;
 using global::System.Linq;
 using Segment.Analytics.Policies;
@@ -23,6 +24,8 @@ namespace Segment.Analytics.Utilities
 
         private readonly IStorage _storage;
 
+        private readonly bool _synchroniceFlush;
+
         internal string ApiHost { get; set; }
 
         public bool Running { get; private set; }
@@ -38,12 +41,15 @@ namespace Segment.Analytics.Utilities
             string logTag,
             string apiKey,
             IList<IFlushPolicy> flushPolicies,
-            string apiHost = HTTPClient.DefaultAPIHost)
+            string apiHost = HTTPClient.DefaultAPIHost,
+            bool synchroniceFlush = false
+            )
         {
             _analytics = analytics;
             _logTag = logTag;
             _flushPolicies = flushPolicies;
             ApiHost = apiHost;
+            _synchroniceFlush = synchroniceFlush;
 
             _writeChannel = new Channel<RawEvent>();
             _uploadChannel = new Channel<string>();
@@ -57,6 +63,10 @@ namespace Segment.Analytics.Utilities
 
         public void Flush() => _writeChannel.Send(s_flushEvent);
 
+        public void PutSync(RawEvent @event) => WriteSync(@event);
+
+        public bool FlushSync() => UploadSync();
+
         public void Start()
         {
             if (Running) return;
@@ -69,9 +79,12 @@ namespace Segment.Analytics.Utilities
             }
 
             Running = true;
-            Schedule();
-            Write();
-            Upload();
+            if(!_synchroniceFlush)
+            {
+                Write();
+                Schedule();
+                Upload();
+            }
         }
 
         public void Stop()
@@ -154,14 +167,75 @@ namespace Segment.Analytics.Utilities
                     {
                         Analytics.Logger.Log(LogLevel.Error, e, _logTag + ": Error uploading to url");
                     }
+                }
+            }
+        });
+
+        private void WriteSync(RawEvent e)
+        {
+            try
+            {
+                string str = JsonUtility.ToJson(e);
+                Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " running " + str);
+                _storage.Write(StorageConstants.Events, str);
+            }
+            catch (Exception exception)
+            {
+                Analytics.Logger.Log(LogLevel.Error, exception, _logTag + ": Error writing events to storage.");
+            }
+        }
+
+        private bool UploadSync()
+        {
+            bool finished = false;
+            //while (!finished)
+            //{
+                Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " performing flush");
+                Scope.WithContext(_analytics.FileIODispatcher, () => _storage.Rollover());
+
+                string[] fileUrlList = _storage.Read(StorageConstants.Events).Split(',');
+                List<bool> list = new List<bool>();
+
+                foreach (string url in fileUrlList)
+                {
+                    if (string.IsNullOrEmpty(url))
+                    {
+                        continue;
+                    }
+
+                    byte[] data = _storage.ReadAsBytes(url);
+                    if (data == null)
+                    {
+                        continue;
+                    }
+
+                    bool shouldCleanup = false;
+                    try
+                    {
+                        Task<bool> value = _httpClient.Upload(data);
+                        shouldCleanup = value.Result;
+                        Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " uploaded " + url);
+                    }
+                    catch (Exception e)
+                    {
+                        Analytics.Logger.Log(LogLevel.Error, e, _logTag + ": Error uploading to url");
+                    }
 
                     if (shouldCleanup)
                     {
                         _storage.RemoveFile(url);
-                    }
+                        list.Add(shouldCleanup);
+                        finished = true;
                 }
-            }
-        });
+                }
+                /*if(list.Count > fileUrlList.Length)
+                {
+                    finished = true;
+                }*/
+                
+            //}
+            return finished;
+        }
 
         private void Schedule()
         {

@@ -25,6 +25,8 @@ namespace Segment.Analytics
 
         public bool UseSynchronizeDispatcher { get; }
 
+        public bool SynchroniceFlush { get; }
+
         [Obsolete("Please use AnalyticsErrorHandler instead")]
         public ICoroutineExceptionHandler ExceptionHandler {
             get
@@ -123,6 +125,31 @@ namespace Segment.Analytics
                 storageProvider,
                 httpClientProvider)
         {
+
+        }
+
+        public Configuration(string writeKey,
+            Settings defaultSettings = new Settings(),
+            bool autoAddSegmentDestination = true,
+            bool synchroniceFlush = false,
+            bool useSynchronizeDispatcher = false,
+            string apiHost = null,
+            string cdnHost = null,
+            IAnalyticsErrorHandler analyticsErrorHandler = null,
+            IStorageProvider storageProvider = default,
+            IHTTPClientProvider httpClientProvider = default)
+        {
+            WriteKey = writeKey;
+            DefaultSettings = defaultSettings;
+            AutoAddSegmentDestination = autoAddSegmentDestination;
+            UseSynchronizeDispatcher = useSynchronizeDispatcher;
+            ApiHost = apiHost;
+            CdnHost = cdnHost;
+            AnalyticsErrorHandler = analyticsErrorHandler;
+            StorageProvider = storageProvider ?? new DefaultStorageProvider();
+            HttpClientProvider = httpClientProvider ?? new DefaultHTTPClientProvider();
+            SynchroniceFlush = synchroniceFlush;
+
 
         }
     }

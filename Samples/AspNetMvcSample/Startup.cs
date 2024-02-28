@@ -9,7 +9,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Segment.Analytics;
+using Segment.Analytics.Policies;
 using Segment.Analytics.Utilities;
+using Segment.Serialization;
 
 namespace AspNetMvcSample
 {
@@ -26,10 +28,13 @@ namespace AspNetMvcSample
         public void ConfigureServices(IServiceCollection services)
         {
             // use `InMemoryStorageProvider` to make Analytics stateless
-            var configuration = new Configuration("YOUR WRITE KEY",
+            var configuration = new Configuration("DDGmj3fYhaFjvObdg3IBm0pvyq5kdZpD",
                 flushAt: 1,
-                flushInterval: 10,
-                storageProvider: new InMemoryStorageProvider());
+                flushInterval: 50,
+                storageProvider: new InMemoryStorageProvider()
+                //synchroniceFlush: true
+                //useSynchronizeDispatcher: true
+                );
 
             services.AddControllersWithViews();
             services.AddScoped(_ => new Analytics(configuration));

@@ -63,6 +63,8 @@ namespace Segment.Analytics
 
         public virtual void Flush() { }
 
+        public virtual bool FlushSync() => true;
+
         public override RawEvent Execute(RawEvent incomingEvent)
         {
             switch (incomingEvent)

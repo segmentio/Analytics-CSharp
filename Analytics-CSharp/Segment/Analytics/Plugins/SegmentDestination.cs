@@ -1,3 +1,4 @@
+using System;
 using Segment.Analytics.Utilities;
 using Segment.Serialization;
 using Segment.Sovran;
@@ -69,7 +70,8 @@ namespace Segment.Analytics.Plugins
                     Key,
                     analytics.Configuration.WriteKey,
                     analytics.Configuration.FlushPolicies,
-                    analytics.Configuration.ApiHost
+                    analytics.Configuration.ApiHost,
+                    analytics.Configuration.SynchroniceFlush
                 );
 
             analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () =>
@@ -96,6 +98,8 @@ namespace Segment.Analytics.Plugins
         }
 
         public override void Flush() => _pipeline?.Flush();
+
+        public override bool FlushSync() => (bool)_pipeline?.FlushSync();
 
         private void Enqueue<T>(T payload) where T : RawEvent
         {
