@@ -16,7 +16,7 @@ namespace Segment.Analytics
 
     public partial class Analytics
     {
-        internal async void Update(Settings settings) {
+        internal async Task Update(Settings settings) {
             System systemState = await Store.CurrentState<System>();
             HashSet<int> initializedPlugins = new HashSet<int>();
             Timeline.Apply(plugin => {
@@ -49,7 +49,7 @@ namespace Segment.Analytics
                 settings = systemState._settings;
             }
 
-            Update(settings.Value);
+            await Update(settings.Value);
             await Store.Dispatch<System.ToggleRunningAction, System>(new System.ToggleRunningAction(true));
         }
     }
