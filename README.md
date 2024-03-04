@@ -1,4 +1,8 @@
 # Analytics-CSharp
+
+### 🎉 Flagship 🎉
+This library is one of Segment’s most popular Flagship libraries. It is actively maintained by Segment, benefitting from new feature releases and ongoing support.
+
 ![Nuget](https://img.shields.io/nuget/v/Segment.Analytics.CSharp)
 [![openupm](https://img.shields.io/npm/v/com.segment.analytics.csharp?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.segment.analytics.csharp/)
 [![](https://github.com/segmentio/analytics-csharp/actions/workflows/build.yml/badge.svg)](https://github.com/segmentio/analytics-csharp/actions)
