@@ -191,6 +191,10 @@ namespace Segment.Analytics
         {
             Settings? returnSettings = null;
             IState system = await Store.CurrentState<System>();
+
+            // I don't understand this as Store.CurrentState will at worst return a default(TState) which will be a default(System) in this case, hence this cast will always go through?
+            // System is a struct, so the default is an empty instance, not null
+            // might as well write /* if (true) */
             if (system is System convertedSystem)
             {
                 returnSettings = convertedSystem._settings;
