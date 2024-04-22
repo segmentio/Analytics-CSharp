@@ -176,9 +176,9 @@ namespace Segment.Analytics
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>Instance of <see cref="Settings"/></returns>
-        public virtual Settings? Settings()
+        public virtual Settings Settings()
         {
-            Task<Settings?> task = SettingsAsync();
+            Task<Settings> task = SettingsAsync();
             task.Wait();
             return task.Result;
         }
@@ -187,20 +187,10 @@ namespace Segment.Analytics
         /// Retrieve the settings.
         /// </summary>
         /// <returns>Instance of <see cref="Settings"/></returns>
-        public virtual async Task<Settings?> SettingsAsync()
+        public virtual async Task<Settings> SettingsAsync()
         {
-            Settings? returnSettings = null;
-            IState system = await Store.CurrentState<System>();
-
-            // I don't understand this as Store.CurrentState will at worst return a default(TState) which will be a default(System) in this case, hence this cast will always go through?
-            // System is a struct, so the default is an empty instance, not null
-            // might as well write /* if (true) */
-            if (system is System convertedSystem)
-            {
-                returnSettings = convertedSystem._settings;
-            }
-
-            return returnSettings;
+            System system = await Store.CurrentState<System>();
+            return system._settings;
         }
 
         #endregion
