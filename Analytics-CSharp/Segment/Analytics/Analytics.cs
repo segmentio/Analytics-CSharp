@@ -176,9 +176,9 @@ namespace Segment.Analytics
         /// it's not recommended to be used in async method.
         /// </summary>
         /// <returns>Instance of <see cref="Settings"/></returns>
-        public virtual Settings? Settings()
+        public virtual Settings Settings()
         {
-            Task<Settings?> task = SettingsAsync();
+            Task<Settings> task = SettingsAsync();
             task.Wait();
             return task.Result;
         }
@@ -187,16 +187,10 @@ namespace Segment.Analytics
         /// Retrieve the settings.
         /// </summary>
         /// <returns>Instance of <see cref="Settings"/></returns>
-        public virtual async Task<Settings?> SettingsAsync()
+        public virtual async Task<Settings> SettingsAsync()
         {
-            Settings? returnSettings = null;
-            IState system = await Store.CurrentState<System>();
-            if (system is System convertedSystem)
-            {
-                returnSettings = convertedSystem._settings;
-            }
-
-            return returnSettings;
+            System system = await Store.CurrentState<System>();
+            return system._settings;
         }
 
         #endregion

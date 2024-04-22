@@ -160,17 +160,21 @@ namespace Segment.Analytics
             Analytics analytics = plugin.Analytics;
             analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () =>
             {
-                Settings? settings = await plugin.Analytics.SettingsAsync();
+                Settings settings = await plugin.Analytics.SettingsAsync();
+                // Fetch system afterwards for a minuscule but cool performance gain
                 System system = await analytics.Store.CurrentState<System>();
+
                 // Don't initialize unless we have updated settings from the web.
                 // CheckSettings will initialize everything added before then, so wait until other inits have happened.
-                if (settings.HasValue && system._initializedPlugins.Count > 0)
+                // Check for nullability because CurrentState returns default(IState) which could make the .Count throw a NullReferenceException
+                if (system._initializedPlugins != null && system._initializedPlugins.Count > 0)
                 {
                     await analytics.Store.Dispatch<System.AddInitializedPluginAction, System>(new System.AddInitializedPluginAction(new HashSet<int>{plugin.GetHashCode()}));
-                    plugin.Update(settings.Value, UpdateType.Initial);
+                    plugin.Update(settings, UpdateType.Initial);
                 }
             });
         }
+
 
         internal void Remove(Plugin plugin) => _plugins.RemoveAll(tempPlugin => tempPlugin == plugin);
 
