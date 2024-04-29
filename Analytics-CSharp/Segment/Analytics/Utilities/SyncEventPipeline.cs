@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using global::System;
 using global::System.Linq;
 using Segment.Analytics.Policies;
@@ -7,7 +8,7 @@ using Segment.Serialization;
 
 namespace Segment.Analytics.Utilities
 {
-    public class EventPipeline: IEventPipeline
+    public class SyncEventPipeline: IEventPipeline
     {
         private readonly Analytics _analytics;
 
@@ -18,6 +19,7 @@ namespace Segment.Analytics.Utilities
         private Channel<RawEvent> _writeChannel;
 
         private Channel<string> _uploadChannel;
+        private Channel<string> _flushCompleteChannel;
 
         private readonly HTTPClient _httpClient;
 
@@ -32,13 +34,18 @@ namespace Segment.Analytics.Utilities
         internal static readonly RawEvent s_flushEvent = new ScreenEvent(FlushPoison, FlushPoison);
 
         internal const string UploadSig = "#!upload";
+        internal const string FlushCompleteSig = "#!complete";
+        internal int _flushTimeout = 5000;
+        internal CancellationToken? _flushCancellationToken = null;
 
-        public EventPipeline(
+        public SyncEventPipeline(
             Analytics analytics,
             string logTag,
             string apiKey,
             IList<IFlushPolicy> flushPolicies,
-            string apiHost = HTTPClient.DefaultAPIHost)
+            string apiHost = HTTPClient.DefaultAPIHost,
+            int flushTimeout = 5000,
+            CancellationToken? flushCancellationToken = null)
         {
             _analytics = analytics;
             _logTag = logTag;
@@ -47,15 +54,23 @@ namespace Segment.Analytics.Utilities
 
             _writeChannel = new Channel<RawEvent>();
             _uploadChannel = new Channel<string>();
+            _flushCompleteChannel = null;
             _httpClient = analytics.Configuration.HttpClientProvider.CreateHTTPClient(apiKey, apiHost: apiHost);
             _httpClient.AnalyticsRef = analytics;
             _storage = analytics.Storage;
             Running = false;
+            _flushTimeout = flushTimeout;
+            _flushCancellationToken = flushCancellationToken;
         }
 
         public void Put(RawEvent @event) => _writeChannel.Send(@event);
 
-        public void Flush() => _writeChannel.Send(s_flushEvent);
+        public void Flush() {
+            _flushCompleteChannel = new Channel<string>();
+            _writeChannel.Send(s_flushEvent);
+            _flushCompleteChannel.Receive().Wait(_flushTimeout,_flushCancellationToken??CancellationToken.None);
+            _flushCompleteChannel = null;
+        } 
 
         public void Start()
         {
@@ -66,6 +81,7 @@ namespace Segment.Analytics.Utilities
             {
                 _writeChannel = new Channel<RawEvent>();
                 _uploadChannel = new Channel<string>();
+                _flushCompleteChannel = new Channel<string>();
             }
 
             Running = true;
@@ -80,6 +96,7 @@ namespace Segment.Analytics.Utilities
             Running = false;
 
             _uploadChannel.Cancel();
+            _flushCompleteChannel.Cancel();
             _writeChannel.Cancel();
             Unschedule();
         }
@@ -125,6 +142,7 @@ namespace Segment.Analytics.Utilities
         {
             while (!_uploadChannel.isCancelled)
             {
+                bool reportFlushComplete = _flushCompleteChannel != null;
                 await _uploadChannel.Receive();
                 Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " performing flush");
 
@@ -159,6 +177,10 @@ namespace Segment.Analytics.Utilities
                     {
                         _storage.RemoveFile(url);
                     }
+                }
+                if(reportFlushComplete && _flushCompleteChannel != null)
+                {
+                    _flushCompleteChannel.Send(FlushCompleteSig);
                 }
             }
         });

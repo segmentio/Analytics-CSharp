@@ -45,6 +45,8 @@ namespace Segment.Analytics
 
         public IList<IFlushPolicy> FlushPolicies { get; }
 
+        public EventPipelineProvider EventPipelineProvider { get; }
+
         /// <summary>
         /// Configuration that analytics can use
         /// </summary>
@@ -82,7 +84,8 @@ namespace Segment.Analytics
             IAnalyticsErrorHandler analyticsErrorHandler = null,
             IStorageProvider storageProvider = default,
             IHTTPClientProvider httpClientProvider = default,
-            IList<IFlushPolicy> flushPolicies = default)
+            IList<IFlushPolicy> flushPolicies = default,
+            EventPipelineProvider eventPipelineProvider = default)
         {
             WriteKey = writeKey;
             FlushAt = flushAt;
@@ -98,6 +101,7 @@ namespace Segment.Analytics
             FlushPolicies = flushPolicies == null ? new ConcurrentList<IFlushPolicy>() : new ConcurrentList<IFlushPolicy>(flushPolicies);
             FlushPolicies.Add(new CountFlushPolicy(flushAt));
             FlushPolicies.Add(new FrequencyFlushPolicy(flushInterval * 1000L));
+            EventPipelineProvider = eventPipelineProvider ?? new EventPipelineProvider();
         }
 
         public Configuration(string writeKey,
