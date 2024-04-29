@@ -23,7 +23,7 @@ namespace Segment.Analytics.Utilities
 
         private readonly IStorage _storage;
 
-        internal string ApiHost { get; set; }
+        public string ApiHost { get; set; }
 
         public bool Running { get; private set; }
 

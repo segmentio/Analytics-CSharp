@@ -45,7 +45,7 @@ namespace Segment.Analytics
 
         public IList<IFlushPolicy> FlushPolicies { get; }
 
-        public EventPipelineProvider EventPipelineProvider { get; }
+        public IEventPipelineProvider EventPipelineProvider { get; }
 
         /// <summary>
         /// Configuration that analytics can use
