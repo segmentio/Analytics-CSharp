@@ -15,7 +15,7 @@ namespace Segment.Analytics.Plugins
     /// </summary>
     public class SegmentDestination : DestinationPlugin, ISubscriber
     {
-        private EventPipeline _pipeline = null;
+        private IEventPipeline _pipeline = null;
 
         public override string Key => "Segment.io";
 
@@ -64,13 +64,7 @@ namespace Segment.Analytics.Plugins
             // Add DestinationMetadata enrichment plugin
             Add(new DestinationMetadataPlugin());
 
-            _pipeline = new EventPipeline(
-                    analytics,
-                    Key,
-                    analytics.Configuration.WriteKey,
-                    analytics.Configuration.FlushPolicies,
-                    analytics.Configuration.ApiHost
-                );
+            _pipeline = analytics.Configuration.EventPipelineProvider.Create(analytics, Key);
 
             analytics.AnalyticsScope.Launch(analytics.AnalyticsDispatcher, async () =>
             {
