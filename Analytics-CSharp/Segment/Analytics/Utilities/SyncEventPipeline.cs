@@ -11,9 +11,9 @@ namespace Segment.Analytics.Utilities
     internal sealed class FlushEvent : RawEvent
     {
         public override string Type => "flush";
-        public readonly Semaphore _semaphore;
+        public readonly SemaphoreSlim _semaphore;
 
-        internal FlushEvent(Semaphore semaphore)
+        internal FlushEvent(SemaphoreSlim semaphore)
         {
             _semaphore = semaphore;
         }
@@ -41,6 +41,7 @@ namespace Segment.Analytics.Utilities
         public bool Running { get; private set; }
 
         internal int _flushTimeout = -1;
+        internal CancellationToken _flushCancellationToken = CancellationToken.None;
 
         public SyncEventPipeline(
             Analytics analytics,
@@ -48,7 +49,8 @@ namespace Segment.Analytics.Utilities
             string apiKey,
             IList<IFlushPolicy> flushPolicies,
             string apiHost = HTTPClient.DefaultAPIHost,
-            int flushTimeout = -1)
+            int flushTimeout = -1,
+            CancellationToken? flushCancellationToken = null)
         {
             _analytics = analytics;
             _logTag = logTag;
@@ -62,14 +64,15 @@ namespace Segment.Analytics.Utilities
             _storage = analytics.Storage;
             Running = false;
             _flushTimeout = flushTimeout;
+            _flushCancellationToken = flushCancellationToken ?? CancellationToken.None;
         }
 
         public void Put(RawEvent @event) => _writeChannel.Send(@event);
 
         public void Flush() {
-            FlushEvent flushEvent = new FlushEvent(new Semaphore(1,1));
+            FlushEvent flushEvent = new FlushEvent(new SemaphoreSlim(1,1));
             _writeChannel.Send(flushEvent);
-            flushEvent._semaphore.WaitOne(_flushTimeout);
+            flushEvent._semaphore.Wait(_flushTimeout, _flushCancellationToken);
         } 
 
         public void Start()
