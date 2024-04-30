@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Moq;
 using Segment.Analytics;
@@ -13,8 +15,6 @@ namespace Tests.Utilities
 {
     public class EventPipelineTest
     {
-        private EventPipeline _eventPipeline;
-
         private readonly Analytics _analytics;
 
         private readonly Mock<IStorage> _storage;
@@ -24,6 +24,12 @@ namespace Tests.Utilities
         private readonly string _file;
 
         private readonly byte[] _bytes;
+
+        public static IEnumerable<object[]> GetPipelineProvider()
+        {
+            yield return new object[] { new EventPipelineProvider() };
+            yield return new object[] { new SyncEventPipelineProvider() };
+        }
 
         public EventPipelineTest()
         {
@@ -50,14 +56,6 @@ namespace Tests.Utilities
                 storageProvider: new MockStorageProvider(_storage)
             );
             _analytics = new Analytics(config);
-            _eventPipeline = new EventPipeline(
-                _analytics,
-                logTag: "key",
-                apiKey: _analytics.Configuration.WriteKey,
-                flushPolicies: _analytics.Configuration.FlushPolicies,
-                apiHost: _analytics.Configuration.ApiHost
-            );
-
             _file = Guid.NewGuid().ToString();
             _bytes = _file.GetBytes();
             _storage
@@ -68,23 +66,27 @@ namespace Tests.Utilities
                 .Returns(_bytes);
         }
 
-        [Fact]
-        public async Task TestPut()
+        [Theory]
+        [MemberData(nameof(GetPipelineProvider))]
+        public async Task TestPut(IEventPipelineProvider provider)
         {
-            _eventPipeline.Start();
-            _eventPipeline.Put(new ScreenEvent("test"));
+            IEventPipeline eventPipeline = provider.Create(_analytics, "key");
+            eventPipeline.Start();
+            eventPipeline.Put(new ScreenEvent("test"));
 
             await Task.Delay(1000);
 
             _storage.Verify(o => o.Write(StorageConstants.Events, It.IsAny<string>()), Times.Exactly(1));
         }
 
-        [Fact]
-        public async Task TestFlush()
+        [Theory]
+        [MemberData(nameof(GetPipelineProvider))]
+        public async Task TestFlush(IEventPipelineProvider provider)
         {
-            _eventPipeline.Start();
-            _eventPipeline.Put(new ScreenEvent("test"));
-            _eventPipeline.Flush();
+            IEventPipeline eventPipeline = provider.Create(_analytics, "key");
+            eventPipeline.Start();
+            eventPipeline.Put(new ScreenEvent("test"));
+            eventPipeline.Flush();
 
             await Task.Delay(1000);
 
@@ -94,28 +96,32 @@ namespace Tests.Utilities
             _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(1));
         }
 
-        [Fact]
-        public void TestStart()
+        [Theory]
+        [MemberData(nameof(GetPipelineProvider))]
+        public void TestStart(IEventPipelineProvider provider)
         {
-            _eventPipeline.Start();
-            Assert.True(_eventPipeline.Running);
+            IEventPipeline eventPipeline = provider.Create(_analytics, "key");
+            eventPipeline.Start();
+            Assert.True(eventPipeline.Running);
         }
 
-        [Fact]
-        public async void TestStop()
+        [Theory]
+        [MemberData(nameof(GetPipelineProvider))]
+        public async void TestStop(IEventPipelineProvider provider)
         {
-            _eventPipeline.Start();
-            Assert.True(_eventPipeline.Running);
-            _eventPipeline.Stop();
-            Assert.False(_eventPipeline.Running);
+            IEventPipeline eventPipeline = provider.Create(_analytics, "key");
+            eventPipeline.Start();
+            Assert.True(eventPipeline.Running);
+            eventPipeline.Stop();
+            Assert.False(eventPipeline.Running);
 
             // make sure writeChannel is stopped
-            _eventPipeline.Put(new ScreenEvent("test"));
+            eventPipeline.Put(new ScreenEvent("test"));
             await Task.Delay(1000);
             _storage.Verify(o => o.Write(StorageConstants.Events, It.IsAny<string>()), Times.Never);
 
             // make sure uploadChannel is stopped
-            _eventPipeline.Flush();
+            eventPipeline.Flush();
             await Task.Delay(1000);
             _storage.Verify(o => o.Rollover(), Times.Never);
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Never);
@@ -123,12 +129,14 @@ namespace Tests.Utilities
             _storage.Verify(o => o.RemoveFile(_file), Times.Never);
         }
 
-        [Fact]
-        public async Task TestFlushCausedByOverflow()
+        [Theory]
+        [MemberData(nameof(GetPipelineProvider))]
+        public async Task TestFlushCausedByOverflow(IEventPipelineProvider provider)
         {
-            _eventPipeline.Start();
-            _eventPipeline.Put(new ScreenEvent("event 1"));
-            _eventPipeline.Put(new ScreenEvent("event 2"));
+            IEventPipeline eventPipeline = provider.Create(_analytics, "key");
+            eventPipeline.Start();
+            eventPipeline.Put(new ScreenEvent("event 1"));
+            eventPipeline.Put(new ScreenEvent("event 2"));
 
             await Task.Delay(1000);
 
@@ -138,9 +146,11 @@ namespace Tests.Utilities
             _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(1));
         }
 
-        [Fact]
-        public async Task TestPeriodicalFlush()
+        [Theory]
+        [MemberData(nameof(GetPipelineProvider))]
+        public async Task TestPeriodicalFlush(IEventPipelineProvider provider)
         {
+            IEventPipeline eventPipeline = provider.Create(_analytics, "key");
             foreach (IFlushPolicy policy in _analytics.Configuration.FlushPolicies)
             {
                 if (policy is FrequencyFlushPolicy)
@@ -151,21 +161,21 @@ namespace Tests.Utilities
             _analytics.AddFlushPolicy(new FrequencyFlushPolicy(1000L));
 
             // since we set autoAddSegmentDestination = false, we need to manually add it to analytics.
-            // we need a mocked SegmentDestination so we can redirect Flush call to this _eventPipeline.
+            // we need a mocked SegmentDestination so we can redirect Flush call to this eventPipeline.
             var segmentDestination = new Mock<SegmentDestination>();
-            segmentDestination.Setup(o => o.Flush()).Callback(() => _eventPipeline.Flush());
+            segmentDestination.Setup(o => o.Flush()).Callback(() => eventPipeline.Flush());
             segmentDestination.Setup(o => o.Analytics).Returns(_analytics);
             _analytics.Add(segmentDestination.Object);
 
-            _eventPipeline = new EventPipeline(
+            eventPipeline = new EventPipeline(
                 _analytics,
                 logTag: "key",
                 apiKey: _analytics.Configuration.WriteKey,
                 flushPolicies: _analytics.Configuration.FlushPolicies,
                 apiHost: _analytics.Configuration.ApiHost
             );
-            _eventPipeline.Start();
-            _eventPipeline.Put(new ScreenEvent("test"));
+            eventPipeline.Start();
+            eventPipeline.Put(new ScreenEvent("test"));
 
             await Task.Delay(2050);
 
@@ -175,16 +185,18 @@ namespace Tests.Utilities
             _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(2));
         }
 
-        [Fact]
-        public async Task TestFlushInterruptedWhenNoFileExist()
+        [Theory]
+        [MemberData(nameof(GetPipelineProvider))]
+        public async Task TestFlushInterruptedWhenNoFileExist(IEventPipelineProvider provider)
         {
+            IEventPipeline eventPipeline = provider.Create(_analytics, "key");
             // make sure the file does not exist
             _storage
                 .Setup(o => o.ReadAsBytes(It.IsAny<string>()))
                 .Returns((byte[])null);
 
-            _eventPipeline.Start();
-            _eventPipeline.Flush();
+            eventPipeline.Start();
+            eventPipeline.Flush();
 
             await Task.Delay(1000);
 
