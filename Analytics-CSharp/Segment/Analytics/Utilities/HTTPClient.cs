@@ -187,6 +187,7 @@ namespace Segment.Analytics.Utilities
         public override async Task<Response> DoGet(string url)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Add("Connection", "close");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             HttpResponseMessage response = await _httpClient.SendAsync(request);
@@ -214,6 +215,7 @@ namespace Segment.Analytics.Utilities
                 streamContent.Headers.Add("Content-Encoding", "gzip");
 
                 var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Headers.Add("Connection", "close");
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
                 request.Content = streamContent;
 
