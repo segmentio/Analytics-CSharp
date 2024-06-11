@@ -1,9 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Headers;
-using System.Reflection;
-using Segment.Analytics;
 using Segment.Serialization;
 
 namespace Segment.Analytics.Compat
@@ -31,9 +27,13 @@ namespace Segment.Analytics.Compat
         public static void Track(this Analytics analytics, string userId, string eventName,
             Dictionary<string, object> properties)
         {
+            if (properties == null)
+            {
+                properties = new Dictionary<string, object>();
+            }
             properties.Add("userId", userId);
             analytics.Track(eventName,
-                JsonUtility.FromJson<Segment.Serialization.JsonObject>(JsonUtility.ToJson(properties)));
+                JsonUtility.FromJson<JsonObject>(JsonUtility.ToJson(properties)));
         }
 
         [Obsolete("This should only be used if migrating from Analytics.NET or Analytics.Xamarin")]
@@ -43,36 +43,48 @@ namespace Segment.Analytics.Compat
         }
 
         [Obsolete("This should only be used if migrating from Analytics.NET or Analytics.Xamarin")]
-        public static void Screen(this Analytics analytics, string userId, string eventName,
+        public static void Screen(this Analytics analytics, string userId, string title,
             Dictionary<string, object> properties)
         {
+            if (properties == null)
+            {
+                properties = new Dictionary<string, object>();
+            }
             properties.Add("userId", userId);
-            analytics.Screen(eventName,
-                JsonUtility.FromJson<Segment.Serialization.JsonObject>(JsonUtility.ToJson(properties)));
+            analytics.Screen(title,
+                JsonUtility.FromJson<JsonObject>(JsonUtility.ToJson(properties)));
         }
 
         [Obsolete("This should only be used if migrating from Analytics.NET or Analytics.Xamarin")]
-        public static void Page(this Analytics analytics, string userId, string eventName)
+        public static void Page(this Analytics analytics, string userId, string title)
         {
-            analytics.Page(eventName, new JsonObject() {{"userId", userId}});
+            analytics.Page(title, new JsonObject() {{"userId", userId}});
         }
 
         [Obsolete("This should only be used if migrating from Analytics.NET or Analytics.Xamarin")]
-        public static void Page(this Analytics analytics, string userId, string eventName,
+        public static void Page(this Analytics analytics, string userId, string title,
             Dictionary<string, object> properties)
         {
+            if (properties == null)
+            {
+                properties = new Dictionary<string, object>();
+            }
             properties.Add("userId", userId);
-            analytics.Page(eventName,
-                JsonUtility.FromJson<Segment.Serialization.JsonObject>(JsonUtility.ToJson(properties)));
+            analytics.Page(title,
+                JsonUtility.FromJson<JsonObject>(JsonUtility.ToJson(properties)));
         }
 
         [Obsolete("This should only be used if migrating from Analytics.NET or Analytics.Xamarin")]
         public static void Group(this Analytics analytics, string userId, string groupId,
             Dictionary<string, object> traits)
         {
+            if (traits == null)
+            {
+                traits = new Dictionary<string, object>();
+            }
             traits.Add("userId", userId);
             analytics.Group(groupId,
-                JsonUtility.FromJson<Segment.Serialization.JsonObject>(JsonUtility.ToJson(traits)));
+                JsonUtility.FromJson<JsonObject>(JsonUtility.ToJson(traits)));
         }
 
         [Obsolete("This should only be used if migrating from Analytics.NET or Analytics.Xamarin")]

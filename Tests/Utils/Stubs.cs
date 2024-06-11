@@ -45,6 +45,11 @@ namespace Tests.Utils
         public override PluginType Type => PluginType.Before;
     }
 
+    public class StubAfterEventPlugin : EventPlugin
+    {
+        public override PluginType Type => PluginType.After;
+    }
+
     public class StubDestinationPlugin : DestinationPlugin
     {
         public override string Key { get; }
