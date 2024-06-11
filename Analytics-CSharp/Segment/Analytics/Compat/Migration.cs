@@ -43,7 +43,7 @@ namespace Segment.Analytics.Compat
         }
 
         [Obsolete("This should only be used if migrating from Analytics.NET or Analytics.Xamarin")]
-        public static void Screen(this Analytics analytics, string userId, string eventName,
+        public static void Screen(this Analytics analytics, string userId, string title,
             Dictionary<string, object> properties)
         {
             if (properties == null)
@@ -51,18 +51,18 @@ namespace Segment.Analytics.Compat
                 properties = new Dictionary<string, object>();
             }
             properties.Add("userId", userId);
-            analytics.Screen(eventName,
+            analytics.Screen(title,
                 JsonUtility.FromJson<JsonObject>(JsonUtility.ToJson(properties)));
         }
 
         [Obsolete("This should only be used if migrating from Analytics.NET or Analytics.Xamarin")]
-        public static void Page(this Analytics analytics, string userId, string eventName)
+        public static void Page(this Analytics analytics, string userId, string title)
         {
-            analytics.Page(eventName, new JsonObject() {{"userId", userId}});
+            analytics.Page(title, new JsonObject() {{"userId", userId}});
         }
 
         [Obsolete("This should only be used if migrating from Analytics.NET or Analytics.Xamarin")]
-        public static void Page(this Analytics analytics, string userId, string eventName,
+        public static void Page(this Analytics analytics, string userId, string title,
             Dictionary<string, object> properties)
         {
             if (properties == null)
@@ -70,7 +70,7 @@ namespace Segment.Analytics.Compat
                 properties = new Dictionary<string, object>();
             }
             properties.Add("userId", userId);
-            analytics.Page(eventName,
+            analytics.Page(title,
                 JsonUtility.FromJson<JsonObject>(JsonUtility.ToJson(properties)));
         }
 
