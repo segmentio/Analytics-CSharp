@@ -101,6 +101,19 @@ namespace Segment.Analytics
         /// <returns>Anonymous Id</returns>
         public virtual string AnonymousId() => _userInfo._anonymousId;
 
+        /// <summary>
+        /// Set the anonymousId.
+        /// </summary>
+        /// <param name="anonymousId">Anonymous Id</param>
+        public virtual void SetAnonymousId(string anonymousId)
+        {
+            _userInfo._anonymousId = anonymousId;
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
+            {
+                await Store.Dispatch<UserInfo.SetAnonymousIdAction, UserInfo>(new UserInfo.SetAnonymousIdAction(anonymousId));
+            });
+        }
+
 
         /// <summary>
         /// Retrieve the userId registered by a previous <see cref="Identify(string,JsonObject)"/> call

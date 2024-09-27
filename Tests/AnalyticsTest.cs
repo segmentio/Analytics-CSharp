@@ -66,6 +66,19 @@ namespace Tests
         }
 
         [Fact]
+        public void TestSetAnonymousId()
+        {
+            string expected = "foo";
+            _storage.Setup(o => o.WritePrefs(StorageConstants.AnonymousId, expected)).Verifiable();
+            string anonIdOld = _analytics.AnonymousId();
+            _analytics.SetAnonymousId(expected);
+
+            string anonIdNew = _analytics.AnonymousId();
+            Assert.NotEqual(anonIdOld, anonIdNew);
+            Assert.Equal(expected, anonIdNew);
+        }
+
+        [Fact]
         public void TestUserId()
         {
             string expected = "test";
