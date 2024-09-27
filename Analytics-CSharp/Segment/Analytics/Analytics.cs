@@ -81,14 +81,15 @@ namespace Segment.Analytics
         /// Process a raw event through the system. Useful when one needs to queue and replay events at a later time.
         /// </summary>
         /// <param name="incomingEvent">An event conforming to RawEvent to be processed in the timeline</param>
-        public void Process(RawEvent incomingEvent)
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
+        public void Process(RawEvent incomingEvent, Func<RawEvent, RawEvent> enrichment = default)
         {
             if (!Enable) return;
 
             incomingEvent.ApplyRawEventData(_userInfo);
             AnalyticsScope.Launch(AnalyticsDispatcher, () =>
             {
-                Timeline.Process(incomingEvent);
+                Timeline.Process(incomingEvent, enrichment);
             });
         }
 
@@ -99,6 +100,19 @@ namespace Segment.Analytics
         /// </summary>
         /// <returns>Anonymous Id</returns>
         public virtual string AnonymousId() => _userInfo._anonymousId;
+
+        /// <summary>
+        /// Set the anonymousId.
+        /// </summary>
+        /// <param name="anonymousId">Anonymous Id</param>
+        public virtual void SetAnonymousId(string anonymousId)
+        {
+            _userInfo._anonymousId = anonymousId;
+            AnalyticsScope.Launch(AnalyticsDispatcher, async () =>
+            {
+                await Store.Dispatch<UserInfo.SetAnonymousIdAction, UserInfo>(new UserInfo.SetAnonymousIdAction(anonymousId));
+            });
+        }
 
 
         /// <summary>

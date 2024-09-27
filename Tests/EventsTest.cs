@@ -17,6 +17,8 @@ namespace Tests
 
         private readonly Mock<StubEventPlugin> _plugin;
 
+        private readonly Mock<StubAfterEventPlugin> _afterPlugin;
+
         public EventsTest()
         {
             _settings = JsonUtility.FromJson<Settings?>(
@@ -31,6 +33,8 @@ namespace Tests
             {
                 CallBase = true
             };
+
+            _afterPlugin = new Mock<StubAfterEventPlugin> { CallBase = true };
 
             var config = new Configuration(
                 writeKey: "123",
@@ -123,6 +127,27 @@ namespace Tests
         }
 
         [Fact]
+        public void TestTrackEnrichment()
+        {
+            string expectedEvent = "foo";
+            string expectedAnonymousId = "bar";
+            var actual = new List<TrackEvent>();
+            _afterPlugin.Setup(o => o.Track(Capture.In(actual)));
+
+            _analytics.Add(_afterPlugin.Object);
+            _analytics.Track(expectedEvent, enrichment: @event =>
+            {
+                @event.AnonymousId = expectedAnonymousId;
+                return @event;
+            });
+
+            Assert.NotEmpty(actual);
+            Assert.True(actual[0].Properties.Count == 0);
+            Assert.Equal(expectedEvent, actual[0].Event);
+            Assert.Equal(expectedAnonymousId, actual[0].AnonymousId);
+        }
+
+        [Fact]
         public void TestIdentify()
         {
             var expected = new JsonObject
@@ -135,6 +160,35 @@ namespace Tests
 
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId, expected);
+
+            string actualUserId = _analytics.UserId();
+
+            Assert.NotEmpty(actual);
+            Assert.Equal(expected, actual[0].Traits);
+            Assert.Equal(expectedUserId, actualUserId);
+        }
+
+        [Fact]
+        public void TestIdentifyEnrichment()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            string expectedUserId = "newUserId";
+            var actual = new List<IdentifyEvent>();
+            _afterPlugin.Setup(o => o.Identify(Capture.In(actual)));
+
+            _analytics.Add(_afterPlugin.Object);
+            _analytics.Identify(expectedUserId, expected, @event =>
+            {
+                if (@event is IdentifyEvent identifyEvent)
+                {
+                    identifyEvent.Traits["foo"] = "baz";
+                }
+
+                return @event;
+            });
 
             string actualUserId = _analytics.UserId();
 
@@ -294,7 +348,7 @@ namespace Tests
             _analytics.Add(_plugin.Object);
             _analytics.Identify(expectedUserId);
 
-            _analytics.Identify(null, null);
+            _analytics.Identify(userId:null, traits:null);
 
             var userIdEmpty = UserInfo.DefaultState(_analytics.Storage);
             Assert.Null(userIdEmpty._userId);
@@ -314,6 +368,35 @@ namespace Tests
 
             _analytics.Add(_plugin.Object);
             _analytics.Screen(expectedTitle, expected, expectedCategory);
+
+            Assert.NotEmpty(actual);
+            Assert.Equal(expected, actual[0].Properties);
+            Assert.Equal(expectedTitle, actual[0].Name);
+            Assert.Equal(expectedCategory, actual[0].Category);
+        }
+
+        [Fact]
+        public void TestScreenEnrichment()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            string expectedTitle = "foo";
+            string expectedCategory = "bar";
+            var actual = new List<ScreenEvent>();
+            _afterPlugin.Setup(o => o.Screen(Capture.In(actual)));
+
+            _analytics.Add(_afterPlugin.Object);
+            _analytics.Screen(expectedTitle, expected, expectedCategory, @event =>
+            {
+                if (@event is ScreenEvent screenEvent)
+                {
+                    screenEvent.Properties["foo"] = "baz";
+                }
+
+                return @event;
+            });
 
             Assert.NotEmpty(actual);
             Assert.Equal(expected, actual[0].Properties);
@@ -383,6 +466,36 @@ namespace Tests
 
             _analytics.Add(_plugin.Object);
             _analytics.Page(expectedTitle, expected, expectedCategory);
+
+            Assert.NotEmpty(actual);
+            Assert.Equal(expected, actual[0].Properties);
+            Assert.Equal(expectedTitle, actual[0].Name);
+            Assert.Equal(expectedCategory, actual[0].Category);
+            Assert.Equal("page", actual[0].Type);
+        }
+
+        [Fact]
+        public void TestPageEnrichment()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            string expectedTitle = "foo";
+            string expectedCategory = "bar";
+            var actual = new List<PageEvent>();
+            _afterPlugin.Setup(o => o.Page(Capture.In(actual)));
+
+            _analytics.Add(_afterPlugin.Object);
+            _analytics.Page(expectedTitle, expected, expectedCategory, @event =>
+            {
+                if (@event is PageEvent pageEvent)
+                {
+                    pageEvent.Properties["foo"] = "baz";
+                }
+
+                return @event;
+            });
 
             Assert.NotEmpty(actual);
             Assert.Equal(expected, actual[0].Properties);
@@ -462,6 +575,33 @@ namespace Tests
         }
 
         [Fact]
+        public void TestGroupEnrichment()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            string expectedGroupId = "foo";
+            var actual = new List<GroupEvent>();
+            _afterPlugin.Setup(o => o.Group(Capture.In(actual)));
+
+            _analytics.Add(_afterPlugin.Object);
+            _analytics.Group(expectedGroupId, expected, @event =>
+            {
+                if (@event is GroupEvent groupEvent)
+                {
+                    groupEvent.Traits["foo"] = "baz";
+                }
+
+                return @event;
+            });
+
+            Assert.NotEmpty(actual);
+            Assert.Equal(expected, actual[0].Traits);
+            Assert.Equal(expectedGroupId, actual[0].GroupId);
+        }
+
+        [Fact]
         public void TestGroupNoProperties()
         {
             string expectedGroupId = "foo";
@@ -522,6 +662,32 @@ namespace Tests
             Assert.NotEmpty(actual);
             Assert.Equal(expectedPrevious, actual[0].PreviousId);
             Assert.Equal(expected, actual[0].UserId);
+        }
+
+        [Fact]
+        public void TestAliasEnrichment()
+        {
+            string expectedPrevious = "foo";
+            string expected = "bar";
+            var actual = new List<AliasEvent>();
+            _afterPlugin.Setup(o => o.Alias(Capture.In(actual)));
+
+            _analytics.Add(_afterPlugin.Object);
+            _analytics.Identify(expectedPrevious);
+            _analytics.Alias(expected, @event =>
+            {
+                if (@event is AliasEvent aliasEvent)
+                {
+                    aliasEvent.AnonymousId = "test";
+                }
+
+                return @event;
+            });
+
+            Assert.NotEmpty(actual);
+            Assert.Equal(expectedPrevious, actual[0].PreviousId);
+            Assert.Equal(expected, actual[0].UserId);
+            Assert.Equal("test", actual[0].AnonymousId);
         }
     }
 }

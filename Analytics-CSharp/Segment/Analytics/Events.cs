@@ -1,3 +1,4 @@
+using System;
 using global::System.Runtime.Serialization;
 using Segment.Serialization;
 
@@ -12,7 +13,8 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="name">Name of the action</param>
         /// <param name="properties">Properties to describe the action</param>
-        public virtual void Track(string name, JsonObject properties = default)
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
+        public virtual void Track(string name, JsonObject properties = default, Func<RawEvent, RawEvent> enrichment = default)
         {
             if (properties == null)
             {
@@ -20,7 +22,7 @@ namespace Segment.Analytics
             }
 
             var trackEvent = new TrackEvent(name, properties);
-            Process(trackEvent);
+            Process(trackEvent, enrichment);
         }
 
         /// <summary>
@@ -30,17 +32,18 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="name">Name of the action</param>
         /// <param name="properties">Properties to describe the action</param>
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public virtual void Track<T>(string name, T properties = default) where T : ISerializable
+        public virtual void Track<T>(string name, T properties = default, Func<RawEvent, RawEvent> enrichment = default) where T : ISerializable
         {
             if (properties == null)
             {
-                Track(name);
+                Track(name, enrichment: enrichment);
             }
             else
             {
                 string json = JsonUtility.ToJson(properties);
-                Track(name, JsonUtility.FromJson<JsonObject>(json));
+                Track(name, JsonUtility.FromJson<JsonObject>(json), enrichment);
             }
         }
 
@@ -59,7 +62,8 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="userId">Unique identifier which you recognize a user by in your own database</param>
         /// <param name="traits">Traits about the user</param>
-        public virtual void Identify(string userId, JsonObject traits = default)
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
+        public virtual void Identify(string userId, JsonObject traits = default, Func<RawEvent, RawEvent> enrichment = default)
         {
             if (traits == null)
             {
@@ -76,7 +80,7 @@ namespace Segment.Analytics
             });
 
             var identifyEvent = new IdentifyEvent(userId, traits);
-            Process(identifyEvent);
+            Process(identifyEvent, enrichment);
         }
 
         /// <summary>
@@ -93,7 +97,8 @@ namespace Segment.Analytics
         /// info.
         /// </summary>
         /// <param name="traits">Traits about the user</param>
-        public virtual void Identify(JsonObject traits)
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
+        public virtual void Identify(JsonObject traits, Func<RawEvent, RawEvent> enrichment = default)
         {
             if (traits == null)
             {
@@ -109,7 +114,7 @@ namespace Segment.Analytics
             });
 
             var identifyEvent = new IdentifyEvent(_userInfo._userId, traits);
-            Process(identifyEvent);
+            Process(identifyEvent, enrichment);
         }
 
         /// <summary>
@@ -127,17 +132,18 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="userId">Unique identifier which you recognize a user by in your own database</param>
         /// <param name="traits">Traits about the user</param>
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public virtual void Identify<T>(string userId, T traits = default) where T : ISerializable
+        public virtual void Identify<T>(string userId, T traits = default, Func<RawEvent, RawEvent> enrichment = default) where T : ISerializable
         {
             if (traits == null)
             {
-                Identify(userId);
+                Identify(userId, enrichment: enrichment);
             }
             else
             {
                 string json = JsonUtility.ToJson(traits);
-                Identify(userId, JsonUtility.FromJson<JsonObject>(json));
+                Identify(userId, JsonUtility.FromJson<JsonObject>(json), enrichment);
             }
         }
 
@@ -155,17 +161,18 @@ namespace Segment.Analytics
         /// info.
         /// </summary>
         /// <param name="traits">Traits about the user</param>
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public virtual void Identify<T>(T traits) where T : ISerializable
+        public virtual void Identify<T>(T traits, Func<RawEvent, RawEvent> enrichment = default) where T : ISerializable
         {
             if (traits == null)
             {
-                Identify(new JsonObject());
+                Identify(new JsonObject(), enrichment);
             }
             else
             {
                 string json = JsonUtility.ToJson(traits);
-                Identify(JsonUtility.FromJson<JsonObject>(json));
+                Identify(JsonUtility.FromJson<JsonObject>(json), enrichment);
             }
         }
 
@@ -177,14 +184,15 @@ namespace Segment.Analytics
         /// <param name="title">A name for the screen</param>
         /// <param name="properties">Properties to add extra information to this call</param>
         /// <param name="category">A category to describe the screen</param>
-        public virtual void Screen(string title, JsonObject properties = default, string category = "")
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
+        public virtual void Screen(string title, JsonObject properties = default, string category = "", Func<RawEvent, RawEvent> enrichment = default)
         {
             if (properties == null)
             {
                 properties = new JsonObject();
             }
             var screenEvent = new ScreenEvent(category, title, properties);
-            Process(screenEvent);
+            Process(screenEvent, enrichment);
         }
 
         /// <summary>
@@ -195,17 +203,18 @@ namespace Segment.Analytics
         /// <param name="title">A name for the screen</param>
         /// <param name="properties">Properties to add extra information to this call</param>
         /// <param name="category">A category to describe the screen</param>
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public virtual void Screen<T>(string title, T properties = default, string category = "") where T : ISerializable
+        public virtual void Screen<T>(string title, T properties = default, string category = "", Func<RawEvent, RawEvent> enrichment = default) where T : ISerializable
         {
             if (properties == null)
             {
-                Screen(title, category: category);
+                Screen(title, category: category, enrichment: enrichment);
             }
             else
             {
                 string json = JsonUtility.ToJson(properties);
-                Screen(title, JsonUtility.FromJson<JsonObject>(json), category);
+                Screen(title, JsonUtility.FromJson<JsonObject>(json), category, enrichment);
             }
         }
 
@@ -218,14 +227,15 @@ namespace Segment.Analytics
         /// <param name="title">A name for the page</param>
         /// <param name="properties">Properties to add extra information to this call</param>
         /// <param name="category">A category to describe the page</param>
-        public virtual void Page(string title, JsonObject properties = default, string category = "")
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
+        public virtual void Page(string title, JsonObject properties = default, string category = "", Func<RawEvent, RawEvent> enrichment = default)
         {
             if (properties == null)
             {
                 properties = new JsonObject();
             }
             var pageEvent = new PageEvent(category, title, properties);
-            Process(pageEvent);
+            Process(pageEvent, enrichment);
         }
 
         /// <summary>
@@ -236,17 +246,18 @@ namespace Segment.Analytics
         /// <param name="title">A name for the page</param>
         /// <param name="properties">Properties to add extra information to this call</param>
         /// <param name="category">A category to describe the page</param>
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public virtual void Page<T>(string title, T properties = default, string category = "") where T : ISerializable
+        public virtual void Page<T>(string title, T properties = default, string category = "", Func<RawEvent, RawEvent> enrichment = default) where T : ISerializable
         {
             if (properties == null)
             {
-                Page(title, category: category);
+                Page(title, category: category, enrichment: enrichment);
             }
             else
             {
                 string json = JsonUtility.ToJson(properties);
-                Page(title, JsonUtility.FromJson<JsonObject>(json), category);
+                Page(title, JsonUtility.FromJson<JsonObject>(json), category, enrichment);
             }
         }
 
@@ -259,14 +270,15 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="groupId">Unique identifier which you recognize a group by in your own database</param>
         /// <param name="traits">Traits about the group</param>
-        public virtual void Group(string groupId, JsonObject traits = default)
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
+        public virtual void Group(string groupId, JsonObject traits = default, Func<RawEvent, RawEvent> enrichment = default)
         {
             if (traits == null)
             {
                 traits = new JsonObject();
             }
             var groupEvent = new GroupEvent(groupId, traits);
-            Process(groupEvent);
+            Process(groupEvent, enrichment);
         }
 
         /// <summary>
@@ -278,17 +290,18 @@ namespace Segment.Analytics
         /// </summary>
         /// <param name="groupId">Unique identifier which you recognize a group by in your own database</param>
         /// <param name="traits">Traits about the group</param>
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
         /// <typeparam name="T">Type that implements <see cref="ISerializable"/></typeparam>
-        public virtual void Group<T>(string groupId, T traits = default) where T : ISerializable
+        public virtual void Group<T>(string groupId, T traits = default, Func<RawEvent, RawEvent> enrichment = default) where T : ISerializable
         {
             if (traits == null)
             {
-                Group(groupId);
+                Group(groupId, enrichment: enrichment);
             }
             else
             {
                 string json = JsonUtility.ToJson(traits);
-                Group(groupId, JsonUtility.FromJson<JsonObject>(json));
+                Group(groupId, JsonUtility.FromJson<JsonObject>(json), enrichment);
             }
         }
 
@@ -301,7 +314,8 @@ namespace Segment.Analytics
         /// <param name="newId">The new ID you want to alias the existing ID to. The existing ID will be either
         /// the previousId if you have called identify, or the anonymous ID.
         /// </param>
-        public virtual void Alias(string newId)
+        /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
+        public virtual void Alias(string newId, Func<RawEvent, RawEvent> enrichment = default)
         {
             var aliasEvent = new AliasEvent(newId, _userInfo._userId ?? _userInfo._anonymousId);
 
@@ -312,7 +326,7 @@ namespace Segment.Analytics
                 await Store.Dispatch<UserInfo.SetUserIdAction, UserInfo>(new UserInfo.SetUserIdAction(newId));
             });
 
-            Process(aliasEvent);
+            Process(aliasEvent, enrichment);
         }
     }
 }
