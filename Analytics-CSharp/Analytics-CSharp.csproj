@@ -10,7 +10,7 @@
 
     <Authors>Segment, Inc</Authors>
     <Description>The hassle-free way to add analytics to your C# app.</Description>
-    <Version>2.4.2</Version>
+    <Version>2.5.0</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/segmentio/Analytics-CSharp</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
