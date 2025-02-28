@@ -205,5 +205,69 @@ namespace Tests.Utilities
             _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(0));
             _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(0));
         }
+
+        [Theory]
+        [MemberData(nameof(GetPipelineProvider))]
+        public void TestConfigWithEventPipelineProviders(IEventPipelineProvider provider)
+        {
+            // Just validate that the provider is used in the configuration
+            var config = new Configuration(
+                writeKey: "123",
+                autoAddSegmentDestination: false,
+                useSynchronizeDispatcher: true,
+                flushInterval: 0,
+                flushAt: 2,
+                httpClientProvider: new MockHttpClientProvider(_mockHttpClient),
+                storageProvider: new MockStorageProvider(_storage),
+                eventPipelineProvider: provider
+            );
+            var analytics = new Analytics(config);
+            analytics.Track("test");
+        }
+
+        [Fact]
+        public void TestConfigWithCustomEventPipelineProvider()
+        {
+            // Just validate that the provider is used in the configuration
+            var config = new Configuration(
+                writeKey: "123",
+                useSynchronizeDispatcher: true,
+                flushInterval: 0,
+                flushAt: 1,
+                httpClientProvider: new MockHttpClientProvider(_mockHttpClient),
+                storageProvider: new MockStorageProvider(_storage),
+                eventPipelineProvider: new CustomEventPipelineProvider()
+            );
+            Assert.Throws<NotImplementedException>(() => {
+                var analytics = new Analytics(config);
+                analytics.Track("test");
+                analytics.Flush();
+            });
+        }
+
+
+        public class CustomEventPipelineProvider : IEventPipelineProvider
+        {
+            public CustomEventPipelineProvider()
+            {
+            }
+
+            public IEventPipeline Create(Analytics analytics, string key)
+            {
+                // Custom implementation
+                return new CustomEventPipeline(analytics, key);
+            }
+
+            private class CustomEventPipeline : IEventPipeline
+            {
+                public CustomEventPipeline(Analytics analytics, string key) {}
+                public bool Running => throw new NotImplementedException();
+                public string ApiHost { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+                public void Flush() => throw new NotImplementedException();
+                public void Put(RawEvent @event) => throw new NotImplementedException();
+                public void Start() => throw new NotImplementedException();
+                public void Stop() => throw new NotImplementedException();
+            }
+        }
     }
 }
