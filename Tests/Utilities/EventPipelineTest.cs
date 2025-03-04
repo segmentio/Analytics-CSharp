@@ -10,6 +10,7 @@ using Segment.Analytics.Utilities;
 using Segment.Serialization;
 using Tests.Utils;
 using Xunit;
+using System.Linq;
 
 namespace Tests.Utilities
 {
@@ -204,6 +205,146 @@ namespace Tests.Utilities
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
             _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(0));
             _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(0));
+        }
+
+        [Theory]
+        [MemberData(nameof(GetPipelineProvider))]
+        public void TestConfigWithEventPipelineProviders(IEventPipelineProvider provider)
+        {
+            // Just validate that the provider is used in the configuration
+            var config = new Configuration(
+                writeKey: "123",
+                autoAddSegmentDestination: false,
+                useSynchronizeDispatcher: true,
+                flushInterval: 0,
+                flushAt: 2,
+                httpClientProvider: new MockHttpClientProvider(_mockHttpClient),
+                storageProvider: new MockStorageProvider(_storage),
+                eventPipelineProvider: provider
+            );
+            var analytics = new Analytics(config);
+            analytics.Track("test");
+        }
+
+        [Fact]
+        public void TestSyncEventPipelineProviderWaits()
+        {
+            const int iterations = 100;
+            const int newAnalyticsEvery = 10;
+            const int eventCount = 10;
+
+            int totalTracks = 0;
+            int totalUploads = 0;
+
+            _mockHttpClient
+            .Setup(client => client.Upload(It.IsAny<byte[]>()))
+            .Callback<byte[]>(bytes =>
+            {
+                string content = System.Text.Encoding.UTF8.GetString(bytes);
+                int count = content.Split(new string[] { "test" }, StringSplitOptions.None).Length - 1;
+                totalUploads += count;
+            })
+            .ReturnsAsync(true);
+
+            var config = new Configuration(
+            writeKey: "123",
+            useSynchronizeDispatcher: true,
+            flushInterval: 100000,
+            flushAt: eventCount * 2,
+            httpClientProvider: new MockHttpClientProvider(_mockHttpClient),
+            storageProvider: new InMemoryStorageProvider(),
+            eventPipelineProvider: new SyncEventPipelineProvider()
+            );
+
+            var analytics = new Analytics(config);
+            for (int j = 0; j < iterations; j++) 
+            {
+                if (j % newAnalyticsEvery == 0)
+                {
+                    analytics = new Analytics(config);
+                }
+                _mockHttpClient.Invocations.Clear();
+                for (int i = 0; i < eventCount; i++)
+                {
+                    analytics.Track($"test {i}");
+                    totalTracks++;
+                }
+                analytics.Flush();
+
+#pragma warning disable CS4014 // Silly compiler, this isn't an invocation so it doesn't need to be awaited
+                _mockHttpClient.Verify(client => client.Upload(It.IsAny<byte[]>()), Times.AtLeastOnce, $"Iteration {j} of {eventCount}");
+#pragma warning restore CS4014 
+                IInvocation lastUploadInvocation = _mockHttpClient.Invocations.Last(invocation => invocation.Method.Name == "Upload");
+                int testsUploaded = System.Text.Encoding.UTF8
+                    .GetString((byte[])lastUploadInvocation.Arguments[0])
+                    .Split(new string[] { "test" }, StringSplitOptions.None).Length - 1;
+                Assert.Equal(eventCount, testsUploaded);
+            }
+            Assert.Equal(totalTracks, totalUploads);
+        }
+
+        [Fact]
+        public void TestRepeatedFlushesDontHang()
+        {
+            var config = new Configuration(
+                writeKey: "123",
+                useSynchronizeDispatcher: true,
+                flushInterval: 0,
+                flushAt: 1,
+                httpClientProvider: new MockHttpClientProvider(_mockHttpClient),
+                storageProvider: new MockStorageProvider(_storage),
+                eventPipelineProvider: new SyncEventPipelineProvider(5000)
+            );
+            var analytics = new Analytics(config);
+            analytics.Track("test");
+            DateTime startTime = DateTime.Now;
+            analytics.Flush();
+            analytics.Flush();
+            analytics.Flush();
+            analytics.Flush();
+            analytics.Flush();
+            Assert.True(DateTime.Now - startTime < TimeSpan.FromMilliseconds(100));
+        }
+
+        [Fact]
+        public void TestConfigWithCustomEventPipelineProvider()
+        {
+            // Just validate that the provider is used in the configuration
+            var config = new Configuration(
+                writeKey: "123",
+                useSynchronizeDispatcher: true,
+                flushInterval: 0,
+                flushAt: 1,
+                httpClientProvider: new MockHttpClientProvider(_mockHttpClient),
+                storageProvider: new MockStorageProvider(_storage),
+                eventPipelineProvider: new CustomEventPipelineProvider()
+            );
+            Assert.Throws<NotImplementedException>(() => {
+                var analytics = new Analytics(config);
+                analytics.Track("test");
+                analytics.Flush();
+            });
+        }
+
+
+        public class CustomEventPipelineProvider : IEventPipelineProvider
+        {
+            public CustomEventPipelineProvider() {}
+            public IEventPipeline Create(Analytics analytics, string key)
+            {
+                return new CustomEventPipeline(analytics, key);
+            }
+
+            private class CustomEventPipeline : IEventPipeline
+            {
+                public CustomEventPipeline(Analytics analytics, string key) {}
+                public bool Running => throw new NotImplementedException();
+                public string ApiHost { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+                public void Flush() => throw new NotImplementedException();
+                public void Put(RawEvent @event) => throw new NotImplementedException();
+                public void Start() => throw new NotImplementedException();
+                public void Stop() => throw new NotImplementedException();
+            }
         }
     }
 }

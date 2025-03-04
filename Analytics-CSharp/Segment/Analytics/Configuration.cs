@@ -85,7 +85,7 @@ namespace Segment.Analytics
             IStorageProvider storageProvider = default,
             IHTTPClientProvider httpClientProvider = default,
             IList<IFlushPolicy> flushPolicies = default,
-            EventPipelineProvider eventPipelineProvider = default)
+            IEventPipelineProvider eventPipelineProvider = default)
         {
             WriteKey = writeKey;
             FlushAt = flushAt;

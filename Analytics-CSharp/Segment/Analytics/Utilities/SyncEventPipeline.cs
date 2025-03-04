@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using global::System;
 using global::System.Linq;
 using Segment.Analytics.Policies;
@@ -70,9 +71,12 @@ namespace Segment.Analytics.Utilities
         public void Put(RawEvent @event) => _writeChannel.Send(@event);
 
         public void Flush() {
-            FlushEvent flushEvent = new FlushEvent(new SemaphoreSlim(1,1));
-            _writeChannel.Send(flushEvent);
-            flushEvent._semaphore.Wait(_flushTimeout, _flushCancellationToken);
+            if (Running && !_uploadChannel.isCancelled)
+            {
+                FlushEvent flushEvent = new FlushEvent(new SemaphoreSlim(0));
+                _writeChannel.Send(flushEvent);
+                flushEvent._semaphore.Wait(_flushTimeout, _flushCancellationToken);
+            }
         } 
 
         public void Start()
