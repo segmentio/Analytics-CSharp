@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using global::System;
 using global::System.Linq;
 using Segment.Analytics.Policies;
@@ -70,9 +71,15 @@ namespace Segment.Analytics.Utilities
         public void Put(RawEvent @event) => _writeChannel.Send(@event);
 
         public void Flush() {
-            FlushEvent flushEvent = new FlushEvent(new SemaphoreSlim(1,1));
+            FlushEvent flushEvent = new FlushEvent(new SemaphoreSlim(1));
+            // Set it up to be released by Upload
+            flushEvent._semaphore.Wait();
             _writeChannel.Send(flushEvent);
-            flushEvent._semaphore.Wait(_flushTimeout, _flushCancellationToken);
+            // Wait until the single slot in the semaphore is free. (if it's running!)
+            if (Running && !_uploadChannel.isCancelled)
+            {
+                flushEvent._semaphore.Wait(_flushTimeout, _flushCancellationToken);
+            }
         } 
 
         public void Start()
@@ -148,6 +155,7 @@ namespace Segment.Analytics.Utilities
                 Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " performing flush");
 
                 await Scope.WithContext(_analytics.FileIODispatcher, async () => await _storage.Rollover());
+                await Task.Delay(1); // The rollover might not quite be done, even 1 ms prevents an empty URL list
 
                 string[] fileUrlList = _storage.Read(StorageConstants.Events).Split(',');
                 foreach (string url in fileUrlList)
