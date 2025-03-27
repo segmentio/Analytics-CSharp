@@ -14,12 +14,14 @@ This library is one of Segment’s most popular Flagship libraries. It is active
   - [Plugin Architecture](#plugin-architecture)
   - [Adding a plugin](#adding-a-plugin)
   - [Utility Methods](#utility-methods)
+  - [Enrichment Closure](#enrichment-closure)
   - [Controlling Upload With Flush Policies](#controlling-upload-with-flush-policies)
   - [Handling Errors](#handling-errors)
   - [Customize HTTP Client](#customize-http-client)
   - [Customize Storage](#customize-storage)
   - [Json Library](#json-library)
   - [Samples](#samples)
+  - [FAQs](#faqs)
   - [Compatibility](#compatibility)
   - [Changelog](#changelog)
   - [Contributing](#contributing)
@@ -90,6 +92,7 @@ To get started with the Analytics-CSharp library:
  | `storageProvider`           | Default set to `DefaultStorageProvider`. <br>This set how you want your data to be stored. <br> `DefaultStorageProvider` is used by default which stores data to local storage. `InMemoryStorageProvider` is also provided in the library. <br>You can also write your own storage solution by implementing `IStorageProvider` and `IStorage` |
 | `httpClientProvider`        | Default set to `DefaultHTTPClientProvider`. <br>This set a http client provider for analytics use to do network activities. The default provider uses System.Net.Http for network activities.                                                                                                                                                 |
 | `flushPolicies`             | Default set to `null`. <br>This set custom flush policies to tell analytics when and how to flush. By default, it converts `flushAt` and `flushInterval` to `CountFlushPolicy` and `FrequencyFlushPolicy`. If a value is given, it overwrites `flushAt` and `flushInterval`.                                                                  |
+| `eventPipelineProvider`             | The default is `EventPipelineProvider`. <br>This sets a custom event pipeline to define how Analytics handles events. The default `EventPipelineProvider` processes events asynchronously. Use `SyncEventPipelineProvider` to make manual flush operations synchronous. |
 
 ## Tracking Methods
 
@@ -361,6 +364,22 @@ The `reset` method clears the SDK’s internal stores for the current user and g
 analytics.Reset()
 ```
 
+## Enrichment Closure
+To modify the properties of an event, you can either write an enrichment plugin that applies changes to all events, or pass an enrichment closure to the analytics call to apply changes to a specific event.
+
+```c#
+    analytics.Track("MyEvent", properties, @event =>
+    {
+        if (@event is TrackEvent trackEvent)
+        {
+            // update properties of this event
+            trackEvent.UserId = "foo";
+        }
+
+        return @event;
+    });
+```
+
 ## Controlling Upload With Flush Policies
 To more granularly control when events are uploaded you can use `FlushPolicies`. **This will override any setting on `flushAt` and `flushInterval`, but you can use `CountFlushPolicy` and `FrequencyFlushPolicy` to have the same behaviour respectively.**
 
@@ -583,6 +602,92 @@ For sample usages of the SDK in specific platforms, checkout the following:
 |             | [Flush Policy](https://github.com/segmentio/Analytics-CSharp/tree/main/Samples/ConsoleSample/FlushOnScreenEventsPolicy.cs)             |
 |             | [Custom Logger](https://github.com/segmentio/Analytics-CSharp/tree/main/Samples/ConsoleSample/SegmentLogger.cs)                        |
 |             | [Custom Error Handler](https://github.com/segmentio/Analytics-CSharp/tree/main/Samples/ConsoleSample/NetworkErrorHandler.cs)           |
+
+## FAQs
+
+### Should I make Analytics a singleton or scoped in .NET?
+
+The SDK supports both, but be aware of the implications of choosing one over the other:
+
+| Feature | Singleton | Scoped |
+|--|--|--|
+| **Fetch Settings** | Settings are fetched only once at application startup. | Settings are fetched on every request. |
+| **Flush** | Supports both async and sync flush. | Requires sync flush. Should flush per event or on page redirect/close to avoid data loss. |
+| **Internal State** | The internal state (`userId`, `anonId`, etc.) is shared across sessions and cannot be used. (*This is an overhead we are working to minimize*.) | The internal state is safe to use since a new instance is created per request. |
+| **UserId for Events** | Requires adding `UserIdPlugin` and calling analytics APIs with `userId` to associate the correct `userId` with events. | No need for `UserIdPlugin` or passing `userId` in API calls. Instead, call `analytics.Identify()` to update the internal state with the `userId`. Successive events are auto-stamped with that `userId`. |
+| **Storage** | Supports both local storage and in-memory storage. | Requires in-memory storage. (*Support for local storage is in progress*.) |
+
+
+In a nutshell, to register Analytics as singleton:
+
+```c#
+var configuration = new Configuration(
+    writeKey: "YOUR_WRITE_KEY",
+    // Use in-memory storage to keep the SDK stateless.
+    // The default storage also works if you want to persist events.
+    storageProvider: new InMemoryStorageProvider(),
+    // Use a synchronous pipeline to make manual flush operations synchronized.
+    eventPipelineProvider: new SyncEventPipelineProvider()
+);
+
+var analytics = new Analytics(configuration);
+
+// Add UserIdPlugin to associate events with the provided userId.
+analytics.Add(new UserIdPlugin());
+
+// Call analytics APIs with a userId. The UserIdPlugin will update the event with the provided userId.
+analytics.Track("user123", "foo", properties);
+
+// This is a blocking call due to SyncEventPipelineProvider.
+// Use the default EventPipelineProvider for asynchronous flush.
+analytics.Flush();
+
+// Register Analytics as a singleton.
+```
+
+To register Analytics as scoped:
+
+```c#
+var configuration = new Configuration(
+    writeKey: "YOUR_WRITE_KEY",
+    // Requires in-memory storage.
+    storageProvider: new InMemoryStorageProvider(),
+    // Flush per event to prevent data loss in case of a page close.
+    // Alternatively, manually flush on page close.
+    flushAt: 1,
+    // Requires a synchronous flush.
+    eventPipelineProvider: new SyncEventPipelineProvider()
+);
+
+var analytics = new Analytics(configuration);
+
+// Update the internal state with a userId.
+analytics.Identify("user123");
+
+// Subsequent events are auto-stamped with the userId from the internal state.
+analytics.Track("foo", properties);
+
+// This is a blocking call due to SyncEventPipelineProvider.
+analytics.Flush();
+
+// Register Analytics as scoped.
+```
+
+### Which JSON library does this SDK use?
+
+The SDK supports `.netstandard 1.3` and `.netstandard 2.0` and automatically selects the internal JSON library based on the target framework:
+
+* In `.netstandard 1.3`, the SDK uses `Newtonsoft Json.NET`
+* In `.netstandard 2.0`, the SDK uses `System.Text.Json`
+
+Be ware that both Analytics.NET and Analytics.Xamarin use `Newtonsoft Json.NET`.  If you encounter issues where JSON dictionary values are turned into empty arrays, it is likely that:
+
+1. You are targeting `.netstandard 2.0`.
+2. Your properties use`Newtonsoft Json.NET` objects or arrays.
+
+To resolve this, you can:
+* Option 1: Target `.netstandard 1.3`
+* Option 2: Upgrade your JSON library to `System.Text.Json`
 
 ## Compatibility
 This library targets `.NET Standard 1.3` and `.NET Standard 2.0`. Checkout [here](https://www.nuget.org/packages/Segment.Analytics.CSharp/#supportedframeworks-body-tab) for compatible platforms.
