@@ -86,10 +86,10 @@ namespace Segment.Analytics
         {
             if (!Enable) return;
 
-            incomingEvent.ApplyRawEventData(_userInfo);
+            incomingEvent.ApplyRawEventData(_userInfo, enrichment);
             AnalyticsScope.Launch(AnalyticsDispatcher, () =>
             {
-                Timeline.Process(incomingEvent, enrichment);
+                Timeline.Process(incomingEvent);
             });
         }
 

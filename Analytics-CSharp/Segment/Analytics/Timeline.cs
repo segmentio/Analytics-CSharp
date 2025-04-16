@@ -30,15 +30,15 @@ namespace Segment.Analytics
         /// <param name="incomingEvent">event to be processed</param>
         /// <param name="enrichment">a closure that enables enrichment on the generated event</param>
         /// <returns>event after processing</returns>
-        internal RawEvent Process(RawEvent incomingEvent, Func<RawEvent, RawEvent> enrichment = default)
+        internal RawEvent Process(RawEvent incomingEvent)
         {
             // Apply before and enrichment types first to start the timeline processing.
             RawEvent beforeResult = ApplyPlugins(PluginType.Before, incomingEvent);
             // Enrichment is like middleware, a chance to update the event across the board before going to destinations.
             RawEvent enrichmentResult = ApplyPlugins(PluginType.Enrichment, beforeResult);
-            if (enrichment != null)
+            if (enrichmentResult.Enrichment != null)
             {
-                enrichmentResult = enrichment(enrichmentResult);
+                enrichmentResult = enrichmentResult.Enrichment(enrichmentResult);
             }
 
             // Make sure not to update the events during this next cycle. Since each destination may want different

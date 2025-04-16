@@ -18,6 +18,8 @@ namespace Segment.Analytics
         public virtual string UserId { get; set; }
         public virtual string Timestamp { get; set; }
 
+        public Func<RawEvent, RawEvent> Enrichment { get; set; }
+
         // JSON types
         public JsonObject Context { get; set; }
         public JsonObject Integrations { get; set; }
@@ -36,8 +38,9 @@ namespace Segment.Analytics
             Integrations = rawEvent.Integrations;
         }
 
-        internal void ApplyRawEventData(UserInfo userInfo)
+        internal void ApplyRawEventData(UserInfo userInfo, Func<RawEvent, RawEvent> enrichment)
         {
+            Enrichment = enrichment;
             MessageId = Guid.NewGuid().ToString();
             Context = new JsonObject();
             Timestamp = DateTime.UtcNow.ToString("o"); // iso8601
