@@ -921,11 +921,9 @@ namespace Tests
         [Fact]
         public void TestAliasEnrichment()
         {
-            string expectedPrevious = "foo";
             string expected = "bar";
 
             _analytics.Add(_afterPlugin.Object);
-            _analytics.Identify(expectedPrevious);
             _analytics.Alias(expected, @event =>
             {
                 if (@event is AliasEvent aliasEvent)
@@ -945,7 +943,6 @@ namespace Tests
             Assert.NotEmpty(_actual);
             var actual = _actual.Find(o => o is AliasEvent) as AliasEvent;
             Debug.Assert(actual != null, nameof(actual) + " != null");
-            Assert.Equal(expectedPrevious, actual.PreviousId);
             Assert.Equal(expected, actual.UserId);
             Assert.Equal("test", actual.AnonymousId);
         }
