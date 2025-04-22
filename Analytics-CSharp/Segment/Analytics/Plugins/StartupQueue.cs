@@ -58,7 +58,7 @@ namespace Segment.Analytics.Plugins
             {
                 if (_queuedEvents.TryDequeue(out RawEvent e))
                 {
-                    Analytics.Process(e);
+                    Analytics.Process(e, e.Enrichment);
                 }
             }
         }

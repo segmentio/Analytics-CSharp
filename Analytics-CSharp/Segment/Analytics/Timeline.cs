@@ -36,7 +36,7 @@ namespace Segment.Analytics
             RawEvent beforeResult = ApplyPlugins(PluginType.Before, incomingEvent);
             // Enrichment is like middleware, a chance to update the event across the board before going to destinations.
             RawEvent enrichmentResult = ApplyPlugins(PluginType.Enrichment, beforeResult);
-            if (enrichmentResult.Enrichment != null)
+            if (enrichmentResult != null && enrichmentResult.Enrichment != null)
             {
                 enrichmentResult = enrichmentResult.Enrichment(enrichmentResult);
             }
