@@ -1,5 +1,6 @@
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Diagnostics;
+using System.Threading;
 using Moq;
 using Segment.Analytics;
 using Segment.Analytics.Utilities;
@@ -688,6 +689,265 @@ namespace Tests
             Assert.Equal(expectedPrevious, actual[0].PreviousId);
             Assert.Equal(expected, actual[0].UserId);
             Assert.Equal("test", actual[0].AnonymousId);
+        }
+    }
+
+    public class DelayedEventsTest
+    {
+        private readonly Analytics _analytics;
+
+        private Settings? _settings;
+
+        private readonly Mock<StubEventPlugin> _plugin;
+
+        private readonly Mock<StubAfterEventPlugin> _afterPlugin;
+
+        private readonly SemaphoreSlim _httpSemaphore;
+        private readonly SemaphoreSlim _assertSemaphore;
+        private readonly List<RawEvent> _actual;
+
+        public DelayedEventsTest()
+        {
+            _httpSemaphore = new SemaphoreSlim(0);
+            _assertSemaphore = new SemaphoreSlim(0);
+            _settings = JsonUtility.FromJson<Settings?>(
+                "{\"integrations\":{\"Segment.io\":{\"apiKey\":\"1vNgUqwJeCHmqgI9S1sOm9UHCyfYqbaQ\"}},\"plan\":{},\"edgeFunction\":{}}");
+
+            var mockHttpClient = new Mock<HTTPClient>(null, null, null);
+            mockHttpClient
+                .Setup(httpClient => httpClient.Settings())
+                .Returns(async () =>
+                {
+                    // suspend http calls until we tracked events
+                    // this will force events get into startup queue
+                    await _httpSemaphore.WaitAsync();
+                    return _settings;
+                });
+
+            _plugin = new Mock<StubEventPlugin>
+            {
+                CallBase = true
+            };
+
+            _afterPlugin = new Mock<StubAfterEventPlugin> { CallBase = true };
+            _actual = new List<RawEvent>();
+            _afterPlugin.Setup(o => o.Execute(Capture.In(_actual)))
+                .Returns((RawEvent e) =>
+                {
+                    // since this is an after plugin, when its execute function is called,
+                    // it is guaranteed that the enrichment closure has been called.
+                    // so we can release the semaphore on assertions.
+                    _assertSemaphore.Release();
+                    return e;
+                });
+
+            var config = new Configuration(
+                writeKey: "123",
+                storageProvider: new DefaultStorageProvider("tests"),
+                autoAddSegmentDestination: false,
+                useSynchronizeDispatcher: false,    // we need async analytics to buildup events on start queue
+                httpClientProvider: new MockHttpClientProvider(mockHttpClient)
+            );
+            _analytics = new Analytics(config);
+        }
+
+        [Fact]
+        public void TestTrackEnrichment()
+        {
+            string expectedEvent = "foo";
+            string expectedAnonymousId = "bar";
+
+            _analytics.Add(_afterPlugin.Object);
+            _analytics.Track(expectedEvent, enrichment: @event =>
+            {
+                @event.AnonymousId = expectedAnonymousId;
+                return @event;
+            });
+
+            // now we have tracked event, i.e. event added to startup queue
+            // release the semaphore put on http client, so we startup queue will replay the events
+            _httpSemaphore.Release();
+            // now we need to wait for events being fully replayed before making assertions
+            _assertSemaphore.Wait();
+
+            Assert.NotEmpty(_actual);
+            Assert.IsType<TrackEvent>(_actual[0]);
+            var actual = _actual[0] as TrackEvent;
+            Debug.Assert(actual != null, nameof(actual) + " != null");
+            Assert.True(actual.Properties.Count == 0);
+            Assert.Equal(expectedEvent, actual.Event);
+            Assert.Equal(expectedAnonymousId, actual.AnonymousId);
+        }
+
+        [Fact]
+        public void TestIdentifyEnrichment()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            string expectedUserId = "newUserId";
+
+            _analytics.Add(_afterPlugin.Object);
+            _analytics.Identify(expectedUserId, expected, @event =>
+            {
+                if (@event is IdentifyEvent identifyEvent)
+                {
+                    identifyEvent.Traits["foo"] = "baz";
+                }
+
+                return @event;
+            });
+
+            // now we have tracked event, i.e. event added to startup queue
+            // release the semaphore put on http client, so we startup queue will replay the events
+            _httpSemaphore.Release();
+            // now we need to wait for events being fully replayed before making assertions
+            _assertSemaphore.Wait();
+
+            string actualUserId = _analytics.UserId();
+
+            Assert.NotEmpty(_actual);
+            var actual = _actual[0] as IdentifyEvent;
+            Debug.Assert(actual != null, nameof(actual) + " != null");
+            Assert.Equal(expected, actual.Traits);
+            Assert.Equal(expectedUserId, actualUserId);
+        }
+
+        [Fact]
+        public void TestScreenEnrichment()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            string expectedTitle = "foo";
+            string expectedCategory = "bar";
+
+            _analytics.Add(_afterPlugin.Object);
+            _analytics.Screen(expectedTitle, expected, expectedCategory, @event =>
+            {
+                if (@event is ScreenEvent screenEvent)
+                {
+                    screenEvent.Properties["foo"] = "baz";
+                }
+
+                return @event;
+            });
+
+            // now we have tracked event, i.e. event added to startup queue
+            // release the semaphore put on http client, so we startup queue will replay the events
+            _httpSemaphore.Release();
+            // now we need to wait for events being fully replayed before making assertions
+            _assertSemaphore.Wait();
+
+            Assert.NotEmpty(_actual);
+            var actual = _actual[0] as ScreenEvent;
+            Debug.Assert(actual != null, nameof(actual) + " != null");
+            Assert.Equal(expected, actual.Properties);
+            Assert.Equal(expectedTitle, actual.Name);
+            Assert.Equal(expectedCategory, actual.Category);
+        }
+
+        [Fact]
+        public void TestPageEnrichment()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            string expectedTitle = "foo";
+            string expectedCategory = "bar";
+
+            _analytics.Add(_afterPlugin.Object);
+            _analytics.Page(expectedTitle, expected, expectedCategory, @event =>
+            {
+                if (@event is PageEvent pageEvent)
+                {
+                    pageEvent.Properties["foo"] = "baz";
+                }
+
+                return @event;
+            });
+
+            // now we have tracked event, i.e. event added to startup queue
+            // release the semaphore put on http client, so we startup queue will replay the events
+            _httpSemaphore.Release();
+            // now we need to wait for events being fully replayed before making assertions
+            _assertSemaphore.Wait();
+
+            Assert.NotEmpty(_actual);
+            var actual = _actual[0] as PageEvent;
+            Debug.Assert(actual != null, nameof(actual) + " != null");
+            Assert.Equal(expected, actual.Properties);
+            Assert.Equal(expectedTitle, actual.Name);
+            Assert.Equal(expectedCategory, actual.Category);
+            Assert.Equal("page", actual.Type);
+        }
+
+        [Fact]
+        public void TestGroupEnrichment()
+        {
+            var expected = new JsonObject
+            {
+                ["foo"] = "bar"
+            };
+            string expectedGroupId = "foo";
+
+            _analytics.Add(_afterPlugin.Object);
+            _analytics.Group(expectedGroupId, expected, @event =>
+            {
+                if (@event is GroupEvent groupEvent)
+                {
+                    groupEvent.Traits["foo"] = "baz";
+                }
+
+                return @event;
+            });
+
+            // now we have tracked event, i.e. event added to startup queue
+            // release the semaphore put on http client, so we startup queue will replay the events
+            _httpSemaphore.Release();
+            // now we need to wait for events being fully replayed before making assertions
+            _assertSemaphore.Wait();
+
+            Assert.NotEmpty(_actual);
+            var actual = _actual[0] as GroupEvent;
+            Debug.Assert(actual != null, nameof(actual) + " != null");
+            Assert.Equal(expected, actual.Traits);
+            Assert.Equal(expectedGroupId, actual.GroupId);
+        }
+
+        [Fact]
+        public void TestAliasEnrichment()
+        {
+            string expectedPrevious = "foo";
+            string expected = "bar";
+
+            _analytics.Add(_afterPlugin.Object);
+            _analytics.Identify(expectedPrevious);
+            _analytics.Alias(expected, @event =>
+            {
+                if (@event is AliasEvent aliasEvent)
+                {
+                    aliasEvent.AnonymousId = "test";
+                }
+
+                return @event;
+            });
+
+            // now we have tracked event, i.e. event added to startup queue
+            // release the semaphore put on http client, so we startup queue will replay the events
+            _httpSemaphore.Release();
+            // now we need to wait for events being fully replayed before making assertions
+            _assertSemaphore.Wait();
+
+            Assert.NotEmpty(_actual);
+            var actual = _actual.Find(o => o is AliasEvent) as AliasEvent;
+            Debug.Assert(actual != null, nameof(actual) + " != null");
+            Assert.Equal(expectedPrevious, actual.PreviousId);
+            Assert.Equal(expected, actual.UserId);
+            Assert.Equal("test", actual.AnonymousId);
         }
     }
 }
