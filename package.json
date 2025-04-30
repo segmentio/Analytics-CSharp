@@ -1,6 +1,6 @@
 {
   "name": "com.segment.analytics.csharp",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "displayName": "Segment Analytics for Unity",
   "description": "The hassle-free way to add Segment analytics to your Unity app",
   "unity": "2019.1",
