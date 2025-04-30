@@ -1,6 +1,12 @@
 using global::System;
 using Segment.Serialization;
 
+#if NETSTANDARD2_0
+using System.Text.Json.Serialization;
+#else
+using Newtonsoft.Json;
+#endif
+
 namespace Segment.Analytics
 {
     public class DestinationMetadata
@@ -18,6 +24,7 @@ namespace Segment.Analytics
         public virtual string UserId { get; set; }
         public virtual string Timestamp { get; set; }
 
+        [JsonIgnore]
         public Func<RawEvent, RawEvent> Enrichment { get; set; }
 
         // JSON types
