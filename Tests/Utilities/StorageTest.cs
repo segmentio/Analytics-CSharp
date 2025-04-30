@@ -255,6 +255,30 @@ namespace Tests.Utilities
         }
 
         [Fact]
+        public async Task TestStoreEventWithEnrichment()
+        {
+            TrackEvent trackEvent = new TrackEvent("clicked", new JsonObject { ["foo"] = "bar" });
+            trackEvent.Enrichment = @event =>
+            {
+                return @event;
+            };
+            string payloadWithEnrichment = JsonUtility.ToJson(trackEvent);
+            await _storage.Write(StorageConstants.Events, payloadWithEnrichment);
+            await _storage.Rollover();
+
+            string path = _dir + Path.DirectorySeparatorChar + _writeKey + "-0.json";
+            string actual = File.ReadAllText(path);
+            Exception exception = Record.Exception(() =>
+            {
+                JsonUtility.FromJson<JsonObject>(actual);
+            });
+
+            Assert.True(File.Exists(path));
+            Assert.Contains(_payload, actual);
+            Assert.Null(exception);
+        }
+
+        [Fact]
         public async Task TestRead()
         {
             await _storage.Write(StorageConstants.Events, _payload);
