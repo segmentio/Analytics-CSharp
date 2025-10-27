@@ -101,7 +101,7 @@ namespace Segment.Analytics.Compat
     /// since Analytics-CSharp does not support passing user id on every track method.
     /// </summary>
     [Obsolete("This should only be used if migrating from Analytics.NET or Analytics.Xamarin")]
-    class UserIdPlugin : EventPlugin
+    public class UserIdPlugin : EventPlugin
     {
         public override PluginType Type => PluginType.Enrichment;
 
