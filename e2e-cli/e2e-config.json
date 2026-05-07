@@ -1,0 +1,7 @@
+{
+  "sdk": "csharp",
+  "test_suites": "basic,retry",
+  "auto_settings": false,
+  "patch": null,
+  "env": {}
+}
