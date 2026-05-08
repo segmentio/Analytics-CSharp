@@ -1,0 +1,34 @@
+name: Publish E2E CLI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'e2e-cli/**'
+      - 'Analytics-CSharp/**'
+  schedule:
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout SDK
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build e2e-cli
+        working-directory: e2e-cli
+        run: dotnet build -c Release -o build
+
+      - name: Upload CLI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-cli-csharp
+          path: e2e-cli/build/
+          retention-days: 90
