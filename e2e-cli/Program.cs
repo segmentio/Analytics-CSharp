@@ -43,12 +43,13 @@ catch (Exception ex)
     return; // unreachable, satisfies compiler
 }
 
-JsonElement root = doc.RootElement;
+System.Text.Json.JsonElement root = doc.RootElement;
 
 string writeKey = root.GetProperty("writeKey").GetString()
     ?? throw new InvalidOperationException("writeKey is required");
 
 string? apiHost = root.TryGetProperty("apiHost", out var apiHostEl) ? apiHostEl.GetString() : null;
+string? cdnHost = root.TryGetProperty("cdnHost", out var cdnHostEl) ? cdnHostEl.GetString() : apiHost;
 
 // config block (optional)
 int flushAt = 15;
@@ -69,13 +70,42 @@ var errors = new List<string>();
 var errorHandler = new CapturingErrorHandler(errors);
 
 // ── Build configuration ──────────────────────────────────────────────────────
+
+// Determine scheme from apiHost so we can override SegmentURL for http:// targets
+// (the SDK always prepends "https://" by default).
+// Determine scheme and strip it — the SDK prepends scheme via SegmentURL,
+// which we override in PlainHttpClient to respect http:// targets.
+string scheme = "https://";
+string? rawApiHost = apiHost;
+string? rawCdnHost = cdnHost;
+
+if (apiHost != null && apiHost.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+{
+    scheme = "http://";
+    rawApiHost = apiHost.Substring("http://".Length).TrimEnd('/');
+}
+else if (apiHost != null && apiHost.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+{
+    rawApiHost = apiHost.Substring("https://".Length).TrimEnd('/');
+}
+
+// Strip scheme from cdnHost too (same PlainHttpClient handles it)
+if (cdnHost != null && cdnHost.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+    rawCdnHost = cdnHost.Substring("http://".Length).TrimEnd('/');
+else if (cdnHost != null && cdnHost.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+    rawCdnHost = cdnHost.Substring("https://".Length).TrimEnd('/');
+
+var httpClientProvider = new PlainHttpClientProvider(scheme);
+
 var configBuilder = new Configuration(
     writeKey,
     flushAt: flushAt,
     flushInterval: flushInterval,
     analyticsErrorHandler: errorHandler,
     storageProvider: new InMemoryStorageProvider(),
-    apiHost: apiHost
+    apiHost: rawApiHost,
+    cdnHost: rawCdnHost,
+    httpClientProvider: httpClientProvider
 );
 
 Console.Error.WriteLine($"[e2e-cli] Initialising analytics (writeKey={writeKey[..Math.Min(8, writeKey.Length)]}…, apiHost={apiHost ?? "default"})");
@@ -226,7 +256,7 @@ else
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-static JsonObject? GetJsonObject(JsonElement parent, string key)
+static JsonObject? GetJsonObject(System.Text.Json.JsonElement parent, string key)
 {
     if (!parent.TryGetProperty(key, out var el) || el.ValueKind == JsonValueKind.Null)
         return null;
@@ -245,6 +275,27 @@ static JsonObject? GetJsonObject(JsonElement parent, string key)
 
 static string Escape(string s) =>
     s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "");
+
+// ── HTTP client that respects the scheme (http:// vs https://) ───────────────
+
+class PlainHttpClient : Segment.Analytics.Utilities.DefaultHTTPClient
+{
+    private readonly string _scheme;
+    public PlainHttpClient(string apiKey, string scheme, string? apiHost, string? cdnHost)
+        : base(apiKey, apiHost, cdnHost) => _scheme = scheme;
+
+    public override string SegmentURL(string host, string path) => _scheme + host + path;
+}
+
+class PlainHttpClientProvider : Segment.Analytics.Utilities.IHTTPClientProvider
+{
+    private readonly string _scheme;
+    public PlainHttpClientProvider(string scheme) => _scheme = scheme;
+
+    public Segment.Analytics.Utilities.HTTPClient CreateHTTPClient(
+        string apiKey, string? apiHost = null, string? cdnHost = null)
+        => new PlainHttpClient(apiKey, _scheme, apiHost, cdnHost);
+}
 
 // ── Error handler implementation ──────────────────────────────────────────────
 
