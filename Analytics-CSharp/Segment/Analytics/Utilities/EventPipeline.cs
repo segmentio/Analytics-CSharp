@@ -19,7 +19,7 @@ namespace Segment.Analytics.Utilities
 
         private Channel<string> _uploadChannel;
 
-        private readonly HTTPClient _httpClient;
+        internal readonly HTTPClient _httpClient;
 
         private readonly IStorage _storage;
 
@@ -49,6 +49,9 @@ namespace Segment.Analytics.Utilities
             _uploadChannel = new Channel<string>();
             _httpClient = analytics.Configuration.HttpClientProvider.CreateHTTPClient(apiKey, apiHost: apiHost);
             _httpClient.AnalyticsRef = analytics;
+            _httpClient.MaxRetries = analytics.Configuration.MaxRetries;
+            _httpClient.MaxTotalBackoffDuration = analytics.Configuration.MaxTotalBackoffDuration;
+            _httpClient.MaxRateLimitDuration = analytics.Configuration.MaxRateLimitDuration;
             _storage = analytics.Storage;
             Running = false;
         }

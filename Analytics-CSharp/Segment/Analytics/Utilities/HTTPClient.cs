@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -31,15 +33,31 @@ namespace Segment.Analytics.Utilities
 
         public Analytics AnalyticsRef
         {
-            get
-            {
-                return _reference.TryGetTarget(out Analytics analytics) ? analytics : null;
-            }
-            set
-            {
-                _reference.SetTarget(value);
-            }
+            get => _reference.TryGetTarget(out Analytics analytics) ? analytics : null;
+            set => _reference.SetTarget(value);
         }
+
+        // --- Retry configuration (set from Configuration or httpConfig settings) ---
+
+        public int MaxRetries { get; set; } = 10;
+
+        public TimeSpan MaxTotalBackoffDuration { get; set; } = TimeSpan.FromHours(12);
+
+        public TimeSpan MaxRateLimitDuration { get; set; } = TimeSpan.FromHours(12);
+
+        public bool BackoffEnabled { get; set; } = true;
+
+        public bool RateLimitEnabled { get; set; } = true;
+
+        public int MaxRateLimitRetries { get; set; } = 10;
+
+        public double BaseBackoffMs { get; set; } = 500.0;
+
+        public double MaxBackoffMs { get; set; } = 60_000.0;
+
+        public Dictionary<int, string> StatusCodeOverrides { get; set; } = new Dictionary<int, string>();
+
+        // -------------------------------------------------------------------------
 
         public HTTPClient(string apiKey, string apiHost = null, string cdnHost = null)
         {
@@ -50,23 +68,8 @@ namespace Segment.Analytics.Utilities
 
         /// <summary>
         /// Returns formatted url to Segment's server.
-        /// If you want to use your own server, override this method like the following
-        /// <code>
-        ///     public virtual string SegmentURL(string host, string path)
-        ///     {
-        ///         if (host is cdnHost)
-        ///         {
-        ///             return cdn url with your own path
-        ///         }
-        ///         else { // is apiHost
-        ///             return api url with your own path
-        ///         }
-        ///     }
-        /// </code>
+        /// Override to use a custom server.
         /// </summary>
-        /// <param name="host">cdnHost or apiHost</param>
-        /// <param name="path">Path to segment's /settings endpoint or /b endpoints</param>
-        /// <returns>Formatted url</returns>
         public virtual string SegmentURL(string host, string path) => "https://" + host + path;
 
         public virtual async Task<Settings?> Settings()
@@ -78,17 +81,18 @@ namespace Segment.Analytics.Utilities
                 Response response = await DoGet(settingsURL);
                 if (!response.IsSuccessStatusCode)
                 {
-                    AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode, message: "Error " + response.StatusCode + " getting from settings url");
+                    AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode,
+                        message: "Error " + response.StatusCode + " getting from settings url");
                 }
                 else
                 {
-                    string json = response.Content;
-                    result = JsonUtility.FromJson<Settings>(json);
+                    result = JsonUtility.FromJson<Settings>(response.Content);
                 }
             }
             catch (Exception e)
             {
-                AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnknown, e, "Unknown network error when getting from settings url");
+                AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnknown, e,
+                    "Unknown network error when getting from settings url");
             }
 
             return result;
@@ -97,56 +101,138 @@ namespace Segment.Analytics.Utilities
         public virtual async Task<bool> Upload(byte[] data)
         {
             string uploadURL = SegmentURL(_apiHost, "/b");
-            try
+
+            // Snapshot config at start of upload to avoid mid-loop mutation
+            int maxRetries = MaxRetries;
+            int maxRateLimitRetries = MaxRateLimitRetries;
+            TimeSpan maxTotalBackoff = MaxTotalBackoffDuration;
+            TimeSpan maxRateLimit = MaxRateLimitDuration;
+            bool backoffEnabled = BackoffEnabled;
+            bool rateLimitEnabled = RateLimitEnabled;
+            double backoffMs = BaseBackoffMs;
+            double backoffCapMs = MaxBackoffMs;
+            var overrides = StatusCodeOverrides;
+
+            int totalAttempts = 0;
+            int backoffAttempts = 0;
+            int rateLimitAttempts = 0;
+            DateTime? firstFailureTime = null;
+            DateTime? rateLimitStartTime = null;
+
+            while (true)
             {
-                Response response = await DoPost(uploadURL, data);
+                totalAttempts++;
+                Response response = null;
+                bool isNetworkError = false;
 
-                if (!response.IsSuccessStatusCode)
+                try
                 {
-                    Analytics.Logger.Log(LogLevel.Error, message: "Error " + response.StatusCode + " uploading to url");
+                    response = await DoPost(uploadURL, data, retryCount: totalAttempts - 1);
+                }
+                catch (Exception e)
+                {
+                    AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnknown, e,
+                        "Unknown network error when uploading to url");
+                    isNetworkError = true;
+                }
 
-                    switch (response.StatusCode)
+                if (!isNetworkError)
+                {
+                    // 2xx and 3xx are success
+                    if (IsSuccess(response.StatusCode))
+                        return true;
+
+                    Analytics.Logger.Log(LogLevel.Error,
+                        message: "Error " + response.StatusCode + " uploading to url");
+
+                    // 429 handling
+                    if (response.StatusCode == 429 && rateLimitEnabled)
                     {
-                        case var n when n >= 1 && n < 300:
-                            return false;
-                        case var n when n >= 300 && n < 400:
-                            AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode, message: "Response code: " + n);
-                            return false;
-                        case 429:
-                            AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerLimited, message: "Response code: 429");
-                            return false;
-                        case var n when n >= 400 && n < 500:
-                            AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerRejected, message: "Response code: " + n + ". Payloads were rejected by server. Marked for removal.");
-                            return true;
-                        default:
-                            return false;
+                        TimeSpan? retryAfter = ParseRetryAfter(response.RetryAfterHeader);
+                        if (retryAfter.HasValue)
+                        {
+                            if (rateLimitStartTime == null) rateLimitStartTime = DateTime.UtcNow;
+                            rateLimitAttempts++;
+                            if (rateLimitAttempts > maxRateLimitRetries ||
+                                DateTime.UtcNow - rateLimitStartTime.Value > maxRateLimit)
+                            {
+                                AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerLimited,
+                                    message: "Max rate limit duration exceeded");
+                                return true;
+                            }
+                            await Task.Delay(retryAfter.Value);
+                            continue;
+                        }
+                        // No Retry-After — fall through to counted backoff
+                    }
+
+                    string action = GetStatusCodeAction(response.StatusCode, overrides);
+                    if (action != "retry" || !backoffEnabled)
+                    {
+                        if (action != "retry")
+                            AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerRejected,
+                                message: "Response code: " + response.StatusCode + ". Non-retryable. Discarding batch.");
+                        return action != "retry"; // non-retryable → discard (true); backoff disabled → discard (true)
                     }
                 }
 
-                return true;
-            }
-            catch (Exception e)
-            {
-                AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnknown, e, "Unknown network error when uploading to url");
-            }
+                // Counted exponential backoff
+                if (firstFailureTime == null) firstFailureTime = DateTime.UtcNow;
+                if (DateTime.UtcNow - firstFailureTime.Value > maxTotalBackoff)
+                {
+                    Analytics.Logger.Log(LogLevel.Error, message: "Max total backoff duration exceeded");
+                    return false;
+                }
 
-            return false;
+                backoffAttempts++;
+                if (backoffAttempts > maxRetries)
+                {
+                    Analytics.Logger.Log(LogLevel.Error,
+                        message: $"Retries exhausted after {totalAttempts} attempts");
+                    return false;
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(backoffMs));
+                backoffMs = Math.Min(backoffMs * 2, backoffCapMs);
+            }
         }
 
-        /// <summary>
-        /// Handle GET request
-        /// </summary>
-        /// <param name="url">URL where the GET request sent to</param>
-        /// <returns>Awaitable response of the GET request</returns>
+        // --- Status classification helpers ---
+
+        private static bool IsSuccess(int statusCode) => statusCode >= 200 && statusCode < 400;
+
+        private static readonly int[] s_retryableClientErrors = { 408, 410, 429, 460 };
+        private static readonly int[] s_nonRetryableServerErrors = { 501, 505, 511 };
+
+        private static bool IsRetryable(int statusCode)
+        {
+            if (statusCode >= 500 && statusCode < 600)
+                return Array.IndexOf(s_nonRetryableServerErrors, statusCode) < 0;
+            return Array.IndexOf(s_retryableClientErrors, statusCode) >= 0;
+        }
+
+        private static string GetStatusCodeAction(int statusCode, Dictionary<int, string> overrides)
+        {
+            if (overrides != null && overrides.TryGetValue(statusCode, out string action))
+                return action;
+            return IsRetryable(statusCode) ? "retry" : "drop";
+        }
+
+        private static TimeSpan? ParseRetryAfter(string headerValue, int capSeconds = 300)
+        {
+            if (string.IsNullOrWhiteSpace(headerValue)) return null;
+            if (!int.TryParse(headerValue.Trim(), out int seconds)) return null;
+            if (seconds <= 0) return null;
+            return TimeSpan.FromSeconds(Math.Min(seconds, capSeconds));
+        }
+
+        // -----------------------------------------------------------------------
+
+        /// <summary>Handle GET request</summary>
         public abstract Task<Response> DoGet(string url);
 
-        /// <summary>
-        /// Handle POST request
-        /// </summary>
-        /// <param name="url">URL where the POST request sent to</param>
-        /// <param name="data">data to upload</param>
-        /// <returns>Awaitable response of the POST request</returns>
-        public abstract Task<Response> DoPost(string url, byte[] data);
+        /// <summary>Handle POST request</summary>
+        public abstract Task<Response> DoPost(string url, byte[] data, int retryCount = 0);
 
         /// <summary>
         /// A wrapper class for http response, so that the HTTPClient is
@@ -154,29 +240,24 @@ namespace Segment.Analytics.Utilities
         /// </summary>
         public class Response
         {
-            /// <summary>
-            /// Status code of the http request
-            /// </summary>
             public int StatusCode { get; set; }
 
-            /// <summary>
-            /// Response content of the http request
-            /// </summary>
             public string Content { get; set; }
 
-            /// <summary>
-            /// A convenient method to check if the http request is successful
-            /// </summary>
+            /// <summary>Value of the Retry-After response header, or null if absent.</summary>
+            public string RetryAfterHeader { get; set; }
+
+            /// <summary>True for 2xx responses only (used by Settings()).</summary>
             public bool IsSuccessStatusCode => StatusCode >= 200 && StatusCode < 300;
         }
     }
 
     public class DefaultHTTPClient : HTTPClient
     {
-
         private readonly HttpClient _httpClient;
 
-        public DefaultHTTPClient(string apiKey, string apiHost = null, string cdnHost = null) : base(apiKey, apiHost, cdnHost)
+        public DefaultHTTPClient(string apiKey, string apiHost = null, string cdnHost = null)
+            : base(apiKey, apiHost, cdnHost)
         {
             _httpClient = new HttpClient(new HttpClientHandler
             {
@@ -197,11 +278,10 @@ namespace Segment.Analytics.Utilities
                 Content = await response.Content.ReadAsStringAsync()
             };
             response.Dispose();
-
             return result;
         }
 
-        public override async Task<Response> DoPost(string url, byte[] data)
+        public override async Task<Response> DoPost(string url, byte[] data, int retryCount = 0)
         {
             using (MemoryStream ms = new MemoryStream())
             {
@@ -217,12 +297,21 @@ namespace Segment.Analytics.Utilities
                 var request = new HttpRequestMessage(HttpMethod.Post, url);
                 request.Headers.Add("Connection", "close");
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
+                if (retryCount > 0)
+                    request.Headers.Add("X-Retry-Count", retryCount.ToString());
                 request.Content = streamContent;
 
                 HttpResponseMessage response = await _httpClient.SendAsync(request);
-                var result = new Response {StatusCode = (int)response.StatusCode};
-                response.Dispose();
+                string retryAfterHeader = null;
+                if (response.Headers.TryGetValues("Retry-After", out var values))
+                    retryAfterHeader = values.FirstOrDefault();
 
+                var result = new Response
+                {
+                    StatusCode = (int)response.StatusCode,
+                    RetryAfterHeader = retryAfterHeader
+                };
+                response.Dispose();
                 return result;
             }
         }

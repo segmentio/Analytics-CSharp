@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Segment.Analytics.Utilities;
 using Segment.Serialization;
 using Segment.Sovran;
@@ -77,11 +79,73 @@ namespace Segment.Analytics.Plugins
             base.Update(settings, type);
 
             JsonObject segmentInfo = settings.Integrations?.GetJsonObject(Key);
+
             string apiHost = segmentInfo?.GetString(ApiHost);
             if (apiHost != null && _pipeline != null)
-            {
                 _pipeline.ApiHost = apiHost;
+
+            JsonObject httpConfig = segmentInfo?.GetJsonObject("httpConfig");
+            EventPipeline concretePipeline = _pipeline as EventPipeline;
+            if (httpConfig != null && concretePipeline?._httpClient != null)
+                ApplyHttpConfig(concretePipeline._httpClient, httpConfig);
+        }
+
+        private static void ApplyHttpConfig(HTTPClient client, JsonObject httpConfig)
+        {
+            JsonObject backoff = httpConfig.GetJsonObject("backoffConfig");
+            if (backoff != null)
+            {
+                string enabledStr = backoff.GetString("enabled");
+                if (enabledStr != null && bool.TryParse(enabledStr, out bool enabled))
+                    client.BackoffEnabled = enabled;
+
+                string maxRetriesStr = backoff.GetString("maxRetryCount");
+                if (maxRetriesStr != null && int.TryParse(maxRetriesStr, out int maxRetries))
+                    client.MaxRetries = maxRetries;
+
+                string baseStr = backoff.GetString("baseBackoffInterval");
+                if (baseStr != null && double.TryParse(baseStr, out double baseMs))
+                    client.BaseBackoffMs = baseMs;
+
+                string capStr = backoff.GetString("maxBackoffInterval");
+                if (capStr != null && double.TryParse(capStr, out double capMs))
+                    client.MaxBackoffMs = capMs;
+
+                JsonObject overridesJson = backoff.GetJsonObject("statusCodeOverrides");
+                if (overridesJson != null)
+                    client.StatusCodeOverrides = ParseStatusCodeOverrides(overridesJson);
             }
+
+            JsonObject rateLimit = httpConfig.GetJsonObject("rateLimitConfig");
+            if (rateLimit != null)
+            {
+                string enabledStr = rateLimit.GetString("enabled");
+                if (enabledStr != null && bool.TryParse(enabledStr, out bool enabled))
+                    client.RateLimitEnabled = enabled;
+
+                string maxRetriesStr = rateLimit.GetString("maxRetryCount");
+                if (maxRetriesStr != null && int.TryParse(maxRetriesStr, out int maxRetries))
+                    client.MaxRateLimitRetries = maxRetries;
+
+                string capStr = rateLimit.GetString("maxRetryInterval");
+                if (capStr != null && int.TryParse(capStr, out int capSec))
+                    client.MaxRateLimitDuration = TimeSpan.FromSeconds(capSec);
+            }
+        }
+
+        private static Dictionary<int, string> ParseStatusCodeOverrides(JsonObject overridesJson)
+        {
+            var result = new Dictionary<int, string>();
+            // JsonObject iteration — enumerate known entries via string keys
+            // We use a conservative approach: try common status codes
+            foreach (int code in new[] { 200, 201, 204, 301, 302, 400, 401, 403, 404, 408, 410, 413,
+                                          422, 429, 460, 499, 500, 501, 502, 503, 504, 505, 508, 511 })
+            {
+                string val = overridesJson.GetString(code.ToString());
+                if (val == "retry" || val == "drop")
+                    result[code] = val;
+            }
+            return result;
         }
 
         public override void Reset()

@@ -47,6 +47,12 @@ namespace Segment.Analytics
 
         public IEventPipelineProvider EventPipelineProvider { get; }
 
+        public int MaxRetries { get; }
+
+        public TimeSpan MaxTotalBackoffDuration { get; }
+
+        public TimeSpan MaxRateLimitDuration { get; }
+
         /// <summary>
         /// Configuration that analytics can use
         /// </summary>
@@ -73,6 +79,9 @@ namespace Segment.Analytics
         ///     defaults to DefaultHTTPClientProvider
         /// </param>
         /// <param name="flushPolicies">set custom flush policies to tell analytics when and how to flush. If a value is given, it overwrites flushAt and flushInterval</param>
+        /// <param name="maxRetries">maximum number of backoff retries per batch upload, defaults to 10</param>
+        /// <param name="maxTotalBackoffDuration">wall-clock cap on total backoff time, defaults to 12 hours</param>
+        /// <param name="maxRateLimitDuration">wall-clock cap on 429 Retry-After retries, defaults to 12 hours</param>
         public Configuration(string writeKey,
             int flushAt = 20,
             int flushInterval = 30,
@@ -85,7 +94,10 @@ namespace Segment.Analytics
             IStorageProvider storageProvider = default,
             IHTTPClientProvider httpClientProvider = default,
             IList<IFlushPolicy> flushPolicies = default,
-            IEventPipelineProvider eventPipelineProvider = default)
+            IEventPipelineProvider eventPipelineProvider = default,
+            int maxRetries = 10,
+            TimeSpan? maxTotalBackoffDuration = null,
+            TimeSpan? maxRateLimitDuration = null)
         {
             WriteKey = writeKey;
             FlushAt = flushAt;
@@ -102,6 +114,9 @@ namespace Segment.Analytics
             FlushPolicies.Add(new CountFlushPolicy(flushAt));
             FlushPolicies.Add(new FrequencyFlushPolicy(flushInterval * 1000L));
             EventPipelineProvider = eventPipelineProvider ?? new EventPipelineProvider();
+            MaxRetries = maxRetries;
+            MaxTotalBackoffDuration = maxTotalBackoffDuration ?? TimeSpan.FromHours(12);
+            MaxRateLimitDuration = maxRateLimitDuration ?? TimeSpan.FromHours(12);
         }
 
         public Configuration(string writeKey,

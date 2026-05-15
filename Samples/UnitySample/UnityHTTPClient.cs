@@ -45,7 +45,7 @@ namespace UnitySample
             }
         }
 
-        public override async Task<Response> DoPost(string url, byte[] data)
+        public override async Task<Response> DoPost(string url, byte[] data, int retryCount = 0)
         {
             using (var request = new NetworkRequest {URL = url, Data = data, Action = PostRequest})
             {
