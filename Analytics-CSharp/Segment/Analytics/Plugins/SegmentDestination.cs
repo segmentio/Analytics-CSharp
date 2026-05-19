@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Segment.Analytics.Utilities;
 using Segment.Serialization;
 using Segment.Sovran;
@@ -104,11 +105,11 @@ namespace Segment.Analytics.Plugins
                     client.MaxRetries = maxRetries;
 
                 string baseStr = backoff.GetString("baseBackoffInterval");
-                if (baseStr != null && double.TryParse(baseStr, out double baseMs))
+                if (baseStr != null && double.TryParse(baseStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double baseMs))
                     client.BaseBackoffMs = baseMs;
 
                 string capStr = backoff.GetString("maxBackoffInterval");
-                if (capStr != null && double.TryParse(capStr, out double capMs))
+                if (capStr != null && double.TryParse(capStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double capMs))
                     client.MaxBackoffMs = capMs;
 
                 JsonObject overridesJson = backoff.GetJsonObject("statusCodeOverrides");
@@ -129,7 +130,7 @@ namespace Segment.Analytics.Plugins
 
                 string capStr = rateLimit.GetString("maxRetryInterval");
                 if (capStr != null && int.TryParse(capStr, out int capSec))
-                    client.MaxRateLimitDuration = TimeSpan.FromSeconds(capSec);
+                    client.MaxRetryAfterCapSeconds = capSec;
             }
         }
 

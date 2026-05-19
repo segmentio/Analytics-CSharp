@@ -54,6 +54,7 @@ string? cdnHost = root.TryGetProperty("cdnHost", out var cdnHostEl) ? cdnHostEl.
 // config block (optional)
 int flushAt = 15;
 int flushInterval = 10; // seconds
+int maxRetries = 10;
 if (root.TryGetProperty("config", out var configEl))
 {
     if (configEl.TryGetProperty("flushAt", out var fa)) flushAt = fa.GetInt32();
@@ -63,7 +64,12 @@ if (root.TryGetProperty("config", out var configEl))
         int fiMs = fi.GetInt32();
         flushInterval = Math.Max(1, fiMs / 1000);
     }
+    if (configEl.TryGetProperty("maxRetries", out var mr)) maxRetries = mr.GetInt32();
 }
+
+// ── Logger (captures retry-exhaustion errors) ─────────────────────────────────
+var capturingLogger = new CapturingLogger();
+Analytics.Logger = capturingLogger;
 
 // ── Error handler ────────────────────────────────────────────────────────────
 var errors = new List<string>();
@@ -105,12 +111,21 @@ var configBuilder = new Configuration(
     storageProvider: new InMemoryStorageProvider(),
     apiHost: rawApiHost,
     cdnHost: rawCdnHost,
-    httpClientProvider: httpClientProvider
+    httpClientProvider: httpClientProvider,
+    maxRetries: maxRetries
 );
 
 Console.Error.WriteLine($"[e2e-cli] Initialising analytics (writeKey={writeKey[..Math.Min(8, writeKey.Length)]}…, apiHost={apiHost ?? "default"})");
 
 var analytics = new Analytics(configBuilder);
+
+// If AUTO_SETTINGS is enabled, wait briefly for the settings fetch to complete
+// so that httpConfig overrides (BackoffEnabled, MaxRateLimitRetries, etc.) are
+// applied before the first upload starts.
+bool autoSettings = string.Equals(Environment.GetEnvironmentVariable("AUTO_SETTINGS"), "true",
+    StringComparison.OrdinalIgnoreCase);
+if (autoSettings)
+    Thread.Sleep(2000);
 
 // ── Process sequences ────────────────────────────────────────────────────────
 int totalEvents = 0;
@@ -149,23 +164,16 @@ if (root.TryGetProperty("sequences", out var sequencesEl))
 
                 case "track":
                 {
-                    // Set userId state first if provided
-                    if (userId != null && analytics.UserId() != userId)
-                        analytics.Identify(userId);
-
                     string eventName = ev.TryGetProperty("event", out var enEl)
                         ? enEl.GetString() ?? "Unknown"
                         : "Unknown";
                     JsonObject? properties = GetJsonObject(ev, "properties");
-                    analytics.Track(eventName, properties);
+                    analytics.Track(eventName, properties, userId != null ? e => { ((TrackEvent)e).UserId = userId; return e; } : null);
                     break;
                 }
 
                 case "page":
                 {
-                    if (userId != null && analytics.UserId() != userId)
-                        analytics.Identify(userId);
-
                     string title = ev.TryGetProperty("name", out var nameEl)
                         ? nameEl.GetString() ?? ""
                         : "";
@@ -173,15 +181,12 @@ if (root.TryGetProperty("sequences", out var sequencesEl))
                         ? catEl.GetString() ?? ""
                         : "";
                     JsonObject? properties = GetJsonObject(ev, "properties");
-                    analytics.Page(title, properties, category);
+                    analytics.Page(title, properties, category, userId != null ? e => { ((PageEvent)e).UserId = userId; return e; } : null);
                     break;
                 }
 
                 case "screen":
                 {
-                    if (userId != null && analytics.UserId() != userId)
-                        analytics.Identify(userId);
-
                     string title = ev.TryGetProperty("name", out var nameEl)
                         ? nameEl.GetString() ?? ""
                         : "";
@@ -189,38 +194,29 @@ if (root.TryGetProperty("sequences", out var sequencesEl))
                         ? catEl.GetString() ?? ""
                         : "";
                     JsonObject? properties = GetJsonObject(ev, "properties");
-                    analytics.Screen(title, properties, category);
+                    analytics.Screen(title, properties, category, userId != null ? e => { ((ScreenEvent)e).UserId = userId; return e; } : null);
                     break;
                 }
 
                 case "alias":
                 {
-                    // For alias: previousId becomes the current userId state, newId is the alias target.
-                    // The SDK Alias(newId) uses _userInfo._userId as previousId.
                     string? previousId = ev.TryGetProperty("previousId", out var prevEl)
                         ? prevEl.GetString()
                         : null;
                     string newId = userId ?? (ev.TryGetProperty("newId", out var newIdEl)
                         ? newIdEl.GetString() ?? ""
                         : "");
-
-                    if (previousId != null && analytics.UserId() != previousId)
-                        analytics.Identify(previousId);
-
-                    analytics.Alias(newId);
+                    analytics.Alias(newId, previousId != null ? e => { ((AliasEvent)e).PreviousId = previousId; return e; } : null);
                     break;
                 }
 
                 case "group":
                 {
-                    if (userId != null && analytics.UserId() != userId)
-                        analytics.Identify(userId);
-
                     string groupId = ev.TryGetProperty("groupId", out var gidEl)
                         ? gidEl.GetString() ?? ""
                         : "";
                     JsonObject? traits = GetJsonObject(ev, "traits");
-                    analytics.Group(groupId, traits);
+                    analytics.Group(groupId, traits, userId != null ? e => { ((GroupEvent)e).UserId = userId; return e; } : null);
                     break;
                 }
 
@@ -237,11 +233,19 @@ if (root.TryGetProperty("sequences", out var sequencesEl))
 Console.Error.WriteLine($"[e2e-cli] Flushing {totalEvents} event(s)…");
 analytics.Flush();
 
-// Give the async pipeline time to upload
-Thread.Sleep(5000);
+// Wait for the async pipeline to finish flushing + retries.
+// Cap at 25s so tests with a 30s timeout always get a result.
+int waitMs = Math.Min(Math.Max(10_000, maxRetries * 2_000 + 5_000), 25_000);
+Thread.Sleep(waitMs);
 
 // ── Output result ─────────────────────────────────────────────────────────────
-bool success = errors.Count == 0;
+// Combine SDK error handler errors (non-retryable drops) with captured logger errors
+// (retry exhaustion, backoff budget exceeded). Either signals final failure.
+var logErrors = ((CapturingLogger)Analytics.Logger).Errors;
+var allErrors = new List<string>(errors);
+allErrors.AddRange(logErrors);
+
+bool success = allErrors.Count == 0;
 if (success)
 {
     Console.WriteLine($"{{\"success\":true,\"sentBatches\":1}}");
@@ -249,7 +253,7 @@ if (success)
 }
 else
 {
-    string combinedErrors = string.Join("; ", errors);
+    string combinedErrors = string.Join("; ", allErrors);
     Console.WriteLine($"{{\"success\":false,\"sentBatches\":0,\"error\":\"{Escape(combinedErrors)}\"}}");
     Environment.Exit(1);
 }
@@ -310,5 +314,27 @@ class CapturingErrorHandler : IAnalyticsErrorHandler
         string msg = e.Message;
         Console.Error.WriteLine($"[e2e-cli] SDK ERROR: {msg}");
         _errors.Add(msg);
+    }
+}
+
+// ── Logger that captures Error-level messages (retry exhaustion, etc.) ────────
+
+class CapturingLogger : Segment.Analytics.Utilities.ISegmentLogger
+{
+    private readonly List<string> _errors = new List<string>();
+    public IReadOnlyList<string> Errors => _errors;
+
+    public void Log(Segment.Analytics.Utilities.LogLevel logLevel, Exception exception = null, string message = null)
+    {
+        string text = message ?? exception?.Message ?? "";
+        Console.Error.WriteLine($"[analytics][{logLevel}] {text}");
+        // Only capture final-failure messages, not transient per-attempt errors.
+        // Transient errors look like "Error 500 uploading to url".
+        // Final failures are "Retries exhausted..." and "Max total backoff...".
+        if (logLevel == Segment.Analytics.Utilities.LogLevel.Error && !string.IsNullOrEmpty(text)
+            && (text.StartsWith("Retries exhausted") || text.StartsWith("Max total backoff")))
+        {
+            _errors.Add(text);
+        }
     }
 }

@@ -51,6 +51,8 @@ namespace Segment.Analytics.Utilities
 
         public int MaxRateLimitRetries { get; set; } = 10;
 
+        public int MaxRetryAfterCapSeconds { get; set; } = 300;
+
         public double BaseBackoffMs { get; set; } = 500.0;
 
         public double MaxBackoffMs { get; set; } = 60_000.0;
@@ -105,6 +107,7 @@ namespace Segment.Analytics.Utilities
             // Snapshot config at start of upload to avoid mid-loop mutation
             int maxRetries = MaxRetries;
             int maxRateLimitRetries = MaxRateLimitRetries;
+            int retryAfterCapSeconds = MaxRetryAfterCapSeconds;
             TimeSpan maxTotalBackoff = MaxTotalBackoffDuration;
             TimeSpan maxRateLimit = MaxRateLimitDuration;
             bool backoffEnabled = BackoffEnabled;
@@ -146,9 +149,12 @@ namespace Segment.Analytics.Utilities
                         message: "Error " + response.StatusCode + " uploading to url");
 
                     // 429 handling
-                    if (response.StatusCode == 429 && rateLimitEnabled)
+                    if (response.StatusCode == 429)
                     {
-                        TimeSpan? retryAfter = ParseRetryAfter(response.RetryAfterHeader);
+                        if (!rateLimitEnabled)
+                            return true; // rate limiting disabled — discard immediately
+
+                        TimeSpan? retryAfter = ParseRetryAfter(response.RetryAfterHeader, retryAfterCapSeconds);
                         if (retryAfter.HasValue)
                         {
                             if (rateLimitStartTime == null) rateLimitStartTime = DateTime.UtcNow;
@@ -172,7 +178,7 @@ namespace Segment.Analytics.Utilities
                         if (action != "retry")
                             AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerRejected,
                                 message: "Response code: " + response.StatusCode + ". Non-retryable. Discarding batch.");
-                        return action != "retry"; // non-retryable → discard (true); backoff disabled → discard (true)
+                        return true; // non-retryable or backoff disabled → discard
                     }
                 }
 
@@ -181,7 +187,7 @@ namespace Segment.Analytics.Utilities
                 if (DateTime.UtcNow - firstFailureTime.Value > maxTotalBackoff)
                 {
                     Analytics.Logger.Log(LogLevel.Error, message: "Max total backoff duration exceeded");
-                    return false;
+                    return true; // discard — budget exhausted, no point retrying next cycle
                 }
 
                 backoffAttempts++;
@@ -189,7 +195,7 @@ namespace Segment.Analytics.Utilities
                 {
                     Analytics.Logger.Log(LogLevel.Error,
                         message: $"Retries exhausted after {totalAttempts} attempts");
-                    return false;
+                    return true; // discard — retry budget exhausted
                 }
 
                 await Task.Delay(TimeSpan.FromMilliseconds(backoffMs));
@@ -222,7 +228,7 @@ namespace Segment.Analytics.Utilities
         {
             if (string.IsNullOrWhiteSpace(headerValue)) return null;
             if (!int.TryParse(headerValue.Trim(), out int seconds)) return null;
-            if (seconds <= 0) return null;
+            if (seconds < 0) return null;
             return TimeSpan.FromSeconds(Math.Min(seconds, capSeconds));
         }
 
