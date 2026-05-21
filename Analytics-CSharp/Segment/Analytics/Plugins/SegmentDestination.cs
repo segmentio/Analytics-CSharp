@@ -137,12 +137,11 @@ namespace Segment.Analytics.Plugins
         private static Dictionary<int, string> ParseStatusCodeOverrides(JsonObject overridesJson)
         {
             var result = new Dictionary<int, string>();
-            // JsonObject iteration — enumerate known entries via string keys
-            // We use a conservative approach: try common status codes
-            foreach (int code in new[] { 200, 201, 204, 301, 302, 400, 401, 403, 404, 408, 410, 413,
-                                          422, 429, 460, 499, 500, 501, 502, 503, 504, 505, 508, 511 })
+            foreach (string key in overridesJson.Keys)
             {
-                string val = overridesJson.GetString(code.ToString());
+                if (!int.TryParse(key, out int code) || code < 100 || code > 599)
+                    continue;
+                string val = overridesJson.GetString(key);
                 if (val == "retry" || val == "drop")
                     result[code] = val;
             }

@@ -229,7 +229,8 @@ namespace Segment.Analytics.Utilities
             if (string.IsNullOrWhiteSpace(headerValue)) return null;
             if (!int.TryParse(headerValue.Trim(), out int seconds)) return null;
             if (seconds < 0) return null;
-            return TimeSpan.FromSeconds(Math.Min(seconds, capSeconds));
+            int clamped = Math.Max(1, Math.Min(seconds, Math.Max(1, capSeconds)));
+            return TimeSpan.FromSeconds(clamped);
         }
 
         // -----------------------------------------------------------------------
