@@ -403,3 +403,6 @@ ASALocalRun/
 
 # Local History for Visual Studio
 .localhistory/
+
+# e2e-cli build output
+e2e-cli/build/
