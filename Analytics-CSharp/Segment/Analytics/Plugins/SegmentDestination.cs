@@ -1,3 +1,4 @@
+using Segment.Analytics.Retry;
 using Segment.Analytics.Utilities;
 using Segment.Serialization;
 using Segment.Sovran;
@@ -77,10 +78,23 @@ namespace Segment.Analytics.Plugins
             base.Update(settings, type);
 
             JsonObject segmentInfo = settings.Integrations?.GetJsonObject(Key);
+
             string apiHost = segmentInfo?.GetString(ApiHost);
             if (apiHost != null && _pipeline != null)
-            {
                 _pipeline.ApiHost = apiHost;
+
+            JsonObject httpConfigJson = segmentInfo?.GetJsonObject("httpConfig");
+            if (httpConfigJson != null)
+            {
+                HttpConfig parsedConfig = HttpConfigParser.Parse(httpConfigJson);
+                if (parsedConfig != null)
+                {
+                    EventPipeline concretePipeline = _pipeline as EventPipeline;
+                    concretePipeline?.UpdateHttpConfig(parsedConfig);
+
+                    SyncEventPipeline syncPipeline = _pipeline as SyncEventPipeline;
+                    syncPipeline?.UpdateHttpConfig(parsedConfig);
+                }
             }
         }
 

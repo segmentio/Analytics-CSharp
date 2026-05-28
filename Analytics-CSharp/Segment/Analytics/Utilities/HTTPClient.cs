@@ -1,10 +1,12 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using Segment.Analytics.Retry;
 using Segment.Serialization;
 
 namespace Segment.Analytics.Utilities
@@ -105,22 +107,18 @@ namespace Segment.Analytics.Utilities
                 {
                     Analytics.Logger.Log(LogLevel.Error, message: "Error " + response.StatusCode + " uploading to url");
 
-                    switch (response.StatusCode)
+                    if (response.StatusCode == 429)
                     {
-                        case var n when n >= 1 && n < 300:
-                            return false;
-                        case var n when n >= 300 && n < 400:
-                            AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode, message: "Response code: " + n);
-                            return false;
-                        case 429:
-                            AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerLimited, message: "Response code: 429");
-                            return false;
-                        case var n when n >= 400 && n < 500:
-                            AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerRejected, message: "Response code: " + n + ". Payloads were rejected by server. Marked for removal.");
-                            return true;
-                        default:
-                            return false;
+                        AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerLimited, message: "Response code: 429");
+                        return false;
                     }
+                    if (response.StatusCode >= 400 && response.StatusCode < 500)
+                    {
+                        AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerRejected, message: "Response code: " + response.StatusCode + ". Payloads were rejected by server. Marked for removal.");
+                        return true;
+                    }
+                    // 5xx and others — keep for retry
+                    return false;
                 }
 
                 return true;
@@ -131,6 +129,12 @@ namespace Segment.Analytics.Utilities
             }
 
             return false;
+        }
+
+        internal virtual async Task<Response> UploadWithResponse(byte[] data, int retryCount = 0)
+        {
+            string uploadURL = SegmentURL(_apiHost, "/b");
+            return await DoPost(uploadURL, data, retryCount);
         }
 
         /// <summary>
@@ -149,6 +153,16 @@ namespace Segment.Analytics.Utilities
         public abstract Task<Response> DoPost(string url, byte[] data);
 
         /// <summary>
+        /// Handle POST request with retry count for the X-Retry-Count header.
+        /// Default implementation calls DoPost(url, data) — override in subclasses
+        /// that support the retry count header.
+        /// </summary>
+        public virtual Task<Response> DoPost(string url, byte[] data, int retryCount)
+        {
+            return DoPost(url, data);
+        }
+
+        /// <summary>
         /// A wrapper class for http response, so that the HTTPClient is
         /// not dependent on a specific network library.
         /// </summary>
@@ -163,6 +177,11 @@ namespace Segment.Analytics.Utilities
             /// Response content of the http request
             /// </summary>
             public string Content { get; set; }
+
+            /// <summary>
+            /// Value of the Retry-After response header, or null if absent.
+            /// </summary>
+            public string RetryAfterHeader { get; set; }
 
             /// <summary>
             /// A convenient method to check if the http request is successful
@@ -201,7 +220,12 @@ namespace Segment.Analytics.Utilities
             return result;
         }
 
-        public override async Task<Response> DoPost(string url, byte[] data)
+        public override Task<Response> DoPost(string url, byte[] data)
+        {
+            return DoPost(url, data, 0);
+        }
+
+        public override async Task<Response> DoPost(string url, byte[] data, int retryCount)
         {
             using (MemoryStream ms = new MemoryStream())
             {
@@ -217,10 +241,21 @@ namespace Segment.Analytics.Utilities
                 var request = new HttpRequestMessage(HttpMethod.Post, url);
                 request.Headers.Add("Connection", "close");
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
+                if (retryCount > 0)
+                    request.Headers.Add("X-Retry-Count", retryCount.ToString());
                 request.Content = streamContent;
 
                 HttpResponseMessage response = await _httpClient.SendAsync(request);
-                var result = new Response {StatusCode = (int)response.StatusCode};
+
+                string retryAfterHeader = null;
+                if (response.Headers.TryGetValues("Retry-After", out var values))
+                    retryAfterHeader = values.FirstOrDefault();
+
+                var result = new Response
+                {
+                    StatusCode = (int)response.StatusCode,
+                    RetryAfterHeader = retryAfterHeader
+                };
                 response.Dispose();
 
                 return result;
