@@ -72,6 +72,53 @@ namespace Tests.Retry
         }
 
         [Fact]
+        public void RoundTrip_WindowsPathKeys()
+        {
+            // Batch keys are absolute file paths; on Windows they contain backslashes.
+            // The serializer escapes them, so the parser must unescape them back to the
+            // exact live key — otherwise per-batch retry metadata is orphaned after a restart.
+            const string winPath = @"C:\Users\x\AppData\Local\segment\segment.events.123.tmp";
+            var metadata = new Dictionary<string, BatchMetadata>
+            {
+                { winPath, new BatchMetadata(failureCount: 4, nextRetryTime: 9000, firstFailureTime: 1000) }
+            };
+            var state = new RetryState(batchMetadata: metadata);
+
+            RetryStateStorage.SaveRetryState(_storage.Object, state);
+            RetryState loaded = RetryStateStorage.LoadRetryState(_storage.Object);
+
+            Assert.True(loaded.BatchMetadata.ContainsKey(winPath));
+            Assert.Equal(4, loaded.BatchMetadata[winPath].FailureCount);
+            Assert.Equal(9000L, loaded.BatchMetadata[winPath].NextRetryTime);
+            Assert.Equal(1000L, loaded.BatchMetadata[winPath].FirstFailureTime);
+        }
+
+        [Fact]
+        public void RoundTrip_KeyWithEscapedQuoteAndTrailingBatch()
+        {
+            // A key containing a quote must not terminate the scan early and corrupt
+            // parsing of subsequent batches.
+            const string trickyKey = "file\"with\"quotes.tmp";
+            const string plainKey = "file2.tmp";
+            var metadata = new Dictionary<string, BatchMetadata>
+            {
+                { trickyKey, new BatchMetadata(failureCount: 1, nextRetryTime: 1111, firstFailureTime: 2222) },
+                { plainKey, new BatchMetadata(failureCount: 7, nextRetryTime: 3333, firstFailureTime: 4444) }
+            };
+            var state = new RetryState(batchMetadata: metadata);
+
+            RetryStateStorage.SaveRetryState(_storage.Object, state);
+            RetryState loaded = RetryStateStorage.LoadRetryState(_storage.Object);
+
+            Assert.Equal(2, loaded.BatchMetadata.Count);
+            Assert.True(loaded.BatchMetadata.ContainsKey(trickyKey));
+            Assert.Equal(1, loaded.BatchMetadata[trickyKey].FailureCount);
+            Assert.True(loaded.BatchMetadata.ContainsKey(plainKey));
+            Assert.Equal(7, loaded.BatchMetadata[plainKey].FailureCount);
+            Assert.Equal(3333L, loaded.BatchMetadata[plainKey].NextRetryTime);
+        }
+
+        [Fact]
         public void LoadRetryState_NullStorage_ReturnsDefault()
         {
             _storage.Setup(s => s.Read(StorageConstants.RetryState)).Returns((string)null);

@@ -78,6 +78,45 @@ namespace Segment.Analytics.Retry
             return s.Replace("\\", "\\\\").Replace("\"", "\\\"");
         }
 
+        // Reverse of EscapeJsonString. Walks the string once so a "\\" sequence
+        // isn't re-interpreted as the start of another escape (which a naive
+        // chained Replace would do).
+        private static string UnescapeJsonString(string s)
+        {
+            if (s.IndexOf('\\') < 0) return s;
+            var sb = new StringBuilder(s.Length);
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (s[i] == '\\' && i + 1 < s.Length)
+                {
+                    char next = s[i + 1];
+                    if (next == '\\' || next == '"')
+                    {
+                        sb.Append(next);
+                        i++;
+                        continue;
+                    }
+                }
+                sb.Append(s[i]);
+            }
+            return sb.ToString();
+        }
+
+        // Finds the index of the closing quote for a JSON string whose opening
+        // quote is at openQuote, skipping any backslash-escaped character so an
+        // escaped quote (\") doesn't terminate the scan early. Returns -1 if
+        // unterminated.
+        private static int FindClosingQuote(string json, int openQuote)
+        {
+            for (int i = openQuote + 1; i < json.Length; i++)
+            {
+                char c = json[i];
+                if (c == '\\') { i++; continue; }
+                if (c == '"') return i;
+            }
+            return -1;
+        }
+
         private static RetryState DeserializeState(string json)
         {
             // Manual parsing to avoid Serialization.NET's numeric string coercion.
@@ -121,9 +160,9 @@ namespace Segment.Analytics.Retry
             {
                 int keyStart = json.IndexOf('"', i);
                 if (keyStart < 0) break;
-                int keyEnd = json.IndexOf('"', keyStart + 1);
+                int keyEnd = FindClosingQuote(json, keyStart);
                 if (keyEnd < 0) break;
-                string key = json.Substring(keyStart + 1, keyEnd - keyStart - 1);
+                string key = UnescapeJsonString(json.Substring(keyStart + 1, keyEnd - keyStart - 1));
 
                 int colonIdx = json.IndexOf(':', keyEnd + 1);
                 if (colonIdx < 0) break;
@@ -142,9 +181,9 @@ namespace Segment.Analytics.Retry
 
                 if (json[valStart] == '"')
                 {
-                    int valEnd = json.IndexOf('"', valStart + 1);
+                    int valEnd = FindClosingQuote(json, valStart);
                     if (valEnd < 0) break;
-                    result[key] = json.Substring(valStart + 1, valEnd - valStart - 1);
+                    result[key] = UnescapeJsonString(json.Substring(valStart + 1, valEnd - valStart - 1));
                     i = valEnd + 1;
                 }
                 else
@@ -186,9 +225,9 @@ namespace Segment.Analytics.Retry
             {
                 int keyStart = json.IndexOf('"', i);
                 if (keyStart < 0) break;
-                int keyEnd = json.IndexOf('"', keyStart + 1);
+                int keyEnd = FindClosingQuote(json, keyStart);
                 if (keyEnd < 0) break;
-                string batchFile = json.Substring(keyStart + 1, keyEnd - keyStart - 1);
+                string batchFile = UnescapeJsonString(json.Substring(keyStart + 1, keyEnd - keyStart - 1));
 
                 int objStart = json.IndexOf('{', keyEnd + 1);
                 if (objStart < 0) break;

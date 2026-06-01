@@ -258,8 +258,9 @@ while (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() < deadlineMs)
     {
         everSeenPending = true;
         stableEmptyCount = 0;
-        deliveryErrors.Clear();
-        // Trigger a new upload cycle for retry
+        // Trigger a new upload cycle for retry. Errors captured from here on are
+        // genuine drops (the pipeline only reports on permanent rejection, never
+        // on transient retries), so they're left intact to fail the run.
         analytics.Flush();
     }
     else if (everSeenPending)
