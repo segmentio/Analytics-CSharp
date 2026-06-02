@@ -89,6 +89,9 @@ namespace Segment.Analytics.Plugins
                 HttpConfig parsedConfig = HttpConfigParser.Parse(httpConfigJson);
                 if (parsedConfig != null)
                 {
+                    // Only the built-in pipelines understand HttpConfig. A custom IEventPipeline
+                    // supplied via Configuration.EventPipelineProvider is responsible for reading
+                    // httpConfig itself (see the note on IEventPipeline).
                     EventPipeline concretePipeline = _pipeline as EventPipeline;
                     concretePipeline?.UpdateHttpConfig(parsedConfig);
 
