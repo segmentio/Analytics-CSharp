@@ -140,6 +140,29 @@ namespace Tests.Retry
         }
 
         [Fact]
+        public void LoadRetryState_LegacyOrdinalPipelineState_DeserializesRateLimited()
+        {
+            // States persisted by an earlier build wrote pipelineState as the ordinal int.
+            // "1" must still load as RateLimited so a rate-limit window survives an upgrade.
+            _storage.Setup(s => s.Read(StorageConstants.RetryState))
+                .Returns("{\"pipelineState\":\"1\",\"waitUntilTime\":\"999\",\"globalRetryCount\":\"0\"}");
+
+            RetryState loaded = RetryStateStorage.LoadRetryState(_storage.Object);
+
+            Assert.Equal(PipelineState.RateLimited, loaded.PipelineState);
+            Assert.Equal(999L, loaded.WaitUntilTime);
+        }
+
+        [Fact]
+        public void SerializeState_WritesPipelineStateByName()
+        {
+            var state = new RetryState(pipelineState: PipelineState.RateLimited, waitUntilTime: 1L);
+            RetryStateStorage.SaveRetryState(_storage.Object, state);
+
+            Assert.Contains("\"pipelineState\":\"RateLimited\"", _savedValue);
+        }
+
+        [Fact]
         public void LoadRetryState_CorruptJson_ReturnsDefault()
         {
             _storage.Setup(s => s.Read(StorageConstants.RetryState)).Returns("not valid json{{{");

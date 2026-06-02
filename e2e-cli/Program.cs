@@ -263,11 +263,15 @@ while (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() < deadlineMs)
         // on transient retries), so they're left intact to fail the run.
         analytics.Flush();
     }
-    else if (everSeenPending)
+    else
     {
-        // Files gone — wait for a stable "empty" state to confirm upload completed
+        // Files gone — wait for a stable "empty" state to confirm upload completed.
+        // A flush was already issued before the loop, so a fast 200 can finish
+        // before the first poll (everSeenPending never set); break in that case too,
+        // but require one extra stable poll to absorb the brief async-write window.
         stableEmptyCount++;
-        if (stableEmptyCount >= 2)
+        int stableThreshold = everSeenPending ? 2 : 3;
+        if (stableEmptyCount >= stableThreshold)
             break;
     }
 

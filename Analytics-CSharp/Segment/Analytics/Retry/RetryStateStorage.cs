@@ -45,7 +45,7 @@ namespace Segment.Analytics.Retry
         {
             var sb = new StringBuilder();
             sb.Append("{");
-            sb.Append("\"pipelineState\":\"").Append((int)state.PipelineState).Append("\"");
+            sb.Append("\"pipelineState\":\"").Append(state.PipelineState.ToString()).Append("\"");
             if (state.WaitUntilTime.HasValue)
                 sb.Append(",\"waitUntilTime\":\"").Append(state.WaitUntilTime.Value.ToString(CultureInfo.InvariantCulture)).Append("\"");
             sb.Append(",\"globalRetryCount\":\"").Append(state.GlobalRetryCount.ToString(CultureInfo.InvariantCulture)).Append("\"");
@@ -124,10 +124,13 @@ namespace Segment.Analytics.Retry
             var fields = ParseJsonFields(json);
 
             PipelineState pipelineState = PipelineState.Ready;
-            if (fields.TryGetValue("pipelineState", out string psVal)
-                && int.TryParse(psVal, NumberStyles.Integer, CultureInfo.InvariantCulture, out int psInt)
-                && psInt == 1)
-                pipelineState = PipelineState.RateLimited;
+            if (fields.TryGetValue("pipelineState", out string psVal))
+            {
+                // Current format is the enum name; "1" is the legacy ordinal for RateLimited.
+                if (string.Equals(psVal, PipelineState.RateLimited.ToString(), StringComparison.Ordinal)
+                    || psVal == "1")
+                    pipelineState = PipelineState.RateLimited;
+            }
 
             long? waitUntilTime = null;
             if (fields.TryGetValue("waitUntilTime", out string waitStr)

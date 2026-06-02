@@ -38,7 +38,9 @@ namespace Segment.Analytics.Utilities
 
         private readonly IStorage _storage;
 
-        internal RetryStateMachine _retryStateMachine;
+        // volatile: swapped on AnalyticsDispatcher by UpdateHttpConfig, read on
+        // NetworkIODispatcher by Upload — ensures the upload thread sees the latest machine.
+        internal volatile RetryStateMachine _retryStateMachine;
 
         private RetryState _retryState;
 
@@ -183,13 +185,17 @@ namespace Segment.Analytics.Utilities
 
                 await Scope.WithContext(_analytics.FileIODispatcher, async () => await _storage.Rollover());
 
+                // Snapshot the (volatile) state machine once so a mid-flush UpdateHttpConfig
+                // swap can't yield inconsistent decisions across batches in the same cycle.
+                RetryStateMachine retryStateMachine = _retryStateMachine;
+
                 string[] fileUrlList = _storage.Read(StorageConstants.Events).Split(',');
                 foreach (string url in fileUrlList)
                 {
                     if (string.IsNullOrEmpty(url))
                         continue;
 
-                    var decision = _retryStateMachine.ShouldUploadBatch(_retryState, url);
+                    var decision = retryStateMachine.ShouldUploadBatch(_retryState, url);
                     _retryState = decision.Item2;
 
                     if (decision.Item1 is UploadDecision.SkipAllBatchesDecision)
@@ -208,7 +214,8 @@ namespace Segment.Analytics.Utilities
                         _analytics.ReportInternalError(AnalyticsErrorType.NetworkServerRejected,
                             message: "Batch dropped: " + dropDecision.Reason);
                         _storage.RemoveFile(url);
-                        RetryStateStorage.SaveRetryState(_storage, _retryState);
+                        await Scope.WithContext(_analytics.FileIODispatcher, () =>
+                            RetryStateStorage.SaveRetryState(_storage, _retryState));
                         continue;
                     }
 
@@ -217,7 +224,7 @@ namespace Segment.Analytics.Utilities
                     if (data == null)
                         continue;
 
-                    int retryCount = _retryStateMachine.GetRetryCount(_retryState, url);
+                    int retryCount = retryStateMachine.GetRetryCount(_retryState, url);
                     int statusCode = 0;
                     int? retryAfterSeconds = null;
                     bool shouldCleanup = true;
@@ -263,8 +270,9 @@ namespace Segment.Analytics.Utilities
                         batchFile: url,
                         currentTime: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
                     );
-                    _retryState = _retryStateMachine.HandleResponse(_retryState, responseInfo);
-                    RetryStateStorage.SaveRetryState(_storage, _retryState);
+                    _retryState = retryStateMachine.HandleResponse(_retryState, responseInfo);
+                    await Scope.WithContext(_analytics.FileIODispatcher, () =>
+                        RetryStateStorage.SaveRetryState(_storage, _retryState));
 
                     if (shouldCleanup)
                     {
