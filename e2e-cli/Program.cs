@@ -271,7 +271,15 @@ while (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() < deadlineMs)
         // but require one extra stable poll to absorb the brief async-write window.
         stableEmptyCount++;
         int stableThreshold = everSeenPending ? 2 : 3;
-        if (stableEmptyCount >= stableThreshold)
+        // Guard the never-seen-pending break against settings still being in flight:
+        // a delayed CDN response can leave the destination disabled (events not yet
+        // queued) past the first few polls. Once settings have arrived (Integrations
+        // populated) an empty queue is genuinely empty. Cap the wait so the
+        // settings-failure fallback cases don't stall to the full timeout.
+        bool settingsReady = everSeenPending
+            || analytics.Settings().Integrations != null
+            || pollCount >= 20;
+        if (stableEmptyCount >= stableThreshold && settingsReady)
             break;
     }
 
