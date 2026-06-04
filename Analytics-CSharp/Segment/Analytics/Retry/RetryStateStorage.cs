@@ -1,8 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Text;
+using System.Collections.Generic;
 using Segment.Analytics.Utilities;
+using Segment.Serialization;
 
 namespace Segment.Analytics.Retry
 {
@@ -12,7 +12,7 @@ namespace Segment.Analytics.Retry
         {
             try
             {
-                string json = SerializeState(state);
+                string json = JsonUtility.ToJson(Serialize(state));
                 storage.WritePrefs(StorageConstants.RetryState, json);
             }
             catch (Exception)
@@ -28,7 +28,7 @@ namespace Segment.Analytics.Retry
                 string json = storage.Read(StorageConstants.RetryState);
                 if (string.IsNullOrEmpty(json))
                     return new RetryState();
-                return DeserializeState(json);
+                return Deserialize(JsonUtility.FromJson<JsonObject>(json));
             }
             catch (Exception)
             {
@@ -41,222 +41,81 @@ namespace Segment.Analytics.Retry
             storage.Remove(StorageConstants.RetryState);
         }
 
-        private static string SerializeState(RetryState state)
+        private static JsonObject Serialize(RetryState state)
         {
-            var sb = new StringBuilder();
-            sb.Append("{");
-            sb.Append("\"pipelineState\":\"").Append(state.PipelineState.ToString()).Append("\"");
+            // PipelineState is written by name (order-independent); numbers are written
+            // as real JSON numbers so they round-trip without precision loss.
+            var root = new JsonObject
+            {
+                ["pipelineState"] = state.PipelineState.ToString(),
+                ["globalRetryCount"] = state.GlobalRetryCount,
+            };
             if (state.WaitUntilTime.HasValue)
-                sb.Append(",\"waitUntilTime\":\"").Append(state.WaitUntilTime.Value.ToString(CultureInfo.InvariantCulture)).Append("\"");
-            sb.Append(",\"globalRetryCount\":\"").Append(state.GlobalRetryCount.ToString(CultureInfo.InvariantCulture)).Append("\"");
+                root["waitUntilTime"] = state.WaitUntilTime.Value;
 
             if (state.BatchMetadata.Count > 0)
             {
-                sb.Append(",\"batchMetadata\":{");
-                bool first = true;
-                foreach (var kvp in state.BatchMetadata)
+                var batchMetadata = new JsonObject();
+                foreach (KeyValuePair<string, BatchMetadata> kvp in state.BatchMetadata)
                 {
-                    if (!first) sb.Append(",");
-                    first = false;
-                    sb.Append("\"").Append(EscapeJsonString(kvp.Key)).Append("\":{");
-                    sb.Append("\"failureCount\":\"").Append(kvp.Value.FailureCount.ToString(CultureInfo.InvariantCulture)).Append("\"");
+                    var meta = new JsonObject { ["failureCount"] = kvp.Value.FailureCount };
                     if (kvp.Value.NextRetryTime.HasValue)
-                        sb.Append(",\"nextRetryTime\":\"").Append(kvp.Value.NextRetryTime.Value.ToString(CultureInfo.InvariantCulture)).Append("\"");
+                        meta["nextRetryTime"] = kvp.Value.NextRetryTime.Value;
                     if (kvp.Value.FirstFailureTime.HasValue)
-                        sb.Append(",\"firstFailureTime\":\"").Append(kvp.Value.FirstFailureTime.Value.ToString(CultureInfo.InvariantCulture)).Append("\"");
-                    sb.Append("}");
+                        meta["firstFailureTime"] = kvp.Value.FirstFailureTime.Value;
+                    batchMetadata[kvp.Key] = meta;
                 }
-                sb.Append("}");
+                root["batchMetadata"] = batchMetadata;
             }
 
-            sb.Append("}");
-            return sb.ToString();
+            return root;
         }
 
-        private static string EscapeJsonString(string s)
+        private static RetryState Deserialize(JsonObject root)
         {
-            return s.Replace("\\", "\\\\").Replace("\"", "\\\"");
-        }
-
-        // Reverse of EscapeJsonString. Walks the string once so a "\\" sequence
-        // isn't re-interpreted as the start of another escape (which a naive
-        // chained Replace would do).
-        private static string UnescapeJsonString(string s)
-        {
-            if (s.IndexOf('\\') < 0) return s;
-            var sb = new StringBuilder(s.Length);
-            for (int i = 0; i < s.Length; i++)
-            {
-                if (s[i] == '\\' && i + 1 < s.Length)
-                {
-                    char next = s[i + 1];
-                    if (next == '\\' || next == '"')
-                    {
-                        sb.Append(next);
-                        i++;
-                        continue;
-                    }
-                }
-                sb.Append(s[i]);
-            }
-            return sb.ToString();
-        }
-
-        // Finds the index of the closing quote for a JSON string whose opening
-        // quote is at openQuote, skipping any backslash-escaped character so an
-        // escaped quote (\") doesn't terminate the scan early. Returns -1 if
-        // unterminated.
-        private static int FindClosingQuote(string json, int openQuote)
-        {
-            for (int i = openQuote + 1; i < json.Length; i++)
-            {
-                char c = json[i];
-                if (c == '\\') { i++; continue; }
-                if (c == '"') return i;
-            }
-            return -1;
-        }
-
-        private static RetryState DeserializeState(string json)
-        {
-            // Manual parsing to avoid Serialization.NET's numeric string coercion.
-            // Format is well-defined since we control serialization.
-            var fields = ParseJsonFields(json);
-
+            // Numbers are read via GetString + TryParse rather than GetLong/GetInt to
+            // avoid Serialization.NET coercing large (epoch-millis) longs through float.
             PipelineState pipelineState = PipelineState.Ready;
-            if (fields.TryGetValue("pipelineState", out string psVal))
-            {
-                // Current format is the enum name; "1" is the legacy ordinal for RateLimited.
-                if (string.Equals(psVal, PipelineState.RateLimited.ToString(), StringComparison.Ordinal)
-                    || psVal == "1")
-                    pipelineState = PipelineState.RateLimited;
-            }
+            string psVal = root.GetString("pipelineState", null);
+            // Written as the enum name. "1" is also accepted as a defensive net for the
+            // never-released ordinal form (it's a string, so no numeric coercion).
+            if (psVal == PipelineState.RateLimited.ToString() || psVal == "1")
+                pipelineState = PipelineState.RateLimited;
 
-            long? waitUntilTime = null;
-            if (fields.TryGetValue("waitUntilTime", out string waitStr)
-                && long.TryParse(waitStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out long waitVal))
-                waitUntilTime = waitVal;
-
-            int globalRetryCount = 0;
-            if (fields.TryGetValue("globalRetryCount", out string grcStr)
-                && int.TryParse(grcStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out int grcVal))
-                globalRetryCount = grcVal;
+            long? waitUntilTime = ReadNullableLong(root, "waitUntilTime");
+            int globalRetryCount = ReadInt(root, "globalRetryCount");
 
             var batchMetadata = new Dictionary<string, BatchMetadata>();
-            int bmStart = json.IndexOf("\"batchMetadata\":{", StringComparison.Ordinal);
-            if (bmStart >= 0)
+            JsonObject batchMetadataJson = root.GetJsonObject("batchMetadata", null);
+            if (batchMetadataJson != null)
             {
-                int objStart = json.IndexOf('{', bmStart + 16);
-                string bmJson = ExtractBalancedBraces(json, objStart);
-                if (bmJson != null)
-                    batchMetadata = ParseBatchMetadata(bmJson);
+                foreach (string batchFile in batchMetadataJson.Keys)
+                {
+                    JsonObject meta = batchMetadataJson.GetJsonObject(batchFile, null);
+                    if (meta == null)
+                        continue;
+                    batchMetadata[batchFile] = new BatchMetadata(
+                        failureCount: ReadInt(meta, "failureCount"),
+                        nextRetryTime: ReadNullableLong(meta, "nextRetryTime"),
+                        firstFailureTime: ReadNullableLong(meta, "firstFailureTime"));
+                }
             }
 
             return new RetryState(pipelineState, waitUntilTime, globalRetryCount, batchMetadata);
         }
 
-        private static Dictionary<string, string> ParseJsonFields(string json)
+        private static int ReadInt(JsonObject json, string key)
         {
-            var result = new Dictionary<string, string>();
-            int i = 0;
-            while (i < json.Length)
-            {
-                int keyStart = json.IndexOf('"', i);
-                if (keyStart < 0) break;
-                int keyEnd = FindClosingQuote(json, keyStart);
-                if (keyEnd < 0) break;
-                string key = UnescapeJsonString(json.Substring(keyStart + 1, keyEnd - keyStart - 1));
-
-                int colonIdx = json.IndexOf(':', keyEnd + 1);
-                if (colonIdx < 0) break;
-
-                int valStart = colonIdx + 1;
-                while (valStart < json.Length && json[valStart] == ' ') valStart++;
-
-                if (valStart >= json.Length) break;
-
-                if (json[valStart] == '{')
-                {
-                    // Skip nested objects
-                    i = SkipBraces(json, valStart) + 1;
-                    continue;
-                }
-
-                if (json[valStart] == '"')
-                {
-                    int valEnd = FindClosingQuote(json, valStart);
-                    if (valEnd < 0) break;
-                    result[key] = UnescapeJsonString(json.Substring(valStart + 1, valEnd - valStart - 1));
-                    i = valEnd + 1;
-                }
-                else
-                {
-                    int valEnd = valStart;
-                    while (valEnd < json.Length && json[valEnd] != ',' && json[valEnd] != '}')
-                        valEnd++;
-                    result[key] = json.Substring(valStart, valEnd - valStart).Trim();
-                    i = valEnd;
-                }
-            }
-            return result;
+            string s = json.GetString(key, null);
+            return s != null && int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out int v)
+                ? v : 0;
         }
 
-        private static int SkipBraces(string json, int start)
+        private static long? ReadNullableLong(JsonObject json, string key)
         {
-            int depth = 0;
-            for (int i = start; i < json.Length; i++)
-            {
-                if (json[i] == '{') depth++;
-                else if (json[i] == '}') { depth--; if (depth == 0) return i; }
-            }
-            return json.Length - 1;
-        }
-
-        private static string ExtractBalancedBraces(string json, int start)
-        {
-            if (start < 0 || start >= json.Length || json[start] != '{')
-                return null;
-            int end = SkipBraces(json, start);
-            return json.Substring(start, end - start + 1);
-        }
-
-        private static Dictionary<string, BatchMetadata> ParseBatchMetadata(string json)
-        {
-            var result = new Dictionary<string, BatchMetadata>();
-            int i = 1; // skip opening {
-            while (i < json.Length)
-            {
-                int keyStart = json.IndexOf('"', i);
-                if (keyStart < 0) break;
-                int keyEnd = FindClosingQuote(json, keyStart);
-                if (keyEnd < 0) break;
-                string batchFile = UnescapeJsonString(json.Substring(keyStart + 1, keyEnd - keyStart - 1));
-
-                int objStart = json.IndexOf('{', keyEnd + 1);
-                if (objStart < 0) break;
-                string metaJson = ExtractBalancedBraces(json, objStart);
-                if (metaJson == null) break;
-
-                var fields = ParseJsonFields(metaJson);
-
-                int failureCount = 0;
-                if (fields.TryGetValue("failureCount", out string fcStr))
-                    int.TryParse(fcStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out failureCount);
-
-                long? nextRetryTime = null;
-                if (fields.TryGetValue("nextRetryTime", out string nrtStr)
-                    && long.TryParse(nrtStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out long nrtVal))
-                    nextRetryTime = nrtVal;
-
-                long? firstFailureTime = null;
-                if (fields.TryGetValue("firstFailureTime", out string fftStr)
-                    && long.TryParse(fftStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out long fftVal))
-                    firstFailureTime = fftVal;
-
-                result[batchFile] = new BatchMetadata(failureCount, nextRetryTime, firstFailureTime);
-                i = objStart + metaJson.Length + 1;
-            }
-            return result;
+            string s = json.GetString(key, null);
+            return s != null && long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out long v)
+                ? v : (long?)null;
         }
     }
 }

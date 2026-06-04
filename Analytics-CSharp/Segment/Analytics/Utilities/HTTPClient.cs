@@ -96,32 +96,34 @@ namespace Segment.Analytics.Utilities
             return result;
         }
 
+        /// <summary>
+        /// Uploads a batch and returns whether it should be removed from the queue
+        /// (true) or kept for a later retry (false). Status-code classification is
+        /// delegated to <see cref="RetryStateMachine.ShouldDeleteBatch"/> so there is a
+        /// single source of truth shared with the pipeline's retry handling; in the
+        /// default (legacy) configuration this drops 4xx (except 429) and keeps the rest.
+        /// </summary>
         public virtual async Task<bool> Upload(byte[] data)
         {
-            string uploadURL = SegmentURL(_apiHost, "/b");
             try
             {
-                Response response = await DoPost(uploadURL, data);
+                Response response = await UploadWithResponse(data);
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    Analytics.Logger.Log(LogLevel.Error, message: "Error " + response.StatusCode + " uploading to url");
+                if (response.IsSuccessStatusCode)
+                    return true;
 
-                    if (response.StatusCode == 429)
-                    {
-                        AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerLimited, message: "Response code: 429");
-                        return false;
-                    }
-                    if (response.StatusCode >= 400 && response.StatusCode < 500)
-                    {
-                        AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerRejected, message: "Response code: " + response.StatusCode + ". Payloads were rejected by server. Marked for removal.");
-                        return true;
-                    }
-                    // 5xx and others — keep for retry
-                    return false;
-                }
+                Analytics.Logger.Log(LogLevel.Error, message: "Error " + response.StatusCode + " uploading to url");
 
-                return true;
+                // Preserve the error reporting external callers rely on.
+                if (response.StatusCode == 429)
+                    AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerLimited, message: "Response code: 429");
+                else if (response.StatusCode >= 400 && response.StatusCode < 500)
+                    AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkServerRejected, message: "Response code: " + response.StatusCode + ". Payloads were rejected by server. Marked for removal.");
+                else
+                    AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode, message: "Response code: " + response.StatusCode);
+
+                // Single source of truth for the drop/keep decision.
+                return new RetryStateMachine(new RetryConfig()).ShouldDeleteBatch(response.StatusCode);
             }
             catch (Exception e)
             {

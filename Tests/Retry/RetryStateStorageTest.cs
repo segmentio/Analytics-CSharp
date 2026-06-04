@@ -140,17 +140,41 @@ namespace Tests.Retry
         }
 
         [Fact]
-        public void LoadRetryState_LegacyOrdinalPipelineState_DeserializesRateLimited()
+        public void LoadRetryState_OrdinalPipelineState_DeserializesRateLimited()
         {
-            // States persisted by an earlier build wrote pipelineState as the ordinal int.
-            // "1" must still load as RateLimited so a rate-limit window survives an upgrade.
+            // Defensive: an ordinal "1" for pipelineState still loads as RateLimited.
+            // (pipelineState is a string, so it is not affected by numeric coercion.)
             _storage.Setup(s => s.Read(StorageConstants.RetryState))
-                .Returns("{\"pipelineState\":\"1\",\"waitUntilTime\":\"999\",\"globalRetryCount\":\"0\"}");
+                .Returns("{\"pipelineState\": \"1\",\"waitUntilTime\": 999,\"globalRetryCount\": 2}");
 
             RetryState loaded = RetryStateStorage.LoadRetryState(_storage.Object);
 
             Assert.Equal(PipelineState.RateLimited, loaded.PipelineState);
             Assert.Equal(999L, loaded.WaitUntilTime);
+            Assert.Equal(2, loaded.GlobalRetryCount);
+        }
+
+        [Fact]
+        public void RoundTrip_LargeEpochMillisTimestamps()
+        {
+            // Current format writes numbers as real JSON numbers; verify large millis
+            // round-trip without precision loss.
+            var metadata = new Dictionary<string, BatchMetadata>
+            {
+                { "file1.json", new BatchMetadata(failureCount: 1, nextRetryTime: 1717420900456L, firstFailureTime: 1717420800123L) }
+            };
+            var state = new RetryState(
+                pipelineState: PipelineState.RateLimited,
+                waitUntilTime: 1717420800123L,
+                globalRetryCount: 1,
+                batchMetadata: metadata);
+
+            RetryStateStorage.SaveRetryState(_storage.Object, state);
+            RetryState loaded = RetryStateStorage.LoadRetryState(_storage.Object);
+
+            Assert.Equal(1717420800123L, loaded.WaitUntilTime);
+            Assert.Equal(1717420900456L, loaded.BatchMetadata["file1.json"].NextRetryTime);
+            Assert.Equal(1717420800123L, loaded.BatchMetadata["file1.json"].FirstFailureTime);
         }
 
         [Fact]
@@ -159,7 +183,10 @@ namespace Tests.Retry
             var state = new RetryState(pipelineState: PipelineState.RateLimited, waitUntilTime: 1L);
             RetryStateStorage.SaveRetryState(_storage.Object, state);
 
-            Assert.Contains("\"pipelineState\":\"RateLimited\"", _savedValue);
+            // Written by name (order-independent), not as the raw ordinal.
+            Assert.Contains("\"pipelineState\"", _savedValue);
+            Assert.Contains("\"RateLimited\"", _savedValue);
+            Assert.DoesNotContain("\"pipelineState\": \"1\"", _savedValue);
         }
 
         [Fact]

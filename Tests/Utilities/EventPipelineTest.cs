@@ -42,9 +42,6 @@ namespace Tests.Utilities
                 .Setup(httpClient => httpClient.Settings())
                 .ReturnsAsync(settings);
             _mockHttpClient
-                .Setup(httpclient => httpclient.Upload(It.IsAny<byte[]>()))
-                .ReturnsAsync(true);
-            _mockHttpClient
                 .Setup(httpclient => httpclient.UploadWithResponse(It.IsAny<byte[]>(), It.IsAny<int>()))
                 .ReturnsAsync(new HTTPClient.Response { StatusCode = 200 });
 
