@@ -9,13 +9,13 @@ on:
 
 jobs:
   security:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089  # master
       - name: Install dependencies
         run: dotnet restore
       - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/dotnet@master
+        uses: snyk/actions/dotnet@8e119fbb6c251787721d34ba683ed48eba792766  # master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
