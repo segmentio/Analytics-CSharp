@@ -1,0 +1,57 @@
+name: 'Artifactory OIDC for NuGet'
+description: 'Exchange GitHub OIDC token for Artifactory access and configure NuGet to resolve through Artifactory'
+
+inputs:
+  artifactory_url:
+    description: 'Artifactory base URL (e.g. https://segment.jfrog.io)'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Get OIDC token
+      id: oidc
+      shell: bash
+      run: |
+        OIDC_TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+          "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=jfrog-github" | jq -r '.value')
+        echo "::add-mask::$OIDC_TOKEN"
+        echo "oidc_token=$OIDC_TOKEN" >> "$GITHUB_OUTPUT"
+
+    - name: Exchange OIDC token for Artifactory access token
+      id: exchange
+      shell: bash
+      env:
+        ARTIFACTORY_URL: ${{ inputs.artifactory_url }}
+      run: |
+        HOST=$(echo "$ARTIFACTORY_URL" | sed 's|https://||')
+        ART_TOKEN=$(curl -sS -X POST \
+          "$ARTIFACTORY_URL/access/api/v1/oidc/token" \
+          -H "Content-Type: application/json" \
+          -d "{\"grant_type\": \"urn:ietf:params:oauth:grant-type:token-exchange\", \"subject_token\": \"${{ steps.oidc.outputs.oidc_token }}\", \"subject_token_type\": \"urn:ietf:params:oauth:token-type:id_token\", \"provider_name\": \"github\"}" \
+          | jq -r '.access_token')
+        echo "::add-mask::$ART_TOKEN"
+        echo "art_token=$ART_TOKEN" >> "$GITHUB_OUTPUT"
+        echo "host=$HOST" >> "$GITHUB_OUTPUT"
+
+    - name: Configure NuGet to use Artifactory
+      shell: bash
+      env:
+        ART_TOKEN: ${{ steps.exchange.outputs.art_token }}
+        HOST: ${{ steps.exchange.outputs.host }}
+      run: |
+        # Ensure user-level NuGet config directory exists
+        mkdir -p ~/.nuget/NuGet
+
+        # Add Artifactory as a NuGet source
+        dotnet nuget add source \
+          "https://${HOST}/artifactory/api/nuget/v3/virtual-nuget-thirdparty/index.json" \
+          --name artifactory \
+          --username _ \
+          --password "${ART_TOKEN}" \
+          --store-password-in-clear-text \
+          --configfile ~/.nuget/NuGet/NuGet.Config
+
+        # Disable the default nuget.org source to force resolution through Artifactory
+        dotnet nuget disable source nuget.org \
+          --configfile ~/.nuget/NuGet/NuGet.Config
