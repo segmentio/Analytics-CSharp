@@ -42,8 +42,8 @@ namespace Tests.Utilities
                 .Setup(httpClient => httpClient.Settings())
                 .ReturnsAsync(settings);
             _mockHttpClient
-                .Setup(httpclient => httpclient.Upload(It.IsAny<byte[]>()))
-                .ReturnsAsync(true);
+                .Setup(httpclient => httpclient.UploadWithResponse(It.IsAny<byte[]>(), It.IsAny<int>()))
+                .ReturnsAsync(new HTTPClient.Response { StatusCode = 200 });
 
             _storage = new Mock<IStorage>();
 
@@ -93,7 +93,7 @@ namespace Tests.Utilities
 
             _storage.Verify(o => o.Rollover(), Times.Exactly(1));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
-            _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(1));
+            _mockHttpClient.Verify(o => o.UploadWithResponse(_bytes, It.IsAny<int>()), Times.Exactly(1));
             _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(1));
         }
 
@@ -126,7 +126,7 @@ namespace Tests.Utilities
             await Task.Delay(1000);
             _storage.Verify(o => o.Rollover(), Times.Never);
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Never);
-            _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Never);
+            _mockHttpClient.Verify(o => o.UploadWithResponse(_bytes, It.IsAny<int>()), Times.Never);
             _storage.Verify(o => o.RemoveFile(_file), Times.Never);
         }
 
@@ -143,7 +143,7 @@ namespace Tests.Utilities
 
             _storage.Verify(o => o.Rollover(), Times.Exactly(1));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
-            _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(1));
+            _mockHttpClient.Verify(o => o.UploadWithResponse(_bytes, It.IsAny<int>()), Times.Exactly(1));
             _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(1));
         }
 
@@ -182,7 +182,7 @@ namespace Tests.Utilities
 
             _storage.Verify(o => o.Rollover(), Times.Exactly(2));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(2));
-            _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(2));
+            _mockHttpClient.Verify(o => o.UploadWithResponse(_bytes, It.IsAny<int>()), Times.Exactly(2));
             _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(2));
         }
 
@@ -203,7 +203,7 @@ namespace Tests.Utilities
 
             _storage.Verify(o => o.Rollover(), Times.Exactly(1));
             _storage.Verify(o => o.Read(StorageConstants.Events), Times.Exactly(1));
-            _mockHttpClient.Verify(o => o.Upload(_bytes), Times.Exactly(0));
+            _mockHttpClient.Verify(o => o.UploadWithResponse(_bytes, It.IsAny<int>()), Times.Exactly(0));
             _storage.Verify(o => o.RemoveFile(_file), Times.Exactly(0));
         }
 
@@ -237,14 +237,14 @@ namespace Tests.Utilities
             int totalUploads = 0;
 
             _mockHttpClient
-            .Setup(client => client.Upload(It.IsAny<byte[]>()))
-            .Callback<byte[]>(bytes =>
+            .Setup(client => client.UploadWithResponse(It.IsAny<byte[]>(), It.IsAny<int>()))
+            .Callback<byte[], int>((bytes, _retryCount) =>
             {
                 string content = System.Text.Encoding.UTF8.GetString(bytes);
                 int count = content.Split(new string[] { "test" }, StringSplitOptions.None).Length - 1;
                 totalUploads += count;
             })
-            .ReturnsAsync(true);
+            .ReturnsAsync(new HTTPClient.Response { StatusCode = 200 });
 
             var config = new Configuration(
             writeKey: "123",
@@ -272,9 +272,9 @@ namespace Tests.Utilities
                 analytics.Flush();
 
 #pragma warning disable CS4014 // Silly compiler, this isn't an invocation so it doesn't need to be awaited
-                _mockHttpClient.Verify(client => client.Upload(It.IsAny<byte[]>()), Times.AtLeastOnce, $"Iteration {j} of {eventCount}");
-#pragma warning restore CS4014 
-                IInvocation lastUploadInvocation = _mockHttpClient.Invocations.Last(invocation => invocation.Method.Name == "Upload");
+                _mockHttpClient.Verify(client => client.UploadWithResponse(It.IsAny<byte[]>(), It.IsAny<int>()), Times.AtLeastOnce, $"Iteration {j} of {eventCount}");
+#pragma warning restore CS4014
+                IInvocation lastUploadInvocation = _mockHttpClient.Invocations.Last(invocation => invocation.Method.Name == "UploadWithResponse");
                 int testsUploaded = System.Text.Encoding.UTF8
                     .GetString((byte[])lastUploadInvocation.Arguments[0])
                     .Split(new string[] { "test" }, StringSplitOptions.None).Length - 1;

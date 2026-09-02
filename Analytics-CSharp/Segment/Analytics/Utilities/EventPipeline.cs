@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using global::System;
 using global::System.Linq;
 using Segment.Analytics.Policies;
+using Segment.Analytics.Retry;
 using Segment.Concurrent;
 using Segment.Serialization;
 
@@ -19,9 +20,15 @@ namespace Segment.Analytics.Utilities
 
         private Channel<string> _uploadChannel;
 
-        private readonly HTTPClient _httpClient;
+        internal readonly HTTPClient _httpClient;
 
         private readonly IStorage _storage;
+
+        // volatile: swapped on AnalyticsDispatcher by UpdateHttpConfig, read on
+        // NetworkIODispatcher by Upload — ensures the upload thread sees the latest machine.
+        internal volatile RetryStateMachine _retryStateMachine;
+
+        private RetryState _retryState;
 
         public string ApiHost { get; set; }
 
@@ -39,6 +46,15 @@ namespace Segment.Analytics.Utilities
             string apiKey,
             IList<IFlushPolicy> flushPolicies,
             string apiHost = HTTPClient.DefaultAPIHost)
+            : this(analytics, logTag, apiKey, flushPolicies, apiHost, (HttpConfig)null) { }
+
+        internal EventPipeline(
+            Analytics analytics,
+            string logTag,
+            string apiKey,
+            IList<IFlushPolicy> flushPolicies,
+            string apiHost,
+            HttpConfig httpConfig)
         {
             _analytics = analytics;
             _logTag = logTag;
@@ -51,6 +67,20 @@ namespace Segment.Analytics.Utilities
             _httpClient.AnalyticsRef = analytics;
             _storage = analytics.Storage;
             Running = false;
+
+            var retryConfig = httpConfig != null
+                ? new RetryConfig(httpConfig.RateLimitConfig, httpConfig.BackoffConfig)
+                : new RetryConfig();
+            _retryStateMachine = new RetryStateMachine(retryConfig);
+            _retryState = RetryStateStorage.LoadRetryState(_storage);
+        }
+
+        internal void UpdateHttpConfig(HttpConfig config)
+        {
+            var retryConfig = config != null
+                ? new RetryConfig(config.RateLimitConfig, config.BackoffConfig)
+                : new RetryConfig();
+            _retryStateMachine = new RetryStateMachine(retryConfig);
         }
 
         public void Put(RawEvent @event) => _writeChannel.Send(@event);
@@ -130,30 +160,94 @@ namespace Segment.Analytics.Utilities
 
                 await Scope.WithContext(_analytics.FileIODispatcher, async () => await _storage.Rollover());
 
+                // Snapshot the (volatile) state machine once so a mid-flush UpdateHttpConfig
+                // swap can't yield inconsistent decisions across batches in the same cycle.
+                RetryStateMachine retryStateMachine = _retryStateMachine;
+
                 string[] fileUrlList = _storage.Read(StorageConstants.Events).Split(',');
                 foreach (string url in fileUrlList)
                 {
                     if (string.IsNullOrEmpty(url))
+                        continue;
+
+                    var decision = retryStateMachine.ShouldUploadBatch(_retryState, url);
+                    _retryState = decision.Item2;
+
+                    if (decision.Item1 is UploadDecision.SkipAllBatchesDecision)
                     {
+                        Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " skipping uploads: pipeline is rate-limited");
+                        break;
+                    }
+                    if (decision.Item1 is UploadDecision.SkipThisBatchDecision)
+                    {
+                        Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " skipping batch " + url + ": not ready for retry");
+                        continue;
+                    }
+                    if (decision.Item1 is UploadDecision.DropBatchDecision dropDecision)
+                    {
+                        Analytics.Logger.Log(LogLevel.Error, message: _logTag + " dropping batch " + url + ": " + dropDecision.Reason);
+                        _analytics.ReportInternalError(AnalyticsErrorType.NetworkServerRejected,
+                            message: "Batch dropped: " + dropDecision.Reason);
+                        _storage.RemoveFile(url);
+                        await Scope.WithContext(_analytics.FileIODispatcher, () =>
+                            RetryStateStorage.SaveRetryState(_storage, _retryState));
                         continue;
                     }
 
+                    // Proceed with upload
                     byte[] data = _storage.ReadAsBytes(url);
                     if (data == null)
-                    {
                         continue;
-                    }
 
+                    int retryCount = retryStateMachine.GetRetryCount(_retryState, url);
+                    int statusCode = 0;
+                    int? retryAfterSeconds = null;
                     bool shouldCleanup = true;
+
                     try
                     {
-                        shouldCleanup = await _httpClient.Upload(data);
-                        Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " uploaded " + url);
+                        HTTPClient.Response response = await _httpClient.UploadWithResponse(data, retryCount);
+                        statusCode = response.StatusCode;
+
+                        if (!string.IsNullOrEmpty(response.RetryAfterHeader)
+                            && int.TryParse(response.RetryAfterHeader.Trim(), out int parsedRetryAfter))
+                        {
+                            retryAfterSeconds = parsedRetryAfter;
+                        }
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            Analytics.Logger.Log(LogLevel.Debug, message: _logTag + " uploaded " + url);
+                            shouldCleanup = true;
+                        }
+                        else
+                        {
+                            Analytics.Logger.Log(LogLevel.Error, message: "Error " + statusCode + " uploading " + url);
+                            shouldCleanup = _retryStateMachine.ShouldDeleteBatch(statusCode);
+                            if (shouldCleanup)
+                            {
+                                _analytics.ReportInternalError(AnalyticsErrorType.NetworkServerRejected,
+                                    message: "HTTP " + statusCode + ": batch rejected by server");
+                            }
+                        }
                     }
                     catch (Exception e)
                     {
                         Analytics.Logger.Log(LogLevel.Error, e, _logTag + ": Error uploading to url");
+                        statusCode = 0;
+                        shouldCleanup = false;
                     }
+
+                    // Update retry state based on response
+                    var responseInfo = new ResponseInfo(
+                        statusCode: statusCode > 0 ? statusCode : 500,
+                        retryAfterSeconds: retryAfterSeconds,
+                        batchFile: url,
+                        currentTime: DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                    );
+                    _retryState = retryStateMachine.HandleResponse(_retryState, responseInfo);
+                    await Scope.WithContext(_analytics.FileIODispatcher, () =>
+                        RetryStateStorage.SaveRetryState(_storage, _retryState));
 
                     if (shouldCleanup)
                     {

@@ -4,9 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using Segment.Analytics;
+using Segment.Analytics.Plugins;
+using Segment.Analytics.Retry;
 using Segment.Analytics.Utilities;
 using Segment.Serialization;
 using JsonUtility = Segment.Serialization.JsonUtility;
@@ -54,6 +57,8 @@ string? cdnHost = root.TryGetProperty("cdnHost", out var cdnHostEl) ? cdnHostEl.
 // config block (optional)
 int flushAt = 15;
 int flushInterval = 10; // seconds
+int maxRetries = 100;
+int timeoutSeconds = 20;
 if (root.TryGetProperty("config", out var configEl))
 {
     if (configEl.TryGetProperty("flushAt", out var fa)) flushAt = fa.GetInt32();
@@ -63,16 +68,16 @@ if (root.TryGetProperty("config", out var configEl))
         int fiMs = fi.GetInt32();
         flushInterval = Math.Max(1, fiMs / 1000);
     }
+    if (configEl.TryGetProperty("maxRetries", out var mr)) maxRetries = mr.GetInt32();
+    if (configEl.TryGetProperty("timeout", out var to)) timeoutSeconds = to.GetInt32();
 }
 
 // ── Error handler ────────────────────────────────────────────────────────────
-var errors = new List<string>();
-var errorHandler = new CapturingErrorHandler(errors);
+var deliveryErrors = new List<string>();
+var errorHandler = new CapturingErrorHandler(deliveryErrors);
 
 // ── Build configuration ──────────────────────────────────────────────────────
 
-// Determine scheme from apiHost so we can override SegmentURL for http:// targets
-// (the SDK always prepends "https://" by default).
 // Determine scheme and strip it — the SDK prepends scheme via SegmentURL,
 // which we override in PlainHttpClient to respect http:// targets.
 string scheme = "https://";
@@ -97,6 +102,13 @@ else if (cdnHost != null && cdnHost.StartsWith("https://", StringComparison.Ordi
 
 var httpClientProvider = new PlainHttpClientProvider(scheme);
 
+// Enable smart retry directly via a custom pipeline provider (same approach as Kotlin e2e-cli).
+var retryHttpConfig = new HttpConfig(
+    new RateLimitConfig(enabled: true, maxRetryCount: maxRetries),
+    new BackoffConfig(enabled: true, maxRetryCount: maxRetries, baseBackoffInterval: 0.5)
+);
+var pipelineProvider = new RetryEnabledPipelineProvider(retryHttpConfig);
+
 var configBuilder = new Configuration(
     writeKey,
     flushAt: flushAt,
@@ -105,12 +117,17 @@ var configBuilder = new Configuration(
     storageProvider: new InMemoryStorageProvider(),
     apiHost: rawApiHost,
     cdnHost: rawCdnHost,
-    httpClientProvider: httpClientProvider
+    httpClientProvider: httpClientProvider,
+    eventPipelineProvider: pipelineProvider
 );
 
-Console.Error.WriteLine($"[e2e-cli] Initialising analytics (writeKey={writeKey[..Math.Min(8, writeKey.Length)]}…, apiHost={apiHost ?? "default"})");
+Console.Error.WriteLine($"[e2e-cli] Initialising analytics (writeKey={writeKey[..Math.Min(8, writeKey.Length)]}…, apiHost={apiHost ?? "default"}, maxRetries={maxRetries})");
 
 var analytics = new Analytics(configBuilder);
+
+// Wait for SDK to initialize (settings fetch, pipeline start/stop cycle).
+// This prevents duplicate uploads from the pipeline restart during init.
+Thread.Sleep(2000);
 
 // ── Process sequences ────────────────────────────────────────────────────────
 int totalEvents = 0;
@@ -149,10 +166,6 @@ if (root.TryGetProperty("sequences", out var sequencesEl))
 
                 case "track":
                 {
-                    // Set userId state first if provided
-                    if (userId != null && analytics.UserId() != userId)
-                        analytics.Identify(userId);
-
                     string eventName = ev.TryGetProperty("event", out var enEl)
                         ? enEl.GetString() ?? "Unknown"
                         : "Unknown";
@@ -163,9 +176,6 @@ if (root.TryGetProperty("sequences", out var sequencesEl))
 
                 case "page":
                 {
-                    if (userId != null && analytics.UserId() != userId)
-                        analytics.Identify(userId);
-
                     string title = ev.TryGetProperty("name", out var nameEl)
                         ? nameEl.GetString() ?? ""
                         : "";
@@ -179,9 +189,6 @@ if (root.TryGetProperty("sequences", out var sequencesEl))
 
                 case "screen":
                 {
-                    if (userId != null && analytics.UserId() != userId)
-                        analytics.Identify(userId);
-
                     string title = ev.TryGetProperty("name", out var nameEl)
                         ? nameEl.GetString() ?? ""
                         : "";
@@ -195,27 +202,15 @@ if (root.TryGetProperty("sequences", out var sequencesEl))
 
                 case "alias":
                 {
-                    // For alias: previousId becomes the current userId state, newId is the alias target.
-                    // The SDK Alias(newId) uses _userInfo._userId as previousId.
-                    string? previousId = ev.TryGetProperty("previousId", out var prevEl)
-                        ? prevEl.GetString()
-                        : null;
                     string newId = userId ?? (ev.TryGetProperty("newId", out var newIdEl)
                         ? newIdEl.GetString() ?? ""
                         : "");
-
-                    if (previousId != null && analytics.UserId() != previousId)
-                        analytics.Identify(previousId);
-
                     analytics.Alias(newId);
                     break;
                 }
 
                 case "group":
                 {
-                    if (userId != null && analytics.UserId() != userId)
-                        analytics.Identify(userId);
-
                     string groupId = ev.TryGetProperty("groupId", out var gidEl)
                         ? gidEl.GetString() ?? ""
                         : "";
@@ -234,14 +229,88 @@ if (root.TryGetProperty("sequences", out var sequencesEl))
     }
 }
 
+// ── Flush and poll until delivery completes ──────────────────────────────────
 Console.Error.WriteLine($"[e2e-cli] Flushing {totalEvents} event(s)…");
+deliveryErrors.Clear();
+
+// The SDK's CountFlushPolicy (flushAt) auto-triggers uploads.
+// We trigger one explicit flush to handle cases where events haven't been flushed yet,
+// then poll and only trigger retries when pending files persist across cycles.
 analytics.Flush();
 
-// Give the async pipeline time to upload
-Thread.Sleep(5000);
+// Poll until batch files are processed (uploaded or dropped).
+long deadlineMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (timeoutSeconds * 1000L);
+bool everSeenPending = false;
+int pollInterval = 300;
+int pollCount = 0;
+int stableEmptyCount = 0;
+
+while (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() < deadlineMs)
+{
+    Thread.Sleep(pollInterval);
+    pollCount++;
+
+    var pending = analytics.PendingUploads()
+        .Where(s => !string.IsNullOrEmpty(s))
+        .ToList();
+
+    if (pending.Count > 0)
+    {
+        everSeenPending = true;
+        stableEmptyCount = 0;
+        // Trigger a new upload cycle for retry. Errors captured from here on are
+        // genuine drops (the pipeline only reports on permanent rejection, never
+        // on transient retries), so they're left intact to fail the run.
+        analytics.Flush();
+    }
+    else
+    {
+        // Files gone — wait for a stable "empty" state to confirm upload completed.
+        // A flush was already issued before the loop, so a fast 200 can finish
+        // before the first poll (everSeenPending never set); break in that case too,
+        // but require one extra stable poll to absorb the brief async-write window.
+        stableEmptyCount++;
+        int stableThreshold = everSeenPending ? 2 : 3;
+        // Guard the never-seen-pending break against settings still being in flight:
+        // a delayed CDN response can leave the destination disabled (events not yet
+        // queued) past the first few polls. Once settings have arrived (Integrations
+        // populated) an empty queue is genuinely empty. Cap the wait so the
+        // settings-failure fallback cases don't stall to the full timeout.
+        bool settingsReady = everSeenPending
+            || analytics.Settings().Integrations != null
+            || pollCount >= 20;
+        if (stableEmptyCount >= stableThreshold && settingsReady)
+            break;
+    }
+
+    // Adaptive intervals
+    if (pollCount >= 10 && pollInterval < 1000) pollInterval = 1000;
+    else if (pollCount >= 5 && pollInterval < 500) pollInterval = 500;
+}
 
 // ── Output result ─────────────────────────────────────────────────────────────
-bool success = errors.Count == 0;
+var remaining = analytics.PendingUploads()
+    .Where(s => !string.IsNullOrEmpty(s))
+    .ToList();
+
+bool success;
+string? error = null;
+
+if (remaining.Count > 0)
+{
+    success = false;
+    error = $"Delivery incomplete: {remaining.Count} batch file(s) still pending";
+}
+else if (deliveryErrors.Count > 0)
+{
+    success = false;
+    error = "Delivery failed: " + string.Join("; ", deliveryErrors);
+}
+else
+{
+    success = true;
+}
+
 if (success)
 {
     Console.WriteLine($"{{\"success\":true,\"sentBatches\":1}}");
@@ -249,8 +318,7 @@ if (success)
 }
 else
 {
-    string combinedErrors = string.Join("; ", errors);
-    Console.WriteLine($"{{\"success\":false,\"sentBatches\":0,\"error\":\"{Escape(combinedErrors)}\"}}");
+    Console.WriteLine($"{{\"success\":false,\"sentBatches\":0,\"error\":\"{Escape(error ?? "unknown")}\"}}");
     Environment.Exit(1);
 }
 
@@ -261,7 +329,6 @@ static JsonObject? GetJsonObject(System.Text.Json.JsonElement parent, string key
     if (!parent.TryGetProperty(key, out var el) || el.ValueKind == JsonValueKind.Null)
         return null;
 
-    // Serialise the JsonElement back to a JSON string, then parse with Segment's JsonUtility
     string json = el.GetRawText();
     try
     {
@@ -310,5 +377,22 @@ class CapturingErrorHandler : IAnalyticsErrorHandler
         string msg = e.Message;
         Console.Error.WriteLine($"[e2e-cli] SDK ERROR: {msg}");
         _errors.Add(msg);
+    }
+}
+
+// ── Pipeline provider that enables retry from construction ────────────────────
+
+class RetryEnabledPipelineProvider : Segment.Analytics.Utilities.IEventPipelineProvider
+{
+    private readonly HttpConfig _httpConfig;
+    public RetryEnabledPipelineProvider(HttpConfig httpConfig) => _httpConfig = httpConfig;
+
+    public Segment.Analytics.Utilities.IEventPipeline Create(Analytics analytics, string key)
+    {
+        return new EventPipeline(analytics, key,
+            analytics.Configuration.WriteKey,
+            analytics.Configuration.FlushPolicies,
+            analytics.Configuration.ApiHost,
+            _httpConfig);
     }
 }

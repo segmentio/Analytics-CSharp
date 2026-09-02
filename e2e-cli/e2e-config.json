@@ -1,7 +1,9 @@
 {
   "sdk": "csharp",
-  "test_suites": "basic",
-  "auto_settings": false,
+  "test_suites": "basic,retry,retry-settings",
+  "auto_settings": true,
   "patch": null,
-  "env": {}
+  "env": {
+    "HTTP_CONFIG_SETTINGS": "true"
+  }
 }
