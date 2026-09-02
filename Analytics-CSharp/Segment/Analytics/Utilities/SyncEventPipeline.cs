@@ -234,11 +234,7 @@ namespace Segment.Analytics.Utilities
                         HTTPClient.Response response = await _httpClient.UploadWithResponse(data, retryCount);
                         statusCode = response.StatusCode;
 
-                        if (!string.IsNullOrEmpty(response.RetryAfterHeader)
-                            && int.TryParse(response.RetryAfterHeader.Trim(), out int parsedRetryAfter))
-                        {
-                            retryAfterSeconds = parsedRetryAfter;
-                        }
+                        retryAfterSeconds = RetryAfterParser.Parse(response.RetryAfterHeader);
 
                         if (response.IsSuccessStatusCode)
                         {

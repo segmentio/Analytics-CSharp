@@ -41,6 +41,16 @@ namespace Segment.Analytics.Retry
                 );
             }
 
+            // Any retryable status with Retry-After → rate-limit path
+            if (response.RetryAfterSeconds.HasValue && response.RetryAfterSeconds.Value > 0)
+            {
+                RetryBehavior behavior = response.StatusCode == 429
+                    ? RetryBehavior.Retry  // 429 is always retryable
+                    : ResolveStatusCodeBehavior(response.StatusCode);
+                if (behavior == RetryBehavior.Retry && _config.RateLimitConfig.Enabled)
+                    return HandleRateLimitResponse(state, response, currentTime);
+            }
+
             if (response.StatusCode == 429)
             {
                 if (_config.RateLimitConfig.Enabled)
@@ -48,8 +58,8 @@ namespace Segment.Analytics.Retry
                 return state.RemoveBatch(response.BatchFile);
             }
 
-            RetryBehavior behavior = ResolveStatusCodeBehavior(response.StatusCode);
-            if (behavior == RetryBehavior.Retry && _config.BackoffConfig.Enabled)
+            RetryBehavior statusBehavior = ResolveStatusCodeBehavior(response.StatusCode);
+            if (statusBehavior == RetryBehavior.Retry && _config.BackoffConfig.Enabled)
                 return HandleRetryableError(state, response, currentTime);
 
             return state.RemoveBatch(response.BatchFile);

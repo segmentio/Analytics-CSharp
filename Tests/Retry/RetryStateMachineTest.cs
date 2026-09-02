@@ -371,6 +371,72 @@ namespace Tests.Retry
             Assert.False(machine.ShouldDeleteBatch(408));
         }
 
+        // --- RetryAfterSeconds on retryable errors ---
+
+        [Fact]
+        public void HandleResponse_503_WithRetryAfter_RoutesToRateLimitPath()
+        {
+            var machine = CreateMachine(maxRetryInterval: 300);
+            var state = new RetryState();
+            var response = new ResponseInfo(503, retryAfterSeconds: 2, batchFile: "batch1.json", currentTime: 1000);
+
+            RetryState newState = machine.HandleResponse(state, response);
+
+            Assert.Equal(PipelineState.RateLimited, newState.PipelineState);
+            Assert.Equal(1, newState.GlobalRetryCount);
+            Assert.Equal(1000L + 2000L, newState.WaitUntilTime);
+        }
+
+        [Fact]
+        public void HandleResponse_529_WithRetryAfter_RoutesToRateLimitPath()
+        {
+            var machine = CreateMachine(maxRetryInterval: 300);
+            var state = new RetryState();
+            var response = new ResponseInfo(529, retryAfterSeconds: 3, batchFile: "batch1.json", currentTime: 1000);
+
+            RetryState newState = machine.HandleResponse(state, response);
+
+            Assert.Equal(PipelineState.RateLimited, newState.PipelineState);
+            Assert.Equal(1, newState.GlobalRetryCount);
+            Assert.Equal(1000L + 3000L, newState.WaitUntilTime);
+        }
+
+        [Fact]
+        public void HandleResponse_503_WithoutRetryAfter_UsesExponentialBackoff()
+        {
+            var machine = CreateMachine();
+            var state = new RetryState();
+            var response = new ResponseInfo(503, retryAfterSeconds: null, batchFile: "batch1.json", currentTime: 1000);
+
+            RetryState newState = machine.HandleResponse(state, response);
+
+            // Still goes through backoff path (failureCount incremented, not rate-limited)
+            Assert.True(newState.BatchMetadata.ContainsKey("batch1.json"));
+            Assert.Equal(1, newState.BatchMetadata["batch1.json"].FailureCount);
+            Assert.True(newState.BatchMetadata["batch1.json"].NextRetryTime > 1000L);
+            Assert.Equal(PipelineState.Ready, newState.PipelineState);
+            Assert.Equal(0, newState.GlobalRetryCount);
+        }
+
+        [Fact]
+        public void HandleResponse_503_WithRetryAfter_ClampsToMaxRetryInterval()
+        {
+            var config = new RetryConfig(
+                new RateLimitConfig(enabled: true, maxRetryCount: 100, maxRetryInterval: 10),
+                new BackoffConfig(enabled: true, maxRetryCount: 100, maxBackoffInterval: 300)
+            );
+            var machine = new RetryStateMachine(config, new FakeTimeProvider(), new Random(42));
+            var state = new RetryState();
+            var response = new ResponseInfo(503, retryAfterSeconds: 999, batchFile: "batch1.json", currentTime: 1000);
+
+            RetryState newState = machine.HandleResponse(state, response);
+
+            // Now routes through rate-limit path, clamped to maxRetryInterval=10
+            Assert.Equal(PipelineState.RateLimited, newState.PipelineState);
+            Assert.Equal(1000L + 10 * 1000L, newState.WaitUntilTime);
+            Assert.Equal(1, newState.GlobalRetryCount);
+        }
+
         // --- GetRetryCount tests ---
 
         [Fact]
