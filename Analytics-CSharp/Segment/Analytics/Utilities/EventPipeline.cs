@@ -219,7 +219,7 @@ namespace Segment.Analytics.Utilities
                         else
                         {
                             Analytics.Logger.Log(LogLevel.Error, message: "Error " + statusCode + " uploading " + url);
-                            shouldCleanup = _retryStateMachine.ShouldDeleteBatch(statusCode);
+                            shouldCleanup = _retryStateMachine.ShouldDeleteBatch(statusCode, retryAfterSeconds);
                             if (shouldCleanup)
                             {
                                 _analytics.ReportInternalError(AnalyticsErrorType.NetworkServerRejected,

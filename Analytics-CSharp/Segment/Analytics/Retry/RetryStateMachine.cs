@@ -141,7 +141,14 @@ namespace Segment.Analytics.Retry
             return Math.Max(batchRetryCount, state.GlobalRetryCount);
         }
 
-        public bool ShouldDeleteBatch(int statusCode)
+        public bool ShouldDeleteBatch(int statusCode) => ShouldDeleteBatch(statusCode, null);
+
+        /// <summary>
+        /// Whether the batch file should be removed. <paramref name="retryAfterSeconds"/> must be
+        /// the same value handed to <see cref="HandleResponse"/>, so that the two agree on whether
+        /// this response took the rate-limit path.
+        /// </summary>
+        public bool ShouldDeleteBatch(int statusCode, int? retryAfterSeconds)
         {
             if (IsLegacyMode)
                 return statusCode >= 400 && statusCode <= 499 && statusCode != 429;
@@ -155,12 +162,12 @@ namespace Segment.Analytics.Retry
             RetryBehavior behavior = ResolveStatusCodeBehavior(statusCode);
             if (behavior == RetryBehavior.Retry)
             {
-                // Rate limiting handles retryable codes that carry Retry-After, so the batch
-                // must be kept for the retry that HandleResponse has just scheduled.
-                if (_config.RateLimitConfig.Enabled)
+                // A usable Retry-After sends this response down the rate-limit path, which has
+                // just scheduled the retry — keep the batch that retry will re-upload.
+                if (retryAfterSeconds.HasValue && retryAfterSeconds.Value > 0 && _config.RateLimitConfig.Enabled)
                     return false;
 
-                // Retryable, but neither rate limiting nor backoff is on: nothing will retry it.
+                // Otherwise only backoff can retry it; with backoff off, nothing will.
                 return !_config.BackoffConfig.Enabled;
             }
 

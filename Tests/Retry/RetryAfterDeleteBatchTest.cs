@@ -4,10 +4,9 @@ using Xunit;
 namespace Tests.Retry
 {
     /// <summary>
-    /// Regression: a retryable status carrying Retry-After routes to the rate-limit path,
-    /// so the batch must NOT also be deleted — otherwise the pipeline stalls waiting to
-    /// retry a batch that no longer exists. Mirrors swift's shouldDropBatch, which returns
-    /// false for retryable codes whenever rate limiting is enabled.
+    /// ShouldDeleteBatch must agree with HandleResponse about whether a response took the
+    /// rate-limit path. A retryable status carrying Retry-After schedules a retry, so its
+    /// batch must be kept; without Retry-After only backoff can retry it.
     /// </summary>
     public class RetryAfterDeleteBatchTest
     {
@@ -21,9 +20,24 @@ namespace Tests.Retry
         [InlineData(529)]
         [InlineData(408)]
         [InlineData(410)]
-        public void RetryableStatus_WithRateLimitEnabled_IsNotDeleted(int status)
+        public void RetryableStatus_WithRetryAfter_IsKept(int status)
         {
-            Assert.False(RateLimitOnlyMachine().ShouldDeleteBatch(status));
+            Assert.False(RateLimitOnlyMachine().ShouldDeleteBatch(status, 30));
+        }
+
+        [Theory]
+        [InlineData(503)]
+        [InlineData(529)]
+        public void RetryableStatus_WithoutRetryAfter_AndBackoffDisabled_IsDeleted(int status)
+        {
+            // Nothing would retry it, so holding the file would leak storage.
+            Assert.True(RateLimitOnlyMachine().ShouldDeleteBatch(status, null));
+        }
+
+        [Fact]
+        public void RetryAfterZero_DoesNotCountAsRateLimited()
+        {
+            Assert.True(RateLimitOnlyMachine().ShouldDeleteBatch(503, 0));
         }
 
         [Fact]
@@ -36,14 +50,14 @@ namespace Tests.Retry
 
             Assert.Equal(PipelineState.RateLimited, state.PipelineState);
             Assert.Equal(31000, state.WaitUntilTime);
-            Assert.False(machine.ShouldDeleteBatch(503));
+            Assert.False(machine.ShouldDeleteBatch(503, 30));
         }
 
         [Fact]
-        public void NonRetryableStatus_IsStillDeleted()
+        public void NonRetryableStatus_IsDeletedEvenWithRetryAfter()
         {
-            Assert.True(RateLimitOnlyMachine().ShouldDeleteBatch(400));
-            Assert.True(RateLimitOnlyMachine().ShouldDeleteBatch(501));
+            Assert.True(RateLimitOnlyMachine().ShouldDeleteBatch(400, 30));
+            Assert.True(RateLimitOnlyMachine().ShouldDeleteBatch(501, 30));
         }
     }
 }
