@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Segment.Analytics.Policies;
+using Segment.Analytics.Retry;
 using Segment.Analytics.Utilities;
 using Segment.Concurrent;
 using Segment.Serialization;
@@ -48,6 +49,12 @@ namespace Segment.Analytics
         public IEventPipelineProvider EventPipelineProvider { get; }
 
         /// <summary>
+        /// HTTP retry configuration for rate limiting and exponential backoff.
+        /// Defaults to <c>null</c>, meaning retry settings come from CDN settings alone.
+        /// </summary>
+        public HttpConfig HttpConfig { get; }
+
+        /// <summary>
         /// Configuration that analytics can use
         /// </summary>
         /// <param name="writeKey">the Segment writeKey</param>
@@ -73,6 +80,7 @@ namespace Segment.Analytics
         ///     defaults to DefaultHTTPClientProvider
         /// </param>
         /// <param name="flushPolicies">set custom flush policies to tell analytics when and how to flush. If a value is given, it overwrites flushAt and flushInterval</param>
+        /// <param name="httpConfig">retry configuration for rate limiting and exponential backoff. CDN settings, when present, take precedence</param>
         public Configuration(string writeKey,
             int flushAt = 20,
             int flushInterval = 30,
@@ -85,7 +93,8 @@ namespace Segment.Analytics
             IStorageProvider storageProvider = default,
             IHTTPClientProvider httpClientProvider = default,
             IList<IFlushPolicy> flushPolicies = default,
-            IEventPipelineProvider eventPipelineProvider = default)
+            IEventPipelineProvider eventPipelineProvider = default,
+            HttpConfig httpConfig = null)
         {
             WriteKey = writeKey;
             FlushAt = flushAt;
@@ -102,6 +111,7 @@ namespace Segment.Analytics
             FlushPolicies.Add(new CountFlushPolicy(flushAt));
             FlushPolicies.Add(new FrequencyFlushPolicy(flushInterval * 1000L));
             EventPipelineProvider = eventPipelineProvider ?? new EventPipelineProvider();
+            HttpConfig = httpConfig;
         }
 
         public Configuration(string writeKey,

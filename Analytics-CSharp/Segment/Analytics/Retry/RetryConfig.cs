@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Segment.Analytics.Retry
 {
-    internal class RateLimitConfig
+    public class RateLimitConfig
     {
         public bool Enabled { get; }
         public int MaxRetryCount { get; }
@@ -23,7 +23,7 @@ namespace Segment.Analytics.Retry
         );
     }
 
-    internal class BackoffConfig
+    public class BackoffConfig
     {
         public bool Enabled { get; }
         public int MaxRetryCount { get; }
@@ -109,7 +109,7 @@ namespace Segment.Analytics.Retry
         }
     }
 
-    internal class HttpConfig
+    public class HttpConfig
     {
         public RateLimitConfig RateLimitConfig { get; }
         public BackoffConfig BackoffConfig { get; }

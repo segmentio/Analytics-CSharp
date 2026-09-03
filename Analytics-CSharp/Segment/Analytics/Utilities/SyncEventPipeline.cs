@@ -61,7 +61,7 @@ namespace Segment.Analytics.Utilities
             CancellationToken? flushCancellationToken = null)
             : this(analytics, logTag, apiKey, flushPolicies, apiHost, flushTimeout, flushCancellationToken, null) { }
 
-        internal SyncEventPipeline(
+        public SyncEventPipeline(
             Analytics analytics,
             string logTag,
             string apiKey,

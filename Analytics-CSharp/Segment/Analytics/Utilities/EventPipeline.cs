@@ -48,7 +48,7 @@ namespace Segment.Analytics.Utilities
             string apiHost = HTTPClient.DefaultAPIHost)
             : this(analytics, logTag, apiKey, flushPolicies, apiHost, (HttpConfig)null) { }
 
-        internal EventPipeline(
+        public EventPipeline(
             Analytics analytics,
             string logTag,
             string apiKey,

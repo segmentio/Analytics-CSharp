@@ -22,7 +22,8 @@ namespace Segment.Analytics.Utilities
                     analytics.Configuration.FlushPolicies,
                     analytics.Configuration.ApiHost,
                     _flushTimeout,
-                    _flushCancellationToken);
+                    _flushCancellationToken,
+                    analytics.Configuration.HttpConfig);
         }
     }
 }
