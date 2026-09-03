@@ -50,7 +50,9 @@ namespace Segment.Analytics
 
         /// <summary>
         /// HTTP retry configuration for rate limiting and exponential backoff. Defaults to
-        /// <c>null</c>.
+        /// <c>null</c>. Set it before constructing <c>Analytics</c>, e.g.
+        /// <c>new Configuration("writeKey") { HttpConfig = new HttpConfig(...) }</c>.
+        /// Mirrors analytics-kotlin's mutable <c>Configuration.httpConfig</c>.
         /// <para>
         /// This sets the pipeline's starting configuration only. CDN settings take precedence:
         /// any settings payload carrying an <c>httpConfig</c> key replaces this value, and a CDN
@@ -59,7 +61,7 @@ namespace Segment.Analytics
         /// behaviour of analytics-kotlin and analytics-swift.
         /// </para>
         /// </summary>
-        public HttpConfig HttpConfig { get; }
+        public HttpConfig HttpConfig { get; set; }
 
         /// <summary>
         /// Configuration that analytics can use
@@ -87,7 +89,6 @@ namespace Segment.Analytics
         ///     defaults to DefaultHTTPClientProvider
         /// </param>
         /// <param name="flushPolicies">set custom flush policies to tell analytics when and how to flush. If a value is given, it overwrites flushAt and flushInterval</param>
-        /// <param name="httpConfig">starting retry configuration for rate limiting and exponential backoff. CDN settings, when present, replace it — see <see cref="HttpConfig"/></param>
         public Configuration(string writeKey,
             int flushAt = 20,
             int flushInterval = 30,
@@ -100,8 +101,7 @@ namespace Segment.Analytics
             IStorageProvider storageProvider = default,
             IHTTPClientProvider httpClientProvider = default,
             IList<IFlushPolicy> flushPolicies = default,
-            IEventPipelineProvider eventPipelineProvider = default,
-            HttpConfig httpConfig = null)
+            IEventPipelineProvider eventPipelineProvider = default)
         {
             WriteKey = writeKey;
             FlushAt = flushAt;
@@ -118,7 +118,6 @@ namespace Segment.Analytics
             FlushPolicies.Add(new CountFlushPolicy(flushAt));
             FlushPolicies.Add(new FrequencyFlushPolicy(flushInterval * 1000L));
             EventPipelineProvider = eventPipelineProvider ?? new EventPipelineProvider();
-            HttpConfig = httpConfig;
         }
 
         public Configuration(string writeKey,

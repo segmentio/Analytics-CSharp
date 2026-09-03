@@ -31,9 +31,11 @@ namespace Tests.Retry
                 flushInterval: 0,
                 flushAt: 2,
                 httpClientProvider: new MockHttpClientProvider(mockHttpClient),
-                storageProvider: new MockStorageProvider(new Mock<IStorage>()),
-                httpConfig: httpConfig
-            );
+                storageProvider: new MockStorageProvider(new Mock<IStorage>())
+            )
+            {
+                HttpConfig = httpConfig
+            };
             return new Analytics(config);
         }
 
