@@ -48,7 +48,7 @@ namespace Segment.Analytics.Utilities
             string apiHost = HTTPClient.DefaultAPIHost)
             : this(analytics, logTag, apiKey, flushPolicies, apiHost, (HttpConfig)null) { }
 
-        internal EventPipeline(
+        public EventPipeline(
             Analytics analytics,
             string logTag,
             string apiKey,
@@ -69,7 +69,9 @@ namespace Segment.Analytics.Utilities
             Running = false;
 
             var retryConfig = httpConfig != null
-                ? new RetryConfig(httpConfig.RateLimitConfig, httpConfig.BackoffConfig)
+                // Validated(): user-supplied config reaches us unclamped, unlike the
+                // CDN path which HttpConfigParser already validates.
+                ? new RetryConfig(httpConfig.RateLimitConfig.Validated(), httpConfig.BackoffConfig.Validated())
                 : new RetryConfig();
             _retryStateMachine = new RetryStateMachine(retryConfig);
             _retryState = RetryStateStorage.LoadRetryState(_storage);
@@ -78,7 +80,7 @@ namespace Segment.Analytics.Utilities
         internal void UpdateHttpConfig(HttpConfig config)
         {
             var retryConfig = config != null
-                ? new RetryConfig(config.RateLimitConfig, config.BackoffConfig)
+                ? new RetryConfig(config.RateLimitConfig.Validated(), config.BackoffConfig.Validated())
                 : new RetryConfig();
             _retryStateMachine = new RetryStateMachine(retryConfig);
         }
