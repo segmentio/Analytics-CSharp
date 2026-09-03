@@ -86,6 +86,35 @@ namespace Tests.Retry
         }
 
         [Fact]
+        public void BackoffConfig_DoesNotShareTheDefaultOverrideMap()
+        {
+            var first = new BackoffConfig(enabled: true);
+            first.StatusCodeOverrides[500] = RetryBehavior.Drop;
+
+            var second = new BackoffConfig(enabled: true);
+
+            Assert.False(second.StatusCodeOverrides.ContainsKey(500));
+            Assert.NotSame(first.StatusCodeOverrides, second.StatusCodeOverrides);
+        }
+
+        [Fact]
+        public void UserSuppliedHttpConfig_IsValidatedOnTheWayIn()
+        {
+            // maxRetryInterval: 0 is out of range and must clamp to 1 second, exactly as the
+            // CDN path does via HttpConfigParser. Unvalidated it would schedule the retry at
+            // currentTime, i.e. no wait at all.
+            Analytics analytics = CreateAnalytics(
+                new HttpConfig(rateLimitConfig: new RateLimitConfig(enabled: true, maxRetryInterval: 0)));
+
+            var pipeline = (EventPipeline)new EventPipelineProvider().Create(analytics, "key");
+            RetryState state = pipeline._retryStateMachine.HandleResponse(
+                new RetryState(),
+                new ResponseInfo(429, retryAfterSeconds: null, batchFile: "b.json", currentTime: 1000));
+
+            Assert.Equal(2000, state.WaitUntilTime);
+        }
+
+        [Fact]
         public void SyncEventPipeline_WithHttpConfig_LeavesLegacyMode()
         {
             Analytics analytics = CreateAnalytics(

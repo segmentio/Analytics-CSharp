@@ -86,7 +86,9 @@ namespace Segment.Analytics.Utilities
             _flushCancellationToken = flushCancellationToken ?? CancellationToken.None;
 
             var retryConfig = httpConfig != null
-                ? new RetryConfig(httpConfig.RateLimitConfig, httpConfig.BackoffConfig)
+                // Validated(): user-supplied config reaches us unclamped, unlike the
+                // CDN path which HttpConfigParser already validates.
+                ? new RetryConfig(httpConfig.RateLimitConfig.Validated(), httpConfig.BackoffConfig.Validated())
                 : new RetryConfig();
             _retryStateMachine = new RetryStateMachine(retryConfig);
             _retryState = RetryStateStorage.LoadRetryState(_storage);
@@ -95,7 +97,7 @@ namespace Segment.Analytics.Utilities
         internal void UpdateHttpConfig(HttpConfig config)
         {
             var retryConfig = config != null
-                ? new RetryConfig(config.RateLimitConfig, config.BackoffConfig)
+                ? new RetryConfig(config.RateLimitConfig.Validated(), config.BackoffConfig.Validated())
                 : new RetryConfig();
             _retryStateMachine = new RetryStateMachine(retryConfig);
         }
