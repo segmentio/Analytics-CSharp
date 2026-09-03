@@ -153,8 +153,16 @@ namespace Segment.Analytics.Retry
                 return !_config.RateLimitConfig.Enabled;
 
             RetryBehavior behavior = ResolveStatusCodeBehavior(statusCode);
-            if (behavior == RetryBehavior.Retry && !_config.BackoffConfig.Enabled)
-                return true;
+            if (behavior == RetryBehavior.Retry)
+            {
+                // Rate limiting handles retryable codes that carry Retry-After, so the batch
+                // must be kept for the retry that HandleResponse has just scheduled.
+                if (_config.RateLimitConfig.Enabled)
+                    return false;
+
+                // Retryable, but neither rate limiting nor backoff is on: nothing will retry it.
+                return !_config.BackoffConfig.Enabled;
+            }
 
             return behavior == RetryBehavior.Drop;
         }
