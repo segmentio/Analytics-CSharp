@@ -22,7 +22,7 @@ namespace Segment.Analytics.Retry
         {
             if (IsLegacyMode)
             {
-                if (response.StatusCode >= 200 && response.StatusCode <= 299)
+                if (response.StatusCode >= 200 && response.StatusCode < 400)
                     return state.RemoveBatch(response.BatchFile);
                 if (response.StatusCode == 429 || (response.StatusCode >= 500 && response.StatusCode <= 599))
                     return state; // Keep
@@ -31,7 +31,7 @@ namespace Segment.Analytics.Retry
 
             long currentTime = response.CurrentTime;
 
-            if (response.StatusCode >= 200 && response.StatusCode <= 299)
+            if (response.StatusCode >= 200 && response.StatusCode < 400)
             {
                 return state.With(
                     pipelineState: PipelineState.Ready,
@@ -153,7 +153,8 @@ namespace Segment.Analytics.Retry
             if (IsLegacyMode)
                 return statusCode >= 400 && statusCode <= 499 && statusCode != 429;
 
-            if (statusCode >= 200 && statusCode <= 299)
+            // Spec item 1: 2xx and 3xx are success.
+            if (statusCode >= 200 && statusCode < 400)
                 return true;
 
             if (statusCode == 429)

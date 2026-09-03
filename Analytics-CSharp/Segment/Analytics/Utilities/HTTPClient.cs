@@ -188,7 +188,8 @@ namespace Segment.Analytics.Utilities
             /// <summary>
             /// A convenient method to check if the http request is successful
             /// </summary>
-            public bool IsSuccessStatusCode => StatusCode >= 200 && StatusCode < 300;
+            // Spec item 1: 2xx and 3xx are success.
+            public bool IsSuccessStatusCode => StatusCode >= 200 && StatusCode < 400;
         }
     }
 

@@ -53,6 +53,17 @@ namespace Tests.Retry
             Assert.False(machine.ShouldDeleteBatch(503, 30));
         }
 
+        [Theory]
+        [InlineData(200)]
+        [InlineData(201)]
+        [InlineData(301)]
+        [InlineData(304)]
+        public void SuccessStatuses_AreDeleted(int status)
+        {
+            // Spec item 1: 2xx and 3xx are success, so the batch is done with.
+            Assert.True(RateLimitOnlyMachine().ShouldDeleteBatch(status, null));
+        }
+
         [Fact]
         public void NonRetryableStatus_IsDeletedEvenWithRetryAfter()
         {
