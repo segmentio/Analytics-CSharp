@@ -49,8 +49,15 @@ namespace Segment.Analytics
         public IEventPipelineProvider EventPipelineProvider { get; }
 
         /// <summary>
-        /// HTTP retry configuration for rate limiting and exponential backoff.
-        /// Defaults to <c>null</c>, meaning retry settings come from CDN settings alone.
+        /// HTTP retry configuration for rate limiting and exponential backoff. Defaults to
+        /// <c>null</c>.
+        /// <para>
+        /// This sets the pipeline's starting configuration only. CDN settings take precedence:
+        /// any settings payload carrying an <c>httpConfig</c> key replaces this value, and a CDN
+        /// payload is treated as enabling a subsystem unless it says <c>"enabled": "false"</c>.
+        /// A payload with no <c>httpConfig</c> key leaves this value in effect. This matches the
+        /// behaviour of analytics-kotlin and analytics-swift.
+        /// </para>
         /// </summary>
         public HttpConfig HttpConfig { get; }
 
@@ -80,7 +87,7 @@ namespace Segment.Analytics
         ///     defaults to DefaultHTTPClientProvider
         /// </param>
         /// <param name="flushPolicies">set custom flush policies to tell analytics when and how to flush. If a value is given, it overwrites flushAt and flushInterval</param>
-        /// <param name="httpConfig">retry configuration for rate limiting and exponential backoff. CDN settings, when present, take precedence</param>
+        /// <param name="httpConfig">starting retry configuration for rate limiting and exponential backoff. CDN settings, when present, replace it — see <see cref="HttpConfig"/></param>
         public Configuration(string writeKey,
             int flushAt = 20,
             int flushInterval = 30,
