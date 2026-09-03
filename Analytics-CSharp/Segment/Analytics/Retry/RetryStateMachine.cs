@@ -22,7 +22,7 @@ namespace Segment.Analytics.Retry
         {
             if (IsLegacyMode)
             {
-                if (response.StatusCode >= 200 && response.StatusCode <= 299)
+                if (response.StatusCode >= 200 && response.StatusCode < 400)
                     return state.RemoveBatch(response.BatchFile);
                 if (response.StatusCode == 429 || (response.StatusCode >= 500 && response.StatusCode <= 599))
                     return state; // Keep
@@ -31,7 +31,7 @@ namespace Segment.Analytics.Retry
 
             long currentTime = response.CurrentTime;
 
-            if (response.StatusCode >= 200 && response.StatusCode <= 299)
+            if (response.StatusCode >= 200 && response.StatusCode < 400)
             {
                 return state.With(
                     pipelineState: PipelineState.Ready,
@@ -41,6 +41,16 @@ namespace Segment.Analytics.Retry
                 );
             }
 
+            // Any retryable status with Retry-After → rate-limit path
+            if (response.RetryAfterSeconds.HasValue && response.RetryAfterSeconds.Value > 0)
+            {
+                RetryBehavior behavior = response.StatusCode == 429
+                    ? RetryBehavior.Retry  // 429 is always retryable
+                    : ResolveStatusCodeBehavior(response.StatusCode);
+                if (behavior == RetryBehavior.Retry && _config.RateLimitConfig.Enabled)
+                    return HandleRateLimitResponse(state, response, currentTime);
+            }
+
             if (response.StatusCode == 429)
             {
                 if (_config.RateLimitConfig.Enabled)
@@ -48,8 +58,8 @@ namespace Segment.Analytics.Retry
                 return state.RemoveBatch(response.BatchFile);
             }
 
-            RetryBehavior behavior = ResolveStatusCodeBehavior(response.StatusCode);
-            if (behavior == RetryBehavior.Retry && _config.BackoffConfig.Enabled)
+            RetryBehavior statusBehavior = ResolveStatusCodeBehavior(response.StatusCode);
+            if (statusBehavior == RetryBehavior.Retry && _config.BackoffConfig.Enabled)
                 return HandleRetryableError(state, response, currentTime);
 
             return state.RemoveBatch(response.BatchFile);
@@ -131,20 +141,36 @@ namespace Segment.Analytics.Retry
             return Math.Max(batchRetryCount, state.GlobalRetryCount);
         }
 
-        public bool ShouldDeleteBatch(int statusCode)
+        public bool ShouldDeleteBatch(int statusCode) => ShouldDeleteBatch(statusCode, null);
+
+        /// <summary>
+        /// Whether the batch file should be removed. <paramref name="retryAfterSeconds"/> must be
+        /// the same value handed to <see cref="HandleResponse"/>, so that the two agree on whether
+        /// this response took the rate-limit path.
+        /// </summary>
+        public bool ShouldDeleteBatch(int statusCode, int? retryAfterSeconds)
         {
             if (IsLegacyMode)
                 return statusCode >= 400 && statusCode <= 499 && statusCode != 429;
 
-            if (statusCode >= 200 && statusCode <= 299)
+            // Spec item 1: 2xx and 3xx are success.
+            if (statusCode >= 200 && statusCode < 400)
                 return true;
 
             if (statusCode == 429)
                 return !_config.RateLimitConfig.Enabled;
 
             RetryBehavior behavior = ResolveStatusCodeBehavior(statusCode);
-            if (behavior == RetryBehavior.Retry && !_config.BackoffConfig.Enabled)
-                return true;
+            if (behavior == RetryBehavior.Retry)
+            {
+                // A usable Retry-After sends this response down the rate-limit path, which has
+                // just scheduled the retry — keep the batch that retry will re-upload.
+                if (retryAfterSeconds.HasValue && retryAfterSeconds.Value > 0 && _config.RateLimitConfig.Enabled)
+                    return false;
+
+                // Otherwise only backoff can retry it; with backoff off, nothing will.
+                return !_config.BackoffConfig.Enabled;
+            }
 
             return behavior == RetryBehavior.Drop;
         }
