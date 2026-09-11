@@ -57,8 +57,8 @@ namespace Segment.Analytics.Retry
             Default4xxBehavior = default4xxBehavior;
             Default5xxBehavior = default5xxBehavior;
             UnknownCodeBehavior = unknownCodeBehavior;
-            // Copy: the property is public, and sharing the static default would let one
-            // caller's mutation corrupt every BackoffConfig built afterwards in the process.
+            // Copied because the property is public: sharing the static default would let
+            // one caller's mutation corrupt every BackoffConfig built afterwards.
             StatusCodeOverrides = new Dictionary<int, RetryBehavior>(
                 statusCodeOverrides ?? DefaultStatusCodeOverrides);
         }

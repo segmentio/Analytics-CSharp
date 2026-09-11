@@ -69,8 +69,8 @@ namespace Segment.Analytics.Utilities
             Running = false;
 
             var retryConfig = httpConfig != null
-                // Validated(): user-supplied config reaches us unclamped, unlike the
-                // CDN path which HttpConfigParser already validates.
+                // User-supplied config arrives unclamped; the CDN path is already
+                // validated by HttpConfigParser.
                 ? new RetryConfig(httpConfig.RateLimitConfig.Validated(), httpConfig.BackoffConfig.Validated())
                 : new RetryConfig();
             _retryStateMachine = new RetryStateMachine(retryConfig);
