@@ -11,7 +11,8 @@ namespace Segment.Analytics.Utilities
             return new EventPipeline(analytics, key, 
                     analytics.Configuration.WriteKey,
                     analytics.Configuration.FlushPolicies,
-                    analytics.Configuration.ApiHost);
+                    analytics.Configuration.ApiHost,
+                    analytics.Configuration.HttpConfig);
         }
     }
 }

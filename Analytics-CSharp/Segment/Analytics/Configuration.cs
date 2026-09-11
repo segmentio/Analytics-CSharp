@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Segment.Analytics.Policies;
+using Segment.Analytics.Retry;
 using Segment.Analytics.Utilities;
 using Segment.Concurrent;
 using Segment.Serialization;
@@ -46,6 +47,21 @@ namespace Segment.Analytics
         public IList<IFlushPolicy> FlushPolicies { get; }
 
         public IEventPipelineProvider EventPipelineProvider { get; }
+
+        /// <summary>
+        /// HTTP retry configuration for rate limiting and exponential backoff. Defaults to
+        /// <c>null</c>. Set it before constructing <c>Analytics</c>, e.g.
+        /// <c>new Configuration("writeKey") { HttpConfig = new HttpConfig(...) }</c>.
+        /// Mirrors analytics-kotlin's mutable <c>Configuration.httpConfig</c>.
+        /// <para>
+        /// This sets the pipeline's starting configuration only. CDN settings take precedence:
+        /// any settings payload carrying an <c>httpConfig</c> key replaces this value, and a CDN
+        /// payload is treated as enabling a subsystem unless it says <c>"enabled": "false"</c>.
+        /// A payload with no <c>httpConfig</c> key leaves this value in effect. This matches the
+        /// behaviour of analytics-kotlin and analytics-swift.
+        /// </para>
+        /// </summary>
+        public HttpConfig HttpConfig { get; set; }
 
         /// <summary>
         /// Configuration that analytics can use

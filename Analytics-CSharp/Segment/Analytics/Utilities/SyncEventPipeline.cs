@@ -61,7 +61,7 @@ namespace Segment.Analytics.Utilities
             CancellationToken? flushCancellationToken = null)
             : this(analytics, logTag, apiKey, flushPolicies, apiHost, flushTimeout, flushCancellationToken, null) { }
 
-        internal SyncEventPipeline(
+        public SyncEventPipeline(
             Analytics analytics,
             string logTag,
             string apiKey,
@@ -86,7 +86,9 @@ namespace Segment.Analytics.Utilities
             _flushCancellationToken = flushCancellationToken ?? CancellationToken.None;
 
             var retryConfig = httpConfig != null
-                ? new RetryConfig(httpConfig.RateLimitConfig, httpConfig.BackoffConfig)
+                // User-supplied config arrives unclamped; the CDN path is already
+                // validated by HttpConfigParser.
+                ? new RetryConfig(httpConfig.RateLimitConfig.Validated(), httpConfig.BackoffConfig.Validated())
                 : new RetryConfig();
             _retryStateMachine = new RetryStateMachine(retryConfig);
             _retryState = RetryStateStorage.LoadRetryState(_storage);
@@ -95,7 +97,7 @@ namespace Segment.Analytics.Utilities
         internal void UpdateHttpConfig(HttpConfig config)
         {
             var retryConfig = config != null
-                ? new RetryConfig(config.RateLimitConfig, config.BackoffConfig)
+                ? new RetryConfig(config.RateLimitConfig.Validated(), config.BackoffConfig.Validated())
                 : new RetryConfig();
             _retryStateMachine = new RetryStateMachine(retryConfig);
         }
