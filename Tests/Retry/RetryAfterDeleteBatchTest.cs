@@ -70,5 +70,13 @@ namespace Tests.Retry
             Assert.True(RateLimitOnlyMachine().ShouldDeleteBatch(400, 30));
             Assert.True(RateLimitOnlyMachine().ShouldDeleteBatch(501, 30));
         }
+
+        [Fact]
+        public void NetworkAuthenticationRequired_IsDropped()
+        {
+            // 511 is retryable only for an SDK that can re-authenticate; this one cannot.
+            Assert.True(RateLimitOnlyMachine().ShouldDeleteBatch(511, null));
+            Assert.True(RateLimitOnlyMachine().ShouldDeleteBatch(511, 30));
+        }
     }
 }

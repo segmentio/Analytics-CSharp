@@ -93,7 +93,11 @@ namespace Segment.Analytics.Retry
                 { 429, RetryBehavior.Retry },
                 { 460, RetryBehavior.Retry },
                 { 501, RetryBehavior.Drop },
-                { 505, RetryBehavior.Drop }
+                { 505, RetryBehavior.Drop },
+                // 511 is only retryable for an SDK that can re-authenticate via OAuth.
+                // This one cannot, so retrying would spend the budget on a request that
+                // can never succeed.
+                { 511, RetryBehavior.Drop }
             };
     }
 
