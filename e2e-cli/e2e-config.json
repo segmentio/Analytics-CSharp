@@ -4,6 +4,7 @@
   "auto_settings": true,
   "patch": null,
   "env": {
-    "HTTP_CONFIG_SETTINGS": "true"
+    "HTTP_CONFIG_SETTINGS": "true",
+    "AUTH_HEADER": "true"
   }
 }
