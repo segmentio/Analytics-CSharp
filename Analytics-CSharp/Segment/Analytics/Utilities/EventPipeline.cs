@@ -211,11 +211,7 @@ namespace Segment.Analytics.Utilities
                         HTTPClient.Response response = await _httpClient.UploadWithResponse(data, retryCount);
                         statusCode = response.StatusCode;
 
-                        if (!string.IsNullOrEmpty(response.RetryAfterHeader)
-                            && int.TryParse(response.RetryAfterHeader.Trim(), out int parsedRetryAfter))
-                        {
-                            retryAfterSeconds = parsedRetryAfter;
-                        }
+                        retryAfterSeconds = RetryAfterParser.Parse(response.RetryAfterHeader);
 
                         if (response.IsSuccessStatusCode)
                         {
@@ -225,7 +221,7 @@ namespace Segment.Analytics.Utilities
                         else
                         {
                             Analytics.Logger.Log(LogLevel.Error, message: "Error " + statusCode + " uploading " + url);
-                            shouldCleanup = _retryStateMachine.ShouldDeleteBatch(statusCode);
+                            shouldCleanup = _retryStateMachine.ShouldDeleteBatch(statusCode, retryAfterSeconds);
                             if (shouldCleanup)
                             {
                                 _analytics.ReportInternalError(AnalyticsErrorType.NetworkServerRejected,

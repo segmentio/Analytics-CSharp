@@ -61,6 +61,7 @@ namespace UnitySample
             using (var request = UnityWebRequest.Put(networkRequest.URL, networkRequest.Data))
             {
                 request.SetRequestHeader("Content-Type", "text/plain");
+                request.SetRequestHeader("Authorization", BasicAuthorization);
                 yield return request.SendWebRequest();
 
                 networkRequest.Response.StatusCode = (int)request.responseCode;
