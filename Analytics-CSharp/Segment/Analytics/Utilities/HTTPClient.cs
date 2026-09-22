@@ -198,8 +198,9 @@ namespace Segment.Analytics.Utilities
             /// <summary>
             /// A convenient method to check if the http request is successful
             /// </summary>
-            // Spec item 1: 2xx and 3xx are success.
-            public bool IsSuccessStatusCode => StatusCode >= 200 && StatusCode < 400;
+            // Only 2xx. HttpClient follows any redirect it can, so a 3xx here means it
+            // declined to (no Location, a 300, or a 304) and nothing was uploaded.
+            public bool IsSuccessStatusCode => StatusCode >= 200 && StatusCode < 300;
         }
     }
 

@@ -56,12 +56,28 @@ namespace Tests.Retry
         [Theory]
         [InlineData(200)]
         [InlineData(201)]
-        [InlineData(301)]
-        [InlineData(304)]
+        [InlineData(204)]
         public void SuccessStatuses_AreDeleted(int status)
         {
-            // Spec item 1: 2xx and 3xx are success, so the batch is done with.
+            // 2xx is success, so the batch is done with.
             Assert.True(RateLimitOnlyMachine().ShouldDeleteBatch(status, null));
+        }
+
+        [Theory]
+        [InlineData(300)]
+        [InlineData(301)]
+        [InlineData(304)]
+        public void Redirects_AreNotSuccess(int status)
+        {
+            // HttpClient follows what it can; a 3xx arriving here means nothing was
+            // uploaded, so the batch must not be treated as delivered.
+            var machine = RateLimitOnlyMachine();
+            RetryState state = machine.HandleResponse(
+                new RetryState(),
+                new ResponseInfo(status, retryAfterSeconds: null, batchFile: "b.json", currentTime: 1000));
+
+            Assert.Equal(PipelineState.Ready, state.PipelineState);
+            Assert.True(machine.ShouldDeleteBatch(status, null));
         }
 
         [Fact]
