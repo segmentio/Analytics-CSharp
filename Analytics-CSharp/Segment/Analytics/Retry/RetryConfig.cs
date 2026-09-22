@@ -18,7 +18,9 @@ namespace Segment.Analytics.Retry
 
         public RateLimitConfig Validated() => new RateLimitConfig(
             enabled: Enabled,
-            maxRetryCount: Math.Max(0, Math.Min(MaxRetryCount, 1000)),
+            // Floored at 1: the count is compared against a fresh state's retry
+            // count, so 0 would drop every batch before it was ever sent.
+            maxRetryCount: Math.Max(1, Math.Min(MaxRetryCount, 1000)),
             maxRetryInterval: Math.Max(1, Math.Min(MaxRetryInterval, 3600))
         );
     }
@@ -65,7 +67,7 @@ namespace Segment.Analytics.Retry
 
         public BackoffConfig Validated() => new BackoffConfig(
             enabled: Enabled,
-            maxRetryCount: Math.Max(0, Math.Min(MaxRetryCount, 1000)),
+            maxRetryCount: Math.Max(1, Math.Min(MaxRetryCount, 1000)),
             baseBackoffInterval: Math.Max(0.1, Math.Min(BaseBackoffInterval, 60.0)),
             maxBackoffInterval: Math.Max(1, Math.Min(MaxBackoffInterval, 3600)),
             maxTotalBackoffDuration: Math.Max(0, Math.Min(MaxTotalBackoffDuration, 604800)),

@@ -1,3 +1,4 @@
+using System;
 using Moq;
 using Segment.Analytics;
 using Segment.Analytics.Retry;
@@ -85,6 +86,21 @@ namespace Tests.Retry
             var pipeline = (SyncEventPipeline)new SyncEventPipelineProvider().Create(analytics, "key");
 
             Assert.True(pipeline._retryStateMachine.IsLegacyMode);
+        }
+
+        [Fact]
+        public void MaxRetryCountOfZero_DoesNotDropBeforeTheFirstAttempt()
+        {
+            // ShouldUploadBatch compares a fresh state's counts against MaxRetryCount,
+            // so an unfloored 0 dropped every batch without ever sending it.
+            var machine = new RetryStateMachine(new RetryConfig(
+                new RateLimitConfig(enabled: true, maxRetryCount: 0).Validated(),
+                new BackoffConfig(enabled: true, maxRetryCount: 0).Validated()));
+
+            Tuple<UploadDecision, RetryState> decision =
+                machine.ShouldUploadBatch(new RetryState(), "b.json");
+
+            Assert.IsType<UploadDecision.ProceedDecision>(decision.Item1);
         }
 
         [Fact]
