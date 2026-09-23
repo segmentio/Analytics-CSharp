@@ -6,6 +6,32 @@ This file carries the notes that need more than a pull-request title.
 
 ## Unreleased
 
+### Behaviour change: retries and backoff are on by default
+
+Through 2.6.0, rate limiting and exponential backoff were both disabled unless you
+supplied an `HttpConfig` or a CDN settings payload turned them on. Server-side
+deployments receive no CDN settings, so in practice they retried nothing: 408, 410 and
+460 were dropped, `Retry-After` was ignored, and a 429 or 5xx was held with no delay and
+no budget. Both subsystems now default to enabled, so a client that configures nothing
+gets the documented retry behaviour.
+
+To keep the old behaviour, disable both explicitly:
+
+```csharp
+new Configuration("writeKey")
+{
+    HttpConfig = new HttpConfig(
+        new RateLimitConfig(enabled: false),
+        new BackoffConfig(enabled: false))
+}
+```
+
+CDN settings are unaffected and still take precedence: a payload carrying an
+`httpConfig` key replaces whatever the pipeline is running with, and a payload without
+that key leaves your configuration in effect.
+
+- Backoff defaults now match the other Segment SDKs: `MaxRetryCount` 10 (was 100) and `MaxBackoffInterval` 60s (was 300s). With retries off by default those numbers were latent; enabling them unchanged would have had C# clients making an order of magnitude more attempts against the endpoint than any other SDK.
+
 ### Upgrade note: new request headers and proxy allowlists
 
 This release sends two request headers that 2.6.0 did not: `Authorization`

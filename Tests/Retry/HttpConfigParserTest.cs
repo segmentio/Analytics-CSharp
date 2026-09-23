@@ -101,7 +101,22 @@ namespace Tests.Retry
 
             Assert.Equal(50, config.BackoffConfig.MaxRetryCount);
             Assert.Equal(0.5, config.BackoffConfig.BaseBackoffInterval); // default
-            Assert.Equal(300, config.BackoffConfig.MaxBackoffInterval); // default
+            Assert.Equal(60, config.BackoffConfig.MaxBackoffInterval); // default
+        }
+
+        [Fact]
+        public void Parse_AbsentKeys_MatchTheConstructorDefaults()
+        {
+            // The parser used to hardcode its own copies of these, which had drifted.
+            var json = JsonUtility.FromJson<JsonObject>("{\"backoffConfig\":{}}");
+            HttpConfig config = HttpConfigParser.Parse(json);
+            var defaults = new BackoffConfig();
+
+            Assert.Equal(defaults.MaxRetryCount, config.BackoffConfig.MaxRetryCount);
+            Assert.Equal(defaults.BaseBackoffInterval, config.BackoffConfig.BaseBackoffInterval);
+            Assert.Equal(defaults.MaxBackoffInterval, config.BackoffConfig.MaxBackoffInterval);
+            Assert.Equal(defaults.MaxTotalBackoffDuration, config.BackoffConfig.MaxTotalBackoffDuration);
+            Assert.Equal(defaults.JitterPercent, config.BackoffConfig.JitterPercent);
         }
     }
 }

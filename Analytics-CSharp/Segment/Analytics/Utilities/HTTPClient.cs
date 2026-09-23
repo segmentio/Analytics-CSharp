@@ -133,7 +133,12 @@ namespace Segment.Analytics.Utilities
                     AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode, message: "Response code: " + response.StatusCode);
 
                 // Single source of truth for the drop/keep decision.
-                return new RetryStateMachine(new RetryConfig()).ShouldDeleteBatch(response.StatusCode);
+                // Pinned to a disabled config so this legacy path keeps the drop/keep
+                // behaviour it had before retries became enabled by default.
+                return new RetryStateMachine(new RetryConfig(
+                        new RateLimitConfig(enabled: false),
+                        new BackoffConfig(enabled: false)))
+                    .ShouldDeleteBatch(response.StatusCode);
             }
             catch (Exception e)
             {

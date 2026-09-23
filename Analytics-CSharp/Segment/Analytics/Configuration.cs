@@ -50,15 +50,18 @@ namespace Segment.Analytics
 
         /// <summary>
         /// HTTP retry configuration for rate limiting and exponential backoff. Defaults to
-        /// <c>null</c>. Set it before constructing <c>Analytics</c>, e.g.
+        /// <c>null</c>, which runs rate limiting and backoff with their built-in defaults. Pass a
+        /// config to change them, or one with both subsystems disabled to opt out of retrying.
+        /// Set it before constructing <c>Analytics</c>, e.g.
         /// <c>new Configuration("writeKey") { HttpConfig = new HttpConfig(...) }</c>.
         /// Mirrors analytics-kotlin's mutable <c>Configuration.httpConfig</c>.
         /// <para>
         /// This sets the pipeline's starting configuration only. CDN settings take precedence:
-        /// any settings payload carrying an <c>httpConfig</c> key replaces this value, and a CDN
-        /// payload is treated as enabling a subsystem unless it says <c>"enabled": "false"</c>.
-        /// A payload with no <c>httpConfig</c> key leaves this value in effect. This matches the
-        /// behaviour of analytics-kotlin and analytics-swift.
+        /// any settings payload carrying an <c>httpConfig</c> key replaces the configuration the
+        /// pipeline is running with — this property keeps the value you set — and a CDN payload is
+        /// treated as enabling a subsystem unless it says <c>"enabled": "false"</c>. A payload with
+        /// no <c>httpConfig</c> key leaves this value in effect. This matches the behaviour of
+        /// analytics-kotlin and analytics-swift.
         /// </para>
         /// </summary>
         public HttpConfig HttpConfig { get; set; }

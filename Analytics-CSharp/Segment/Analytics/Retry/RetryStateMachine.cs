@@ -55,6 +55,9 @@ namespace Segment.Analytics.Retry
             {
                 if (_config.RateLimitConfig.Enabled)
                     return HandleRateLimitResponse(state, response, currentTime);
+                // Dropped rather than handed to backoff: rateLimitConfig.enabled:false is a
+                // kill switch for 429 handling, symmetric with backoffConfig.enabled:false
+                // for 5xx. Asserted by the shared e2e suite's settings-enabled-flag tests.
                 return state.RemoveBatch(response.BatchFile);
             }
 
@@ -156,6 +159,8 @@ namespace Segment.Analytics.Retry
             if (statusCode >= 200 && statusCode <= 299)
                 return true;
 
+            // Matches HandleResponse: with rate limiting off, a 429 is dropped rather than
+            // falling through to backoff.
             if (statusCode == 429)
                 return !_config.RateLimitConfig.Enabled;
 

@@ -58,9 +58,24 @@ namespace Tests.Retry
         }
 
         [Fact]
-        public void EventPipeline_WithoutHttpConfig_IsLegacyMode()
+        public void EventPipeline_WithoutHttpConfig_RetriesByDefault()
         {
+            // Server-side users get no CDN settings, so a null HttpConfig has to mean
+            // "retry with the defaults", not "no retry behaviour at all".
             Analytics analytics = CreateAnalytics(null);
+
+            var pipeline = (EventPipeline)new EventPipelineProvider().Create(analytics, "key");
+
+            Assert.False(pipeline._retryStateMachine.IsLegacyMode);
+        }
+
+        [Fact]
+        public void EventPipeline_WithBothSubsystemsDisabled_IsLegacyMode()
+        {
+            // Opting out is now explicit rather than the default.
+            Analytics analytics = CreateAnalytics(new HttpConfig(
+                new RateLimitConfig(enabled: false),
+                new BackoffConfig(enabled: false)));
 
             var pipeline = (EventPipeline)new EventPipelineProvider().Create(analytics, "key");
 
@@ -79,13 +94,27 @@ namespace Tests.Retry
         }
 
         [Fact]
-        public void SyncEventPipeline_WithoutHttpConfig_IsLegacyMode()
+        public void SyncEventPipeline_WithoutHttpConfig_RetriesByDefault()
         {
             Analytics analytics = CreateAnalytics(null);
 
             var pipeline = (SyncEventPipeline)new SyncEventPipelineProvider().Create(analytics, "key");
 
-            Assert.True(pipeline._retryStateMachine.IsLegacyMode);
+            Assert.False(pipeline._retryStateMachine.IsLegacyMode);
+        }
+
+        [Fact]
+        public void DefaultBackoffShapeMatchesTheOtherSdks()
+        {
+            // java, go, python, ruby and php all default to 10 retries and a 60s ceiling.
+            // These were 100 and 300 while retries were off by default; now that they are
+            // on, a drift here changes the load every C# client puts on the endpoint.
+            var backoff = new BackoffConfig();
+
+            Assert.Equal(10, backoff.MaxRetryCount);
+            Assert.Equal(60, backoff.MaxBackoffInterval);
+            Assert.Equal(0.5, backoff.BaseBackoffInterval);
+            Assert.Equal(43200, backoff.MaxTotalBackoffDuration);
         }
 
         [Fact]

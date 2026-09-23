@@ -9,7 +9,7 @@ namespace Segment.Analytics.Retry
         public int MaxRetryCount { get; }
         public int MaxRetryInterval { get; }
 
-        public RateLimitConfig(bool enabled = false, int maxRetryCount = 100, int maxRetryInterval = 300)
+        public RateLimitConfig(bool enabled = true, int maxRetryCount = 100, int maxRetryInterval = 300)
         {
             Enabled = enabled;
             MaxRetryCount = maxRetryCount;
@@ -39,10 +39,10 @@ namespace Segment.Analytics.Retry
         public Dictionary<int, RetryBehavior> StatusCodeOverrides { get; }
 
         public BackoffConfig(
-            bool enabled = false,
-            int maxRetryCount = 100,
+            bool enabled = true,
+            int maxRetryCount = 10,
             double baseBackoffInterval = 0.5,
-            int maxBackoffInterval = 300,
+            int maxBackoffInterval = 60,
             long maxTotalBackoffDuration = 43200,
             int jitterPercent = 10,
             RetryBehavior default4xxBehavior = RetryBehavior.Drop,

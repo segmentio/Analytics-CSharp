@@ -97,8 +97,12 @@ namespace Tests.Retry
         }
 
         [Fact]
-        public void HandleResponse_429_RateLimitDisabled_DropsBatch()
+        public void HandleResponse_429_RateLimitDisabled_DropsBatchRatherThanUsingBackoff()
         {
+            // rateLimitConfig.enabled:false is a deliberate kill switch for 429 handling,
+            // symmetric with backoffConfig.enabled:false for 5xx, and asserted by the shared
+            // e2e suite (retry-settings/settings-enabled-flag). Do not "fix" this to fall
+            // through to backoff: that breaks the cross-SDK contract.
             var machine = CreateMachine(rateLimitEnabled: false, backoffEnabled: true);
             var state = new RetryState(
                 batchMetadata: new System.Collections.Generic.Dictionary<string, BatchMetadata>
@@ -110,6 +114,7 @@ namespace Tests.Retry
             RetryState newState = machine.HandleResponse(state, response);
 
             Assert.False(newState.BatchMetadata.ContainsKey("batch1.json"));
+            Assert.True(machine.ShouldDeleteBatch(429, 60));
         }
 
         [Fact]
