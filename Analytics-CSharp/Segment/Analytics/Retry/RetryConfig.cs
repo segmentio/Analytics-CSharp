@@ -5,9 +5,10 @@ namespace Segment.Analytics.Retry
 {
     public class RateLimitConfig
     {
-        /// <summary>Largest Retry-After the client will honour, in seconds. RFC 7231 allows
-        /// more, but the TAPI agreements cap it here and the other SDKs fix it at this value.</summary>
-        public const int MaxRetryIntervalCeiling = 300;
+        /// <summary>Largest Retry-After the client will honour, in seconds. Kept well below
+        /// <see cref="MaxRateLimitDuration"/> so the budget buys several attempts rather than
+        /// one long sleep; at the old 300s a single sleep consumed the whole budget.</summary>
+        public const int MaxRetryIntervalCeiling = 60;
 
         public bool Enabled { get; }
         public int MaxRetryCount { get; }
@@ -15,18 +16,17 @@ namespace Segment.Analytics.Retry
 
         /// <summary>
         /// Wall-clock ceiling, in seconds, on how long one rate-limit episode may keep a
-        /// batch alive. A last-ditch guard so a pathological Retry-After stream cannot hold
-        /// a batch forever; <see cref="MaxRetryCount"/> is what stops retrying in practice.
-        /// At the defaults the count is reached first by a wide margin, since
-        /// MaxRetryCount * MaxRetryIntervalCeiling is well under this.
+        /// batch alive. Five minutes, in line with the counted-backoff path's ~4 minute
+        /// worst case. This is the operative limit on that path: rate-limited attempts are
+        /// deliberately uncounted, so a duration is the only thing bounding them.
         /// </summary>
         public long MaxRateLimitDuration { get; }
 
         public RateLimitConfig(
             bool enabled = true,
             int maxRetryCount = 100,
-            int maxRetryInterval = 300,
-            long maxRateLimitDuration = 43200)
+            int maxRetryInterval = MaxRetryIntervalCeiling,
+            long maxRateLimitDuration = 300)
         {
             Enabled = enabled;
             MaxRetryCount = maxRetryCount;

@@ -199,6 +199,14 @@ namespace Segment.Analytics.Retry
         private RetryState HandleRateLimitResponse(RetryState state, ResponseInfo response, long currentTime)
         {
             long waitUntilTimeMs = CalculateWaitUntilTimeMs(response.RetryAfterSeconds, currentTime);
+
+            // Clamped to the end of the budget: ShouldUploadBatch checks elapsed time
+            // before the wait, so without this a check passing just inside the budget
+            // would wait a full Retry-After beyond it.
+            long episodeStart = state.RateLimitStartTime ?? currentTime;
+            long deadline = episodeStart + (_config.RateLimitConfig.MaxRateLimitDuration * 1000L);
+            if (waitUntilTimeMs > deadline)
+                waitUntilTimeMs = deadline;
             return state.With(
                 pipelineState: PipelineState.RateLimited,
                 waitUntilTime: waitUntilTimeMs,

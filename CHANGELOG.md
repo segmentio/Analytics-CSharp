@@ -6,6 +6,9 @@ This file carries the notes that need more than a pull-request title.
 
 ## Unreleased
 
+- `RateLimitConfig.MaxRateLimitDuration` now defaults to 5 minutes rather than 12 hours, and `MaxRetryInterval` to 60s rather than 300s. The 12 hour value was a backstop meant to be unreachable, but rate-limited attempts are deliberately uncounted across the SDKs, so a duration is what genuinely bounds that path. Five minutes lines up with the counted-backoff path's ~4 minute worst case; 60s keeps a single `Retry-After` from consuming the whole budget.
+- The rate-limit wait is clamped to the end of the episode's budget. `ShouldUploadBatch` checks elapsed time before the wait, so a check passing just inside the budget previously waited a full `Retry-After` beyond it.
+
 ### Behavior change: retries and backoff are on by default
 
 Through 2.6.0, rate limiting and exponential backoff were both disabled unless you

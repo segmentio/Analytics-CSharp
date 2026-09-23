@@ -150,30 +150,36 @@ namespace Tests.Retry
         }
 
         [Fact]
-        public void RateLimitCountIsReachedLongBeforeTheDurationBudget()
+        public void MaxRateLimitDurationIsTheOperativeLimitNotTheCount()
         {
-            // MaxRateLimitDuration is a last-ditch guard, not the working limit: the
-            // count is what should stop retrying at the defaults. If this ever inverts,
-            // batches start dying on a 12h timer instead of a countable number of tries.
+            // This assertion is the inverse of what it was, deliberately. The count used
+            // to be the working limit with a 12h duration as an unreachable backstop —
+            // but rate-limited attempts are uncounted across the other SDKs, so the
+            // duration is what genuinely bounds this path. At 5 minutes against a 60s
+            // ceiling it now trips first, and the count is the backstop.
             var rateLimit = new RateLimitConfig();
 
-            long worstCaseSeconds =
+            long countWouldAllowSeconds =
                 (long)rateLimit.MaxRetryCount * RateLimitConfig.MaxRetryIntervalCeiling;
 
             Assert.True(
-                worstCaseSeconds < rateLimit.MaxRateLimitDuration,
-                $"count trips after at most {worstCaseSeconds}s but the duration budget is "
-                + $"{rateLimit.MaxRateLimitDuration}s; the duration should never be reached first");
+                rateLimit.MaxRateLimitDuration < countWouldAllowSeconds,
+                $"duration is {rateLimit.MaxRateLimitDuration}s but the count would allow "
+                + $"{countWouldAllowSeconds}s; the duration should bound this path");
         }
 
         [Fact]
-        public void RetryAfterIsCappedAtFiveMinutes()
+        public void RetryAfterIsCappedWellBelowTheBudget()
         {
-            // Other SDKs fix this at 300s; C# allowed configuring up to 3600s.
+            // A cap equal to the budget would let one sleep consume it, leaving the
+            // rate-limit path with a single attempt.
             var validated = new RateLimitConfig(maxRetryInterval: 3600).Validated();
 
             Assert.Equal(RateLimitConfig.MaxRetryIntervalCeiling, validated.MaxRetryInterval);
-            Assert.Equal(300, validated.MaxRetryInterval);
+            Assert.Equal(60, validated.MaxRetryInterval);
+            Assert.True(
+                validated.MaxRetryInterval * 4 <= validated.MaxRateLimitDuration,
+                "the budget should buy at least a few attempts, not one");
         }
 
         [Fact]
