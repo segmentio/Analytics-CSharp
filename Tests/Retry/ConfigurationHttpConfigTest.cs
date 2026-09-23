@@ -61,7 +61,7 @@ namespace Tests.Retry
         public void EventPipeline_WithoutHttpConfig_RetriesByDefault()
         {
             // Server-side users get no CDN settings, so a null HttpConfig has to mean
-            // "retry with the defaults", not "no retry behaviour at all".
+            // "retry with the defaults", not "no retry behavior at all".
             Analytics analytics = CreateAnalytics(null);
 
             var pipeline = (EventPipeline)new EventPipelineProvider().Create(analytics, "key");

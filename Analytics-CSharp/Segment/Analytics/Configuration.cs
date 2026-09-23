@@ -60,7 +60,7 @@ namespace Segment.Analytics
         /// any settings payload carrying an <c>httpConfig</c> key replaces the configuration the
         /// pipeline is running with — this property keeps the value you set — and a CDN payload is
         /// treated as enabling a subsystem unless it says <c>"enabled": "false"</c>. A payload with
-        /// no <c>httpConfig</c> key leaves this value in effect. This matches the behaviour of
+        /// no <c>httpConfig</c> key leaves this value in effect. This matches the behavior of
         /// analytics-kotlin and analytics-swift.
         /// </para>
         /// </summary>

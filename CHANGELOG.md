@@ -6,16 +6,16 @@ This file carries the notes that need more than a pull-request title.
 
 ## Unreleased
 
-### Behaviour change: retries and backoff are on by default
+### Behavior change: retries and backoff are on by default
 
 Through 2.6.0, rate limiting and exponential backoff were both disabled unless you
 supplied an `HttpConfig` or a CDN settings payload turned them on. Server-side
 deployments receive no CDN settings, so in practice they retried nothing: 408, 410 and
 460 were dropped, `Retry-After` was ignored, and a 429 or 5xx was held with no delay and
 no budget. Both subsystems now default to enabled, so a client that configures nothing
-gets the documented retry behaviour.
+gets the documented retry behavior.
 
-To keep the old behaviour, disable both explicitly:
+To keep the old behavior, disable both explicitly:
 
 ```csharp
 new Configuration("writeKey")
@@ -43,7 +43,7 @@ rejected. Unity WebGL builds must also add them to the CORS
 
 - Send the write key as an `Authorization: Basic` header. It is still included in the request body, so no server-side change is required.
 - Send `X-Retry-Count` on retries, so the server can distinguish a retry from a first attempt.
-- `HttpConfig` is now a settable property on `Configuration` rather than a constructor parameter, so retry behaviour can be configured after construction. For mobile targets, CDN settings replace `Configuration.HttpConfig` when they are present.
+- `HttpConfig` is now a settable property on `Configuration` rather than a constructor parameter, so retry behavior can be configured after construction. For mobile targets, CDN settings replace `Configuration.HttpConfig` when they are present.
 - `Retry-After` is honoured on every retryable status rather than 429 alone, which brings 529 in through the generic 5xx rule. Numeric seconds and the RFC 7231 HTTP-date formats are both accepted, capped at `MaxRetryInterval`.
 - 511 is dropped rather than retried: it asks the client to authenticate, which this library cannot do.
 - Only 2xx responses count as a successful upload. A 3xx is now reported as a failed upload rather than silently treated as delivered. It is not retried: a redirect the HTTP client already declined to follow will not succeed on a retry. The Segment endpoint does not redirect, so this only affects custom host values.

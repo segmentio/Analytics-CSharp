@@ -134,7 +134,7 @@ namespace Segment.Analytics.Utilities
 
                 // Single source of truth for the drop/keep decision.
                 // Pinned to a disabled config so this legacy path keeps the drop/keep
-                // behaviour it had before retries became enabled by default.
+                // behavior it had before retries became enabled by default.
                 return new RetryStateMachine(new RetryConfig(
                         new RateLimitConfig(enabled: false),
                         new BackoffConfig(enabled: false)))
