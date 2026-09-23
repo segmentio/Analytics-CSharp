@@ -5,15 +5,33 @@ namespace Segment.Analytics.Retry
 {
     public class RateLimitConfig
     {
+        /// <summary>Largest Retry-After the client will honour, in seconds. RFC 7231 allows
+        /// more, but the TAPI agreements cap it here and the other SDKs fix it at this value.</summary>
+        public const int MaxRetryIntervalCeiling = 300;
+
         public bool Enabled { get; }
         public int MaxRetryCount { get; }
         public int MaxRetryInterval { get; }
 
-        public RateLimitConfig(bool enabled = true, int maxRetryCount = 100, int maxRetryInterval = 300)
+        /// <summary>
+        /// Wall-clock ceiling, in seconds, on how long one rate-limit episode may keep a
+        /// batch alive. A last-ditch guard so a pathological Retry-After stream cannot hold
+        /// a batch forever; <see cref="MaxRetryCount"/> is what stops retrying in practice.
+        /// At the defaults the count is reached first by a wide margin, since
+        /// MaxRetryCount * MaxRetryIntervalCeiling is well under this.
+        /// </summary>
+        public long MaxRateLimitDuration { get; }
+
+        public RateLimitConfig(
+            bool enabled = true,
+            int maxRetryCount = 100,
+            int maxRetryInterval = 300,
+            long maxRateLimitDuration = 43200)
         {
             Enabled = enabled;
             MaxRetryCount = maxRetryCount;
             MaxRetryInterval = maxRetryInterval;
+            MaxRateLimitDuration = maxRateLimitDuration;
         }
 
         public RateLimitConfig Validated() => new RateLimitConfig(
@@ -21,7 +39,8 @@ namespace Segment.Analytics.Retry
             // Floored at 1: the count is compared against a fresh state's retry
             // count, so 0 would drop every batch before it was ever sent.
             maxRetryCount: Math.Max(1, Math.Min(MaxRetryCount, 1000)),
-            maxRetryInterval: Math.Max(1, Math.Min(MaxRetryInterval, 3600))
+            maxRetryInterval: Math.Max(1, Math.Min(MaxRetryInterval, MaxRetryIntervalCeiling)),
+            maxRateLimitDuration: Math.Max(0, Math.Min(MaxRateLimitDuration, 604800))
         );
     }
 

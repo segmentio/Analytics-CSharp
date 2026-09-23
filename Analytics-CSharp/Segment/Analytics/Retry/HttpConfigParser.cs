@@ -58,10 +58,16 @@ namespace Segment.Analytics.Retry
             if (intervalStr != null && int.TryParse(intervalStr, out int parsedInterval))
                 maxRetryInterval = parsedInterval;
 
+            long maxRateLimitDuration = defaults.MaxRateLimitDuration;
+            string durationStr = json.GetString("maxRateLimitDuration");
+            if (durationStr != null && long.TryParse(durationStr, out long parsedDuration))
+                maxRateLimitDuration = parsedDuration;
+
             return new RateLimitConfig(
                 enabled: enabled,
                 maxRetryCount: maxRetryCount,
-                maxRetryInterval: maxRetryInterval
+                maxRetryInterval: maxRetryInterval,
+                maxRateLimitDuration: maxRateLimitDuration
             );
         }
 

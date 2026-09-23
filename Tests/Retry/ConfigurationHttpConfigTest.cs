@@ -104,6 +104,33 @@ namespace Tests.Retry
         }
 
         [Fact]
+        public void RateLimitCountIsReachedLongBeforeTheDurationBudget()
+        {
+            // MaxRateLimitDuration is a last-ditch guard, not the working limit: the
+            // count is what should stop retrying at the defaults. If this ever inverts,
+            // batches start dying on a 12h timer instead of a countable number of tries.
+            var rateLimit = new RateLimitConfig();
+
+            long worstCaseSeconds =
+                (long)rateLimit.MaxRetryCount * RateLimitConfig.MaxRetryIntervalCeiling;
+
+            Assert.True(
+                worstCaseSeconds < rateLimit.MaxRateLimitDuration,
+                $"count trips after at most {worstCaseSeconds}s but the duration budget is "
+                + $"{rateLimit.MaxRateLimitDuration}s; the duration should never be reached first");
+        }
+
+        [Fact]
+        public void RetryAfterIsCappedAtFiveMinutes()
+        {
+            // Other SDKs fix this at 300s; C# allowed configuring up to 3600s.
+            var validated = new RateLimitConfig(maxRetryInterval: 3600).Validated();
+
+            Assert.Equal(RateLimitConfig.MaxRetryIntervalCeiling, validated.MaxRetryInterval);
+            Assert.Equal(300, validated.MaxRetryInterval);
+        }
+
+        [Fact]
         public void DefaultBackoffShapeMatchesTheOtherSdks()
         {
             // java, go, python, ruby and php all default to 10 retries and a 60s ceiling.

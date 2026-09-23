@@ -37,7 +37,8 @@ namespace Segment.Analytics.Retry
                     pipelineState: PipelineState.Ready,
                     clearWaitUntilTime: true,
                     globalRetryCount: 0,
-                    batchMetadata: RemoveFromMetadata(state, response.BatchFile)
+                    batchMetadata: RemoveFromMetadata(state, response.BatchFile),
+                    clearRateLimitStartTime: true
                 );
             }
 
@@ -96,10 +97,26 @@ namespace Segment.Analytics.Retry
                 && clearedState.GlobalRetryCount >= _config.RateLimitConfig.MaxRetryCount)
             {
                 RetryState resetState = clearedState
-                    .With(globalRetryCount: 0)
+                    .With(globalRetryCount: 0, clearRateLimitStartTime: true)
                     .RemoveBatch(batchFile);
                 return Tuple.Create(
                     UploadDecision.DropBatch(DropReason.MaxRetriesExceeded),
+                    resetState);
+            }
+
+            // Check 2b: how long this rate-limit episode has run. A last-ditch guard so a
+            // pathological Retry-After stream cannot hold a batch indefinitely; at the
+            // defaults Check 2 is reached long before this.
+            if (_config.RateLimitConfig.Enabled
+                && clearedState.RateLimitStartTime.HasValue
+                && currentTime - clearedState.RateLimitStartTime.Value
+                    >= _config.RateLimitConfig.MaxRateLimitDuration * 1000)
+            {
+                RetryState resetState = clearedState
+                    .With(globalRetryCount: 0, clearRateLimitStartTime: true)
+                    .RemoveBatch(batchFile);
+                return Tuple.Create(
+                    UploadDecision.DropBatch(DropReason.MaxDurationExceeded),
                     resetState);
             }
 
@@ -185,7 +202,10 @@ namespace Segment.Analytics.Retry
             return state.With(
                 pipelineState: PipelineState.RateLimited,
                 waitUntilTime: waitUntilTimeMs,
-                globalRetryCount: state.GlobalRetryCount + 1
+                globalRetryCount: state.GlobalRetryCount + 1,
+                // Stamped on the first rate-limited response of an episode and left alone
+                // afterwards, so MaxRateLimitDuration measures the whole episode.
+                rateLimitStartTime: state.RateLimitStartTime ?? currentTime
             );
         }
 

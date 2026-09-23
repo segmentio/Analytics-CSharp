@@ -51,7 +51,7 @@ namespace Segment.Analytics.Utilities
         internal int _flushTimeout = -1;
         internal CancellationToken _flushCancellationToken = CancellationToken.None;
 
-        public SyncEventPipeline(
+        internal SyncEventPipeline(
             Analytics analytics,
             string logTag,
             string apiKey,

@@ -87,7 +87,8 @@ namespace Tests.Retry
             HttpConfig config = HttpConfigParser.Parse(json);
 
             Assert.Equal(1000, config.RateLimitConfig.MaxRetryCount);
-            Assert.Equal(3600, config.RateLimitConfig.MaxRetryInterval);
+            // Retry-After is capped at 300s, matching the other SDKs; it used to allow 3600.
+            Assert.Equal(300, config.RateLimitConfig.MaxRetryInterval);
             Assert.Equal(60.0, config.BackoffConfig.BaseBackoffInterval);
             Assert.Equal(3600, config.BackoffConfig.MaxBackoffInterval);
         }

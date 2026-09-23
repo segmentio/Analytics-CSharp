@@ -40,7 +40,7 @@ namespace Segment.Analytics.Utilities
 
         internal const string UploadSig = "#!upload";
 
-        public EventPipeline(
+        internal EventPipeline(
             Analytics analytics,
             string logTag,
             string apiKey,
