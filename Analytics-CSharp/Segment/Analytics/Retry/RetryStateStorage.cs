@@ -52,8 +52,14 @@ namespace Segment.Analytics.Retry
             };
             if (state.WaitUntilTime.HasValue)
                 root["waitUntilTime"] = state.WaitUntilTime.Value;
-            if (state.RateLimitStartTime.HasValue)
-                root["rateLimitStartTime"] = state.RateLimitStartTime.Value;
+
+            // RateLimitStartTime is deliberately not persisted. It measures how long this
+            // process has been retrying a batch, and time while the process was not
+            // running is not time spent retrying. Persisting it means an app closed for
+            // longer than MaxRateLimitDuration loads an already-expired episode and
+            // discards the batch on its first flush without ever having retried it. The
+            // retry counts below do persist, so a batch still cannot be retried
+            // indefinitely across restarts.
 
             if (state.BatchMetadata.Count > 0)
             {
@@ -85,7 +91,6 @@ namespace Segment.Analytics.Retry
                 pipelineState = PipelineState.RateLimited;
 
             long? waitUntilTime = ReadNullableLong(root, "waitUntilTime");
-            long? rateLimitStartTime = ReadNullableLong(root, "rateLimitStartTime");
             int globalRetryCount = ReadInt(root, "globalRetryCount");
 
             var batchMetadata = new Dictionary<string, BatchMetadata>();
@@ -104,7 +109,8 @@ namespace Segment.Analytics.Retry
                 }
             }
 
-            return new RetryState(pipelineState, waitUntilTime, globalRetryCount, batchMetadata, rateLimitStartTime);
+            // rateLimitStartTime is intentionally absent; see Serialize.
+            return new RetryState(pipelineState, waitUntilTime, globalRetryCount, batchMetadata);
         }
 
         private static int ReadInt(JsonObject json, string key)

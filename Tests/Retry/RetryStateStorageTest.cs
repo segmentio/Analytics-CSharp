@@ -52,10 +52,12 @@ namespace Tests.Retry
         }
 
         [Fact]
-        public void RoundTrip_RateLimitStartTime()
+        public void RateLimitStartTimeIsNotCarriedAcrossRestarts()
         {
-            // MaxRateLimitDuration measures from this, so losing it across a restart
-            // would restart the episode clock and let a batch outlive its budget.
+            // It measures how long this process has been retrying. Carrying it over
+            // means an app closed for longer than MaxRateLimitDuration loads an
+            // already-expired episode and discards the batch on its first flush,
+            // having never retried it while running. The counts do carry over.
             var state = new RetryState(
                 pipelineState: PipelineState.RateLimited,
                 waitUntilTime: 1_700_000_030_000,
@@ -65,7 +67,7 @@ namespace Tests.Retry
             RetryStateStorage.SaveRetryState(_storage.Object, state);
             RetryState loaded = RetryStateStorage.LoadRetryState(_storage.Object);
 
-            Assert.Equal(1_700_000_000_000, loaded.RateLimitStartTime);
+            Assert.Null(loaded.RateLimitStartTime);
             Assert.Equal(1_700_000_030_000, loaded.WaitUntilTime);
             Assert.Equal(3, loaded.GlobalRetryCount);
         }

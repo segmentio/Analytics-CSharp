@@ -104,9 +104,9 @@ namespace Segment.Analytics.Retry
                     resetState);
             }
 
-            // Check 2b: how long this rate-limit episode has run. A last-ditch guard so a
-            // pathological Retry-After stream cannot hold a batch indefinitely; at the
-            // defaults Check 2 is reached long before this.
+            // Check 2b: how long this rate-limit episode has run. At the defaults this
+            // is what stops retrying — rate-limited attempts are uncounted, so elapsed
+            // time is the real limit and Check 2's count is the backstop behind it.
             if (_config.RateLimitConfig.Enabled
                 && clearedState.RateLimitStartTime.HasValue
                 && currentTime - clearedState.RateLimitStartTime.Value
