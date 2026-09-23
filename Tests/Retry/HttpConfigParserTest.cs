@@ -75,7 +75,15 @@ namespace Tests.Retry
                 "{\"backoffConfig\":{\"statusCodeOverrides\":{\"abc\":\"retry\",\"999\":\"retry\",\"200\":\"invalid\"}}}");
             HttpConfig config = HttpConfigParser.Parse(json);
 
-            Assert.Empty(config.BackoffConfig.StatusCodeOverrides);
+            // The unusable entries are dropped.
+            Assert.False(config.BackoffConfig.StatusCodeOverrides.ContainsKey(999));
+            Assert.False(config.BackoffConfig.StatusCodeOverrides.ContainsKey(200));
+
+            // And the built-in defaults survive. This used to assert the dictionary
+            // was empty, which meant a settings payload of nothing but junk wiped
+            // them — leaving 511 to fall through to Default5xxBehavior and be retried.
+            Assert.Equal(RetryBehavior.Drop, config.BackoffConfig.StatusCodeOverrides[511]);
+            Assert.Equal(RetryBehavior.Retry, config.BackoffConfig.StatusCodeOverrides[429]);
         }
 
         [Fact]
@@ -87,7 +95,8 @@ namespace Tests.Retry
             HttpConfig config = HttpConfigParser.Parse(json);
 
             Assert.Equal(1000, config.RateLimitConfig.MaxRetryCount);
-            Assert.Equal(3600, config.RateLimitConfig.MaxRetryInterval);
+            // Retry-After is capped at 300s, matching the other SDKs; it used to allow 3600.
+            Assert.Equal(300, config.RateLimitConfig.MaxRetryInterval);
             Assert.Equal(60.0, config.BackoffConfig.BaseBackoffInterval);
             Assert.Equal(3600, config.BackoffConfig.MaxBackoffInterval);
         }
@@ -101,7 +110,22 @@ namespace Tests.Retry
 
             Assert.Equal(50, config.BackoffConfig.MaxRetryCount);
             Assert.Equal(0.5, config.BackoffConfig.BaseBackoffInterval); // default
-            Assert.Equal(300, config.BackoffConfig.MaxBackoffInterval); // default
+            Assert.Equal(60, config.BackoffConfig.MaxBackoffInterval); // default
+        }
+
+        [Fact]
+        public void Parse_AbsentKeys_MatchTheConstructorDefaults()
+        {
+            // The parser used to hardcode its own copies of these, which had drifted.
+            var json = JsonUtility.FromJson<JsonObject>("{\"backoffConfig\":{}}");
+            HttpConfig config = HttpConfigParser.Parse(json);
+            var defaults = new BackoffConfig();
+
+            Assert.Equal(defaults.MaxRetryCount, config.BackoffConfig.MaxRetryCount);
+            Assert.Equal(defaults.BaseBackoffInterval, config.BackoffConfig.BaseBackoffInterval);
+            Assert.Equal(defaults.MaxBackoffInterval, config.BackoffConfig.MaxBackoffInterval);
+            Assert.Equal(defaults.MaxTotalBackoffDuration, config.BackoffConfig.MaxTotalBackoffDuration);
+            Assert.Equal(defaults.JitterPercent, config.BackoffConfig.JitterPercent);
         }
     }
 }

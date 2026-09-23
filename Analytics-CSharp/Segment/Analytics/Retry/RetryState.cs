@@ -34,6 +34,11 @@ namespace Segment.Analytics.Retry
         public PipelineState PipelineState { get; }
         public long? WaitUntilTime { get; }
         public int GlobalRetryCount { get; }
+
+        /// <summary>When the current rate-limit episode began, for MaxRateLimitDuration.
+        /// Null outside an episode; cleared on the first success.</summary>
+        public long? RateLimitStartTime { get; }
+
         public Dictionary<string, BatchMetadata> BatchMetadata { get; }
 
         private static readonly Dictionary<string, BatchMetadata> s_emptyMetadata =
@@ -43,11 +48,13 @@ namespace Segment.Analytics.Retry
             PipelineState pipelineState = PipelineState.Ready,
             long? waitUntilTime = null,
             int globalRetryCount = 0,
-            Dictionary<string, BatchMetadata> batchMetadata = null)
+            Dictionary<string, BatchMetadata> batchMetadata = null,
+            long? rateLimitStartTime = null)
         {
             PipelineState = pipelineState;
             WaitUntilTime = waitUntilTime;
             GlobalRetryCount = globalRetryCount;
+            RateLimitStartTime = rateLimitStartTime;
             BatchMetadata = batchMetadata ?? s_emptyMetadata;
         }
 
@@ -63,13 +70,18 @@ namespace Segment.Analytics.Retry
             long? waitUntilTime = null,
             bool clearWaitUntilTime = false,
             int? globalRetryCount = null,
-            Dictionary<string, BatchMetadata> batchMetadata = null)
+            Dictionary<string, BatchMetadata> batchMetadata = null,
+            long? rateLimitStartTime = null,
+            bool clearRateLimitStartTime = false)
         {
             return new RetryState(
                 pipelineState: pipelineState ?? PipelineState,
                 waitUntilTime: clearWaitUntilTime ? null : (waitUntilTime ?? WaitUntilTime),
                 globalRetryCount: globalRetryCount ?? GlobalRetryCount,
-                batchMetadata: batchMetadata ?? BatchMetadata
+                batchMetadata: batchMetadata ?? BatchMetadata,
+                rateLimitStartTime: clearRateLimitStartTime
+                    ? null
+                    : (rateLimitStartTime ?? RateLimitStartTime)
             );
         }
 

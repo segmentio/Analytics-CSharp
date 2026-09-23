@@ -46,20 +46,28 @@ namespace Segment.Analytics.Retry
             if (json == null)
                 return new RateLimitConfig(enabled: enabled);
 
-            int maxRetryCount = 100;
+            var defaults = new RateLimitConfig();
+
+            int maxRetryCount = defaults.MaxRetryCount;
             string maxRetriesStr = json.GetString("maxRetryCount");
             if (maxRetriesStr != null && int.TryParse(maxRetriesStr, out int parsedMaxRetries))
                 maxRetryCount = parsedMaxRetries;
 
-            int maxRetryInterval = 300;
+            int maxRetryInterval = defaults.MaxRetryInterval;
             string intervalStr = json.GetString("maxRetryInterval");
             if (intervalStr != null && int.TryParse(intervalStr, out int parsedInterval))
                 maxRetryInterval = parsedInterval;
 
+            long maxRateLimitDuration = defaults.MaxRateLimitDuration;
+            string durationStr = json.GetString("maxRateLimitDuration");
+            if (durationStr != null && long.TryParse(durationStr, out long parsedDuration))
+                maxRateLimitDuration = parsedDuration;
+
             return new RateLimitConfig(
                 enabled: enabled,
                 maxRetryCount: maxRetryCount,
-                maxRetryInterval: maxRetryInterval
+                maxRetryInterval: maxRetryInterval,
+                maxRateLimitDuration: maxRateLimitDuration
             );
         }
 
@@ -68,27 +76,29 @@ namespace Segment.Analytics.Retry
             if (json == null)
                 return new BackoffConfig(enabled: enabled);
 
-            int maxRetryCount = 100;
+            var defaults = new BackoffConfig();
+
+            int maxRetryCount = defaults.MaxRetryCount;
             string maxRetriesStr = json.GetString("maxRetryCount");
             if (maxRetriesStr != null && int.TryParse(maxRetriesStr, out int parsedMaxRetries))
                 maxRetryCount = parsedMaxRetries;
 
-            double baseBackoffInterval = 0.5;
+            double baseBackoffInterval = defaults.BaseBackoffInterval;
             string baseStr = json.GetString("baseBackoffInterval");
             if (baseStr != null && double.TryParse(baseStr, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsedBase))
                 baseBackoffInterval = parsedBase;
 
-            int maxBackoffInterval = 300;
+            int maxBackoffInterval = defaults.MaxBackoffInterval;
             string maxStr = json.GetString("maxBackoffInterval");
             if (maxStr != null && int.TryParse(maxStr, out int parsedMax))
                 maxBackoffInterval = parsedMax;
 
-            long maxTotalBackoffDuration = 43200;
+            long maxTotalBackoffDuration = defaults.MaxTotalBackoffDuration;
             string durationStr = json.GetString("maxTotalBackoffDuration");
             if (durationStr != null && long.TryParse(durationStr, out long parsedDuration))
                 maxTotalBackoffDuration = parsedDuration;
 
-            int jitterPercent = 10;
+            int jitterPercent = defaults.JitterPercent;
             string jitterStr = json.GetString("jitterPercent");
             if (jitterStr != null && int.TryParse(jitterStr, out int parsedJitter))
                 jitterPercent = parsedJitter;

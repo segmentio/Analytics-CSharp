@@ -52,6 +52,8 @@ namespace Segment.Analytics.Retry
             };
             if (state.WaitUntilTime.HasValue)
                 root["waitUntilTime"] = state.WaitUntilTime.Value;
+            if (state.RateLimitStartTime.HasValue)
+                root["rateLimitStartTime"] = state.RateLimitStartTime.Value;
 
             if (state.BatchMetadata.Count > 0)
             {
@@ -83,6 +85,7 @@ namespace Segment.Analytics.Retry
                 pipelineState = PipelineState.RateLimited;
 
             long? waitUntilTime = ReadNullableLong(root, "waitUntilTime");
+            long? rateLimitStartTime = ReadNullableLong(root, "rateLimitStartTime");
             int globalRetryCount = ReadInt(root, "globalRetryCount");
 
             var batchMetadata = new Dictionary<string, BatchMetadata>();
@@ -101,7 +104,7 @@ namespace Segment.Analytics.Retry
                 }
             }
 
-            return new RetryState(pipelineState, waitUntilTime, globalRetryCount, batchMetadata);
+            return new RetryState(pipelineState, waitUntilTime, globalRetryCount, batchMetadata, rateLimitStartTime);
         }
 
         private static int ReadInt(JsonObject json, string key)

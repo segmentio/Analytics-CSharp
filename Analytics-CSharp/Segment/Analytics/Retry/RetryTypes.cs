@@ -6,7 +6,7 @@ namespace Segment.Analytics.Retry
         RateLimited
     }
 
-    internal enum RetryBehavior
+    public enum RetryBehavior
     {
         Retry,
         Drop

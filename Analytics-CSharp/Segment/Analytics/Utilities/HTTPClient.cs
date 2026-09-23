@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 using Segment.Analytics.Retry;
 using Segment.Serialization;
@@ -24,6 +25,15 @@ namespace Segment.Analytics.Utilities
         internal const string DefaultCdnHost = "cdn-settings.segment.com/v1";
 
         private readonly string _apiKey;
+
+        /// <summary>
+        /// Value for the Authorization header: the write key as HTTP Basic credentials with an
+        /// empty password, matching the other Segment SDKs. TAPI authenticates and routes on this
+        /// header rather than parsing the payload, so custom <see cref="HTTPClient"/>
+        /// implementations should send it on upload requests.
+        /// </summary>
+        protected string BasicAuthorization =>
+            "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(_apiKey + ":"));
 
         protected readonly string _apiHost;
 
@@ -123,7 +133,12 @@ namespace Segment.Analytics.Utilities
                     AnalyticsRef?.ReportInternalError(AnalyticsErrorType.NetworkUnexpectedHttpCode, message: "Response code: " + response.StatusCode);
 
                 // Single source of truth for the drop/keep decision.
-                return new RetryStateMachine(new RetryConfig()).ShouldDeleteBatch(response.StatusCode);
+                // Pinned to a disabled config so this legacy path keeps the drop/keep
+                // behavior it had before retries became enabled by default.
+                return new RetryStateMachine(new RetryConfig(
+                        new RateLimitConfig(enabled: false),
+                        new BackoffConfig(enabled: false)))
+                    .ShouldDeleteBatch(response.StatusCode);
             }
             catch (Exception e)
             {
@@ -188,6 +203,8 @@ namespace Segment.Analytics.Utilities
             /// <summary>
             /// A convenient method to check if the http request is successful
             /// </summary>
+            // Only 2xx. HttpClient follows any redirect it can, so a 3xx here means it
+            // declined to (no Location, a 300, or a 304) and nothing was uploaded.
             public bool IsSuccessStatusCode => StatusCode >= 200 && StatusCode < 300;
         }
     }
@@ -242,6 +259,7 @@ namespace Segment.Analytics.Utilities
 
                 var request = new HttpRequestMessage(HttpMethod.Post, url);
                 request.Headers.Add("Connection", "close");
+                request.Headers.Add("Authorization", BasicAuthorization);
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
                 if (retryCount > 0)
                     request.Headers.Add("X-Retry-Count", retryCount.ToString());

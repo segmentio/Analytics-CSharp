@@ -52,6 +52,42 @@ namespace Tests.Retry
         }
 
         [Fact]
+        public void RoundTrip_RateLimitStartTime()
+        {
+            // MaxRateLimitDuration measures from this, so losing it across a restart
+            // would restart the episode clock and let a batch outlive its budget.
+            var state = new RetryState(
+                pipelineState: PipelineState.RateLimited,
+                waitUntilTime: 1_700_000_030_000,
+                globalRetryCount: 3,
+                rateLimitStartTime: 1_700_000_000_000);
+
+            RetryStateStorage.SaveRetryState(_storage.Object, state);
+            RetryState loaded = RetryStateStorage.LoadRetryState(_storage.Object);
+
+            Assert.Equal(1_700_000_000_000, loaded.RateLimitStartTime);
+            Assert.Equal(1_700_000_030_000, loaded.WaitUntilTime);
+            Assert.Equal(3, loaded.GlobalRetryCount);
+        }
+
+        [Fact]
+        public void LoadRetryState_StateWrittenBeforeRateLimitStartTimeExisted()
+        {
+            // State persisted by 2.6.0 has no such key; it must load as null rather
+            // than failing or defaulting to the epoch, which would read as an episode
+            // that started in 1970 and expire every batch immediately.
+            _storage
+                .Setup(s => s.Read(StorageConstants.RetryState))
+                .Returns("{\"pipelineState\":\"RateLimited\",\"globalRetryCount\":2,\"waitUntilTime\":1700000030000}");
+
+            RetryState loaded = RetryStateStorage.LoadRetryState(_storage.Object);
+
+            Assert.Null(loaded.RateLimitStartTime);
+            Assert.Equal(PipelineState.RateLimited, loaded.PipelineState);
+            Assert.Equal(2, loaded.GlobalRetryCount);
+        }
+
+        [Fact]
         public void RoundTrip_WithBatchMetadata()
         {
             var metadata = new Dictionary<string, BatchMetadata>

@@ -3,27 +3,48 @@ using System.Collections.Generic;
 
 namespace Segment.Analytics.Retry
 {
-    internal class RateLimitConfig
+    public class RateLimitConfig
     {
+        /// <summary>Largest Retry-After the client will honour, in seconds. RFC 7231 allows
+        /// more, but the TAPI agreements cap it here and the other SDKs fix it at this value.</summary>
+        public const int MaxRetryIntervalCeiling = 300;
+
         public bool Enabled { get; }
         public int MaxRetryCount { get; }
         public int MaxRetryInterval { get; }
 
-        public RateLimitConfig(bool enabled = false, int maxRetryCount = 100, int maxRetryInterval = 300)
+        /// <summary>
+        /// Wall-clock ceiling, in seconds, on how long one rate-limit episode may keep a
+        /// batch alive. A last-ditch guard so a pathological Retry-After stream cannot hold
+        /// a batch forever; <see cref="MaxRetryCount"/> is what stops retrying in practice.
+        /// At the defaults the count is reached first by a wide margin, since
+        /// MaxRetryCount * MaxRetryIntervalCeiling is well under this.
+        /// </summary>
+        public long MaxRateLimitDuration { get; }
+
+        public RateLimitConfig(
+            bool enabled = true,
+            int maxRetryCount = 100,
+            int maxRetryInterval = 300,
+            long maxRateLimitDuration = 43200)
         {
             Enabled = enabled;
             MaxRetryCount = maxRetryCount;
             MaxRetryInterval = maxRetryInterval;
+            MaxRateLimitDuration = maxRateLimitDuration;
         }
 
         public RateLimitConfig Validated() => new RateLimitConfig(
             enabled: Enabled,
-            maxRetryCount: Math.Max(0, Math.Min(MaxRetryCount, 1000)),
-            maxRetryInterval: Math.Max(1, Math.Min(MaxRetryInterval, 3600))
+            // Floored at 1: the count is compared against a fresh state's retry
+            // count, so 0 would drop every batch before it was ever sent.
+            maxRetryCount: Math.Max(1, Math.Min(MaxRetryCount, 1000)),
+            maxRetryInterval: Math.Max(1, Math.Min(MaxRetryInterval, MaxRetryIntervalCeiling)),
+            maxRateLimitDuration: Math.Max(0, Math.Min(MaxRateLimitDuration, 604800))
         );
     }
 
-    internal class BackoffConfig
+    public class BackoffConfig
     {
         public bool Enabled { get; }
         public int MaxRetryCount { get; }
@@ -37,10 +58,10 @@ namespace Segment.Analytics.Retry
         public Dictionary<int, RetryBehavior> StatusCodeOverrides { get; }
 
         public BackoffConfig(
-            bool enabled = false,
-            int maxRetryCount = 100,
+            bool enabled = true,
+            int maxRetryCount = 10,
             double baseBackoffInterval = 0.5,
-            int maxBackoffInterval = 300,
+            int maxBackoffInterval = 60,
             long maxTotalBackoffDuration = 43200,
             int jitterPercent = 10,
             RetryBehavior default4xxBehavior = RetryBehavior.Drop,
@@ -57,15 +78,30 @@ namespace Segment.Analytics.Retry
             Default4xxBehavior = default4xxBehavior;
             Default5xxBehavior = default5xxBehavior;
             UnknownCodeBehavior = unknownCodeBehavior;
-            StatusCodeOverrides = statusCodeOverrides ?? DefaultStatusCodeOverrides;
+            // Merged over the defaults, not substituted for them. Replacing meant that
+            // overriding one status silently changed seven others: 408, 410, 429 and
+            // 460 stopped being retried, and 511 fell through to Default5xxBehavior
+            // and started being retried, which is the one thing it must never do.
+            // Copied rather than aliased because the property is public, so sharing
+            // the static default would let one caller's mutation corrupt every
+            // BackoffConfig built afterwards.
+            StatusCodeOverrides = new Dictionary<int, RetryBehavior>(DefaultStatusCodeOverrides);
+            if (statusCodeOverrides != null)
+            {
+                foreach (KeyValuePair<int, RetryBehavior> kvp in statusCodeOverrides)
+                    StatusCodeOverrides[kvp.Key] = kvp.Value;
+            }
         }
 
         public BackoffConfig Validated() => new BackoffConfig(
             enabled: Enabled,
-            maxRetryCount: Math.Max(0, Math.Min(MaxRetryCount, 1000)),
+            maxRetryCount: Math.Max(1, Math.Min(MaxRetryCount, 1000)),
             baseBackoffInterval: Math.Max(0.1, Math.Min(BaseBackoffInterval, 60.0)),
             maxBackoffInterval: Math.Max(1, Math.Min(MaxBackoffInterval, 3600)),
-            maxTotalBackoffDuration: Math.Max(0, Math.Min(MaxTotalBackoffDuration, 604800)),
+            // Floored at 1 for the same reason as maxRetryCount: ExceedsMaxDuration
+            // compares elapsed time against this, so 0 meant "no budget" — the batch
+            // was abandoned on its second attempt — rather than "no cap".
+            maxTotalBackoffDuration: Math.Max(1, Math.Min(MaxTotalBackoffDuration, 604800)),
             jitterPercent: Math.Max(0, Math.Min(JitterPercent, 50)),
             default4xxBehavior: Default4xxBehavior,
             default5xxBehavior: Default5xxBehavior,
@@ -93,7 +129,11 @@ namespace Segment.Analytics.Retry
                 { 429, RetryBehavior.Retry },
                 { 460, RetryBehavior.Retry },
                 { 501, RetryBehavior.Drop },
-                { 505, RetryBehavior.Drop }
+                { 505, RetryBehavior.Drop },
+                // 511 is only retryable for an SDK that can re-authenticate via OAuth.
+                // This one cannot, so retrying would spend the budget on a request that
+                // can never succeed.
+                { 511, RetryBehavior.Drop }
             };
     }
 
@@ -109,7 +149,7 @@ namespace Segment.Analytics.Retry
         }
     }
 
-    internal class HttpConfig
+    public class HttpConfig
     {
         public RateLimitConfig RateLimitConfig { get; }
         public BackoffConfig BackoffConfig { get; }

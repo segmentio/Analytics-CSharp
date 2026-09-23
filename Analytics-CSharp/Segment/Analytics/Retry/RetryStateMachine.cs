@@ -37,19 +37,33 @@ namespace Segment.Analytics.Retry
                     pipelineState: PipelineState.Ready,
                     clearWaitUntilTime: true,
                     globalRetryCount: 0,
-                    batchMetadata: RemoveFromMetadata(state, response.BatchFile)
+                    batchMetadata: RemoveFromMetadata(state, response.BatchFile),
+                    clearRateLimitStartTime: true
                 );
+            }
+
+            // Any retryable status with Retry-After → rate-limit path
+            if (response.RetryAfterSeconds.HasValue && response.RetryAfterSeconds.Value > 0)
+            {
+                RetryBehavior behavior = response.StatusCode == 429
+                    ? RetryBehavior.Retry  // 429 is always retryable
+                    : ResolveStatusCodeBehavior(response.StatusCode);
+                if (behavior == RetryBehavior.Retry && _config.RateLimitConfig.Enabled)
+                    return HandleRateLimitResponse(state, response, currentTime);
             }
 
             if (response.StatusCode == 429)
             {
                 if (_config.RateLimitConfig.Enabled)
                     return HandleRateLimitResponse(state, response, currentTime);
+                // Dropped rather than handed to backoff: rateLimitConfig.enabled:false is a
+                // kill switch for 429 handling, symmetric with backoffConfig.enabled:false
+                // for 5xx. Asserted by the shared e2e suite's settings-enabled-flag tests.
                 return state.RemoveBatch(response.BatchFile);
             }
 
-            RetryBehavior behavior = ResolveStatusCodeBehavior(response.StatusCode);
-            if (behavior == RetryBehavior.Retry && _config.BackoffConfig.Enabled)
+            RetryBehavior statusBehavior = ResolveStatusCodeBehavior(response.StatusCode);
+            if (statusBehavior == RetryBehavior.Retry && _config.BackoffConfig.Enabled)
                 return HandleRetryableError(state, response, currentTime);
 
             return state.RemoveBatch(response.BatchFile);
@@ -83,10 +97,26 @@ namespace Segment.Analytics.Retry
                 && clearedState.GlobalRetryCount >= _config.RateLimitConfig.MaxRetryCount)
             {
                 RetryState resetState = clearedState
-                    .With(globalRetryCount: 0)
+                    .With(globalRetryCount: 0, clearRateLimitStartTime: true)
                     .RemoveBatch(batchFile);
                 return Tuple.Create(
                     UploadDecision.DropBatch(DropReason.MaxRetriesExceeded),
+                    resetState);
+            }
+
+            // Check 2b: how long this rate-limit episode has run. A last-ditch guard so a
+            // pathological Retry-After stream cannot hold a batch indefinitely; at the
+            // defaults Check 2 is reached long before this.
+            if (_config.RateLimitConfig.Enabled
+                && clearedState.RateLimitStartTime.HasValue
+                && currentTime - clearedState.RateLimitStartTime.Value
+                    >= _config.RateLimitConfig.MaxRateLimitDuration * 1000)
+            {
+                RetryState resetState = clearedState
+                    .With(globalRetryCount: 0, clearRateLimitStartTime: true)
+                    .RemoveBatch(batchFile);
+                return Tuple.Create(
+                    UploadDecision.DropBatch(DropReason.MaxDurationExceeded),
                     resetState);
             }
 
@@ -131,7 +161,14 @@ namespace Segment.Analytics.Retry
             return Math.Max(batchRetryCount, state.GlobalRetryCount);
         }
 
-        public bool ShouldDeleteBatch(int statusCode)
+        public bool ShouldDeleteBatch(int statusCode) => ShouldDeleteBatch(statusCode, null);
+
+        /// <summary>
+        /// Whether the batch file should be removed. <paramref name="retryAfterSeconds"/> must be
+        /// the same value handed to <see cref="HandleResponse"/>, so that the two agree on whether
+        /// this response took the rate-limit path.
+        /// </summary>
+        public bool ShouldDeleteBatch(int statusCode, int? retryAfterSeconds)
         {
             if (IsLegacyMode)
                 return statusCode >= 400 && statusCode <= 499 && statusCode != 429;
@@ -139,12 +176,22 @@ namespace Segment.Analytics.Retry
             if (statusCode >= 200 && statusCode <= 299)
                 return true;
 
+            // Matches HandleResponse: with rate limiting off, a 429 is dropped rather than
+            // falling through to backoff.
             if (statusCode == 429)
                 return !_config.RateLimitConfig.Enabled;
 
             RetryBehavior behavior = ResolveStatusCodeBehavior(statusCode);
-            if (behavior == RetryBehavior.Retry && !_config.BackoffConfig.Enabled)
-                return true;
+            if (behavior == RetryBehavior.Retry)
+            {
+                // A usable Retry-After sends this response down the rate-limit path, which has
+                // just scheduled the retry — keep the batch that retry will re-upload.
+                if (retryAfterSeconds.HasValue && retryAfterSeconds.Value > 0 && _config.RateLimitConfig.Enabled)
+                    return false;
+
+                // Otherwise only backoff can retry it; with backoff off, nothing will.
+                return !_config.BackoffConfig.Enabled;
+            }
 
             return behavior == RetryBehavior.Drop;
         }
@@ -155,7 +202,10 @@ namespace Segment.Analytics.Retry
             return state.With(
                 pipelineState: PipelineState.RateLimited,
                 waitUntilTime: waitUntilTimeMs,
-                globalRetryCount: state.GlobalRetryCount + 1
+                globalRetryCount: state.GlobalRetryCount + 1,
+                // Stamped on the first rate-limited response of an episode and left alone
+                // afterwards, so MaxRateLimitDuration measures the whole episode.
+                rateLimitStartTime: state.RateLimitStartTime ?? currentTime
             );
         }
 
