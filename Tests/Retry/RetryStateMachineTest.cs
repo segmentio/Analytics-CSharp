@@ -487,6 +487,48 @@ namespace Tests.Retry
         }
     
         [Fact]
+        public void RateLimitWaitIsClampedToTheEndOfTheBudget()
+        {
+            // The only behavioural test of the clamp itself. Deleting the clamp from
+            // HandleRateLimitResponse leaves every other test in the suite passing,
+            // because the rest exercise config validation and arithmetic on defaults
+            // rather than the state machine.
+            var clock = new FakeTimeProvider();
+            var machine = CreateMachine(
+                maxRetryCount: 1000, timeProvider: clock, maxRateLimitDuration: 300);
+
+            long began = clock.CurrentTimeMillis();
+            RetryState state = machine.HandleResponse(
+                new RetryState(), new ResponseInfo(429, 5, "b.json", began));
+
+            // 1 second of budget left, and the server asks for 60.
+            clock.Time += 299_000;
+            state = machine.HandleResponse(
+                state, new ResponseInfo(429, 60, "b.json", clock.CurrentTimeMillis()));
+
+            long deadline = began + (300 * 1000L);
+            Assert.Equal(deadline, state.WaitUntilTime);
+            Assert.True(
+                state.WaitUntilTime <= deadline,
+                $"waited until {state.WaitUntilTime}, past the episode deadline {deadline}");
+        }
+
+        [Fact]
+        public void RateLimitWaitIsUnclampedWhileTheBudgetIsAmple()
+        {
+            // The clamp must not shorten a wait that fits, or every Retry-After would
+            // be truncated to the episode deadline rather than honoured.
+            var clock = new FakeTimeProvider();
+            var machine = CreateMachine(timeProvider: clock, maxRateLimitDuration: 300);
+
+            long now = clock.CurrentTimeMillis();
+            RetryState state = machine.HandleResponse(
+                new RetryState(), new ResponseInfo(429, 30, "b.json", now));
+
+            Assert.Equal(now + 30_000, state.WaitUntilTime);
+        }
+
+        [Fact]
         public void RateLimitEpisodeIsBoundedByMaxRateLimitDuration()
         {
             // A pathological Retry-After stream used to be bounded only by a retry count;
