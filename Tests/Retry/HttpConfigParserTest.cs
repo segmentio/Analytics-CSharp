@@ -75,7 +75,15 @@ namespace Tests.Retry
                 "{\"backoffConfig\":{\"statusCodeOverrides\":{\"abc\":\"retry\",\"999\":\"retry\",\"200\":\"invalid\"}}}");
             HttpConfig config = HttpConfigParser.Parse(json);
 
-            Assert.Empty(config.BackoffConfig.StatusCodeOverrides);
+            // The unusable entries are dropped.
+            Assert.False(config.BackoffConfig.StatusCodeOverrides.ContainsKey(999));
+            Assert.False(config.BackoffConfig.StatusCodeOverrides.ContainsKey(200));
+
+            // And the built-in defaults survive. This used to assert the dictionary
+            // was empty, which meant a settings payload of nothing but junk wiped
+            // them — leaving 511 to fall through to Default5xxBehavior and be retried.
+            Assert.Equal(RetryBehavior.Drop, config.BackoffConfig.StatusCodeOverrides[511]);
+            Assert.Equal(RetryBehavior.Retry, config.BackoffConfig.StatusCodeOverrides[429]);
         }
 
         [Fact]

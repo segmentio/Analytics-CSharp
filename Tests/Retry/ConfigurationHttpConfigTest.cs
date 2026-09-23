@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Moq;
 using Segment.Analytics;
 using Segment.Analytics.Retry;
@@ -101,6 +102,51 @@ namespace Tests.Retry
             var pipeline = (SyncEventPipeline)new SyncEventPipelineProvider().Create(analytics, "key");
 
             Assert.False(pipeline._retryStateMachine.IsLegacyMode);
+        }
+
+        [Fact]
+        public void StatusCodeOverridesMergeOverTheDefaultsRatherThanReplacingThem()
+        {
+            // Overriding one status used to drop the defaults for every other: 408,
+            // 410, 429 and 460 stopped being retried, and 511 fell through to
+            // Default5xxBehavior and started being retried.
+            var config = new BackoffConfig(
+                statusCodeOverrides: new Dictionary<int, RetryBehavior>
+                {
+                    { 503, RetryBehavior.Drop }
+                });
+
+            Assert.Equal(RetryBehavior.Drop, config.StatusCodeOverrides[503]);
+            Assert.Equal(RetryBehavior.Retry, config.StatusCodeOverrides[408]);
+            Assert.Equal(RetryBehavior.Retry, config.StatusCodeOverrides[410]);
+            Assert.Equal(RetryBehavior.Retry, config.StatusCodeOverrides[429]);
+            Assert.Equal(RetryBehavior.Retry, config.StatusCodeOverrides[460]);
+            Assert.Equal(RetryBehavior.Drop, config.StatusCodeOverrides[501]);
+            Assert.Equal(RetryBehavior.Drop, config.StatusCodeOverrides[505]);
+            Assert.Equal(RetryBehavior.Drop, config.StatusCodeOverrides[511]);
+        }
+
+        [Fact]
+        public void AnOverrideCanStillContradictADefault()
+        {
+            // Merging must not make the defaults unopposable.
+            var config = new BackoffConfig(
+                statusCodeOverrides: new Dictionary<int, RetryBehavior>
+                {
+                    { 429, RetryBehavior.Drop }
+                });
+
+            Assert.Equal(RetryBehavior.Drop, config.StatusCodeOverrides[429]);
+        }
+
+        [Fact]
+        public void MaxTotalBackoffDurationOfZeroDoesNotAbandonOnTheSecondAttempt()
+        {
+            // ExceedsMaxDuration compares elapsed time against this, so an unfloored
+            // 0 read as "no budget" rather than "no cap".
+            var validated = new BackoffConfig(maxTotalBackoffDuration: 0).Validated();
+
+            Assert.True(validated.MaxTotalBackoffDuration >= 1);
         }
 
         [Fact]

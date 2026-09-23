@@ -78,10 +78,19 @@ namespace Segment.Analytics.Retry
             Default4xxBehavior = default4xxBehavior;
             Default5xxBehavior = default5xxBehavior;
             UnknownCodeBehavior = unknownCodeBehavior;
-            // Copied because the property is public: sharing the static default would let
-            // one caller's mutation corrupt every BackoffConfig built afterwards.
-            StatusCodeOverrides = new Dictionary<int, RetryBehavior>(
-                statusCodeOverrides ?? DefaultStatusCodeOverrides);
+            // Merged over the defaults, not substituted for them. Replacing meant that
+            // overriding one status silently changed seven others: 408, 410, 429 and
+            // 460 stopped being retried, and 511 fell through to Default5xxBehavior
+            // and started being retried, which is the one thing it must never do.
+            // Copied rather than aliased because the property is public, so sharing
+            // the static default would let one caller's mutation corrupt every
+            // BackoffConfig built afterwards.
+            StatusCodeOverrides = new Dictionary<int, RetryBehavior>(DefaultStatusCodeOverrides);
+            if (statusCodeOverrides != null)
+            {
+                foreach (KeyValuePair<int, RetryBehavior> kvp in statusCodeOverrides)
+                    StatusCodeOverrides[kvp.Key] = kvp.Value;
+            }
         }
 
         public BackoffConfig Validated() => new BackoffConfig(
@@ -89,7 +98,10 @@ namespace Segment.Analytics.Retry
             maxRetryCount: Math.Max(1, Math.Min(MaxRetryCount, 1000)),
             baseBackoffInterval: Math.Max(0.1, Math.Min(BaseBackoffInterval, 60.0)),
             maxBackoffInterval: Math.Max(1, Math.Min(MaxBackoffInterval, 3600)),
-            maxTotalBackoffDuration: Math.Max(0, Math.Min(MaxTotalBackoffDuration, 604800)),
+            // Floored at 1 for the same reason as maxRetryCount: ExceedsMaxDuration
+            // compares elapsed time against this, so 0 meant "no budget" — the batch
+            // was abandoned on its second attempt — rather than "no cap".
+            maxTotalBackoffDuration: Math.Max(1, Math.Min(MaxTotalBackoffDuration, 604800)),
             jitterPercent: Math.Max(0, Math.Min(JitterPercent, 50)),
             default4xxBehavior: Default4xxBehavior,
             default5xxBehavior: Default5xxBehavior,
