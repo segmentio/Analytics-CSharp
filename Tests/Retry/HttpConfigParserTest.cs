@@ -54,7 +54,7 @@ namespace Tests.Retry
             HttpConfig config = HttpConfigParser.Parse(json);
 
             Assert.Equal(10, config.RateLimitConfig.MaxRetryCount);
-            // Under the 60s ceiling, so it survives validation unchanged.
+            // Under the ceiling, so it survives validation unchanged.
             Assert.Equal(45, config.RateLimitConfig.MaxRetryInterval);
         }
 
@@ -96,9 +96,8 @@ namespace Tests.Retry
             HttpConfig config = HttpConfigParser.Parse(json);
 
             Assert.Equal(1000, config.RateLimitConfig.MaxRetryCount);
-            // Retry-After is capped at 60s: well below the 5 minute rate-limit budget, so
-            // the budget buys several attempts rather than one long sleep.
-            Assert.Equal(60, config.RateLimitConfig.MaxRetryInterval);
+            // Clamped to the Retry-After ceiling.
+            Assert.Equal(300, config.RateLimitConfig.MaxRetryInterval);
             Assert.Equal(60.0, config.BackoffConfig.BaseBackoffInterval);
             Assert.Equal(3600, config.BackoffConfig.MaxBackoffInterval);
         }

@@ -168,17 +168,17 @@ namespace Tests.Retry
         }
 
         [Fact]
-        public void RetryAfterIsCappedWellBelowTheBudget()
+        public void RetryAfterCeilingClampsAnAbsurdValue()
         {
-            // A cap equal to the budget would let one sleep consume it, leaving the
-            // rate-limit path with a single attempt.
-            var validated = new RateLimitConfig(maxRetryInterval: 3600).Validated();
+            // The ceiling exists to reject a nonsense header, not to shorten a
+            // reasonable one — a value inside it is honoured as given, because waiting
+            // less than asked only adds requests against a server already rate-limiting
+            // us. MaxRateLimitDuration is what bounds how long we keep trying.
+            Assert.Equal(
+                RateLimitConfig.MaxRetryIntervalCeiling,
+                new RateLimitConfig(maxRetryInterval: 3600).Validated().MaxRetryInterval);
 
-            Assert.Equal(RateLimitConfig.MaxRetryIntervalCeiling, validated.MaxRetryInterval);
-            Assert.Equal(60, validated.MaxRetryInterval);
-            Assert.True(
-                validated.MaxRetryInterval * 4 <= validated.MaxRateLimitDuration,
-                "the budget should buy at least a few attempts, not one");
+            Assert.Equal(120, new RateLimitConfig(maxRetryInterval: 120).Validated().MaxRetryInterval);
         }
 
         [Fact]

@@ -5,10 +5,12 @@ namespace Segment.Analytics.Retry
 {
     public class RateLimitConfig
     {
-        /// <summary>Largest Retry-After the client will honour, in seconds. Kept well below
-        /// <see cref="MaxRateLimitDuration"/> so the budget buys several attempts rather than
-        /// one long sleep; at the old 300s a single sleep consumed the whole budget.</summary>
-        public const int MaxRetryIntervalCeiling = 60;
+        /// <summary>Largest Retry-After the client will honour, in seconds. A guard against
+        /// an absurd header, not a second budget: waiting less than the server asked for does
+        /// not make the next attempt more likely to succeed, it just sends more requests at
+        /// something already rate-limiting us. How long we keep trying is
+        /// <see cref="MaxRateLimitDuration"/>'s job.</summary>
+        public const int MaxRetryIntervalCeiling = 300;
 
         public bool Enabled { get; }
         public int MaxRetryCount { get; }
