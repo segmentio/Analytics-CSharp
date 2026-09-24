@@ -152,11 +152,10 @@ namespace Tests.Retry
         [Fact]
         public void MaxRateLimitDurationIsTheOperativeLimitNotTheCount()
         {
-            // This assertion is the inverse of what it was, deliberately. The count used
-            // to be the working limit with a 12h duration as an unreachable backstop —
-            // but rate-limited attempts are uncounted across the other SDKs, so the
-            // duration is what genuinely bounds this path. At 5 minutes against a 60s
-            // ceiling it now trips first, and the count is the backstop.
+            // Deliberately this way round, and it reads backwards at a glance. Rate-
+            // limited attempts are uncounted, so the duration is what genuinely bounds
+            // this path; the count sits behind it as a backstop. Inverting this to
+            // "the count trips first" would make the duration unreachable again.
             var rateLimit = new RateLimitConfig();
 
             long countWouldAllowSeconds =

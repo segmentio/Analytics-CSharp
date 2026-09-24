@@ -489,10 +489,9 @@ namespace Tests.Retry
         [Fact]
         public void RateLimitWaitIsClampedToTheEndOfTheBudget()
         {
-            // The only behavioural test of the clamp itself. Deleting the clamp from
-            // HandleRateLimitResponse leaves every other test in the suite passing,
-            // because the rest exercise config validation and arithmetic on defaults
-            // rather than the state machine.
+            // Guards the clamp in HandleRateLimitResponse. The other retry tests check
+            // config validation and arithmetic on defaults, so they stay green whether
+            // the clamp is there or not.
             var clock = new FakeTimeProvider();
             var machine = CreateMachine(
                 maxRetryCount: 1000, timeProvider: clock, maxRateLimitDuration: 300);
@@ -531,8 +530,8 @@ namespace Tests.Retry
         [Fact]
         public void RateLimitEpisodeIsBoundedByMaxRateLimitDuration()
         {
-            // A pathological Retry-After stream used to be bounded only by a retry count;
-            // this is the wall-clock backstop the other SDKs have had all along.
+            // The wall-clock bound on one episode. Without it a pathological
+            // Retry-After stream is limited only by the retry count.
             var clock = new FakeTimeProvider();
             var machine = CreateMachine(
                 maxRetryCount: 1000, timeProvider: clock, maxRateLimitDuration: 60);
