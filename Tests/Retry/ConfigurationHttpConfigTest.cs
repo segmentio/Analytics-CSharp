@@ -168,6 +168,26 @@ namespace Tests.Retry
         }
 
         [Fact]
+        public void DefaultBudgetLeavesRoomForMoreThanOneMaximalWait()
+        {
+            // At parity the rate-limit path performs no retries at all. A response with
+            // no usable Retry-After waits MaxRetryInterval by default, ShouldUploadBatch
+            // tests elapsed time before the wait, so that one wait spends the budget and
+            // the next evaluation drops the batch — one attempt, having stalled the whole
+            // pipeline for the duration first.
+            var rateLimit = new RateLimitConfig();
+
+            Assert.True(
+                rateLimit.MaxRateLimitDuration > rateLimit.MaxRetryInterval,
+                $"budget is {rateLimit.MaxRateLimitDuration}s against a {rateLimit.MaxRetryInterval}s "
+                + "interval; a single maximal wait would consume it and leave no retry");
+
+            Assert.True(
+                rateLimit.MaxRateLimitDuration / rateLimit.MaxRetryInterval >= 2,
+                "budget leaves room for fewer than two maximal waits");
+        }
+
+        [Fact]
         public void RetryAfterCeilingClampsAnAbsurdValue()
         {
             // The ceiling exists to reject a nonsense header, not to shorten a

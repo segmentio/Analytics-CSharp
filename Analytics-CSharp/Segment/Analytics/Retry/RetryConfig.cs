@@ -18,9 +18,14 @@ namespace Segment.Analytics.Retry
 
         /// <summary>
         /// Wall-clock ceiling, in seconds, on how long one rate-limit episode may keep a
-        /// batch alive. Five minutes, in line with the counted-backoff path's ~4 minute
-        /// worst case. This is the operative limit on that path: rate-limited attempts are
+        /// batch alive. This is the operative limit on that path: rate-limited attempts are
         /// deliberately uncounted, so a duration is the only thing bounding them.
+        ///
+        /// <para>Deliberately several times <see cref="MaxRetryInterval"/>. When the two are
+        /// equal, a response with no usable Retry-After waits <see cref="MaxRetryInterval"/>
+        /// by default, which consumes the entire budget — the elapsed check runs before the
+        /// wait, so the batch is dropped after a single attempt having stalled the whole
+        /// pipeline for the duration.</para>
         /// </summary>
         public long MaxRateLimitDuration { get; }
 
@@ -28,7 +33,7 @@ namespace Segment.Analytics.Retry
             bool enabled = true,
             int maxRetryCount = 100,
             int maxRetryInterval = MaxRetryIntervalCeiling,
-            long maxRateLimitDuration = 300)
+            long maxRateLimitDuration = 1800)
         {
             Enabled = enabled;
             MaxRetryCount = maxRetryCount;

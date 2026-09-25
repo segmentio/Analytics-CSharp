@@ -42,7 +42,7 @@ proxy they point at.
 ### Retry handling
 
 - A `Retry-After` header is honoured on any retryable response, not only 429. Numeric seconds and the RFC 7231 HTTP-date formats are both accepted, and the value is capped at `RateLimitConfig.MaxRetryInterval` (default 300 seconds).
-- Responses carrying `Retry-After` are retried for up to `RateLimitConfig.MaxRateLimitDuration` (default 5 minutes). Other failures use exponential backoff from 500ms to a 60 second ceiling, limited by `BackoffConfig.MaxRetryCount` (default 10) and by `BackoffConfig.MaxTotalBackoffDuration` (default 12 hours) as an upper bound.
+- Responses carrying `Retry-After` are retried for up to `RateLimitConfig.MaxRateLimitDuration` (default 30 minutes). Other failures use exponential backoff from 500ms to a 60 second ceiling, limited by `BackoffConfig.MaxRetryCount` (default 10) and by `BackoffConfig.MaxTotalBackoffDuration` (default 12 hours) as an upper bound.
 - 511 is dropped rather than retried: it asks the client to re-authenticate, which this library cannot do.
 - `RetryBehavior`, `RateLimitConfig`, `BackoffConfig` and `HttpConfig` are now public, and `HttpConfig` is a settable property on `Configuration`, so retry behaviour can be configured in code. On mobile targets, CDN settings replace it when present.
 - `BackoffConfig.StatusCodeOverrides` is merged over the built-in defaults rather than replacing them, so overriding one status leaves the rest unchanged.
