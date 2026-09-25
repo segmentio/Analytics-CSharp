@@ -150,21 +150,31 @@ namespace Tests.Retry
         }
 
         [Fact]
-        public void MaxRateLimitDurationIsTheOperativeLimitNotTheCount()
+        public void WhichRateLimitBoundBindsDependsOnTheRetryAfterBeingServed()
         {
-            // Deliberately this way round, and it reads backwards at a glance. Rate-
-            // limited attempts are uncounted, so the duration is what genuinely bounds
-            // this path; the count sits behind it as a backstop. Inverting this to
-            // "the count trips first" would make the duration unreachable again.
+            // The previous version of this test asserted the duration was below the
+            // count's theoretical maximum span (100 x 300s), which is true and says
+            // nothing: it passes while the count is the limit actually reached. The
+            // crossover is what matters, and at the defaults it sits at 18 seconds --
+            // so the count, not the duration, bounds every episode whose Retry-After
+            // is shorter than that, which is most of them.
             var rateLimit = new RateLimitConfig();
 
-            long countWouldAllowSeconds =
-                (long)rateLimit.MaxRetryCount * RateLimitConfig.MaxRetryIntervalCeiling;
+            double crossoverSeconds =
+                (double)rateLimit.MaxRateLimitDuration / rateLimit.MaxRetryCount;
 
+            // Below the crossover the count runs out first.
             Assert.True(
-                rateLimit.MaxRateLimitDuration < countWouldAllowSeconds,
-                $"duration is {rateLimit.MaxRateLimitDuration}s but the count would allow "
-                + $"{countWouldAllowSeconds}s; the duration should bound this path");
+                rateLimit.MaxRetryCount * (crossoverSeconds / 2) < rateLimit.MaxRateLimitDuration,
+                "expected the count to bind for a Retry-After below the crossover");
+
+            // Above it the duration does.
+            Assert.True(
+                rateLimit.MaxRetryCount * (crossoverSeconds * 2) > rateLimit.MaxRateLimitDuration,
+                "expected the duration to bind for a Retry-After above the crossover");
+
+            // Documented so a change to either constant has to restate it.
+            Assert.Equal(18.0, crossoverSeconds);
         }
 
         [Fact]

@@ -18,8 +18,13 @@ namespace Segment.Analytics.Retry
 
         /// <summary>
         /// Wall-clock ceiling, in seconds, on how long one rate-limit episode may keep a
-        /// batch alive. This is the operative limit on that path: rate-limited attempts are
-        /// deliberately uncounted, so a duration is the only thing bounding them.
+        /// batch alive.
+        ///
+        /// <para>Unlike the other Segment SDKs, this one bounds the rate-limit path by a
+        /// count as well (<see cref="MaxRetryCount"/>), and which of the two binds depends
+        /// on the Retry-After being served: below roughly
+        /// <c>MaxRateLimitDuration / MaxRetryCount</c> — 18 seconds at the defaults — the
+        /// count runs out first, above it the duration does.</para>
         ///
         /// <para>Deliberately several times <see cref="MaxRetryInterval"/>. When the two are
         /// equal, a response with no usable Retry-After waits <see cref="MaxRetryInterval"/>
@@ -47,7 +52,10 @@ namespace Segment.Analytics.Retry
             // count, so 0 would drop every batch before it was ever sent.
             maxRetryCount: Math.Max(1, Math.Min(MaxRetryCount, 1000)),
             maxRetryInterval: Math.Max(1, Math.Min(MaxRetryInterval, MaxRetryIntervalCeiling)),
-            maxRateLimitDuration: Math.Max(0, Math.Min(MaxRateLimitDuration, 604800))
+            // Floored at 1 like its siblings: 0 here means "no budget", so every
+            // rate-limited batch is dropped on its first evaluation. A CDN payload
+            // pushing 0 would silently disable rate-limit retrying altogether.
+            maxRateLimitDuration: Math.Max(1, Math.Min(MaxRateLimitDuration, 604800))
         );
     }
 

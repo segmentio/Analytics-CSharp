@@ -487,11 +487,12 @@ namespace Tests.Retry
         }
     
         [Fact]
-        public void RateLimitWaitIsClampedToTheEndOfTheBudget()
+        public void ARateLimitWaitThatCannotFitTheBudgetEndsTheEpisode()
         {
-            // Guards the clamp in HandleRateLimitResponse. The other retry tests check
-            // config validation and arithmetic on defaults, so they stay green whether
-            // the clamp is there or not.
+            // Shortening it to fit would resume inside the window the server named --
+            // one it has already said it will not serve -- and ShouldUploadBatch would
+            // drop the batch on the elapsed check straight afterwards, so the shortened
+            // wait buys exactly one refused request.
             var clock = new FakeTimeProvider();
             var machine = CreateMachine(
                 maxRetryCount: 1000, timeProvider: clock, maxRateLimitDuration: 300);
@@ -505,11 +506,47 @@ namespace Tests.Retry
             state = machine.HandleResponse(
                 state, new ResponseInfo(429, 60, "b.json", clock.CurrentTimeMillis()));
 
-            long deadline = began + (300 * 1000L);
-            Assert.Equal(deadline, state.WaitUntilTime);
-            Assert.True(
-                state.WaitUntilTime <= deadline,
-                $"waited until {state.WaitUntilTime}, past the episode deadline {deadline}");
+            Assert.Null(state.WaitUntilTime);
+            Assert.Null(state.RateLimitStartTime);
+            Assert.Equal(PipelineState.Ready, state.PipelineState);
+            Assert.False(state.BatchMetadata.ContainsKey("b.json"));
+        }
+
+        [Fact]
+        public void ARateLimitWaitThatFitsIsHonouredInFull()
+        {
+            // "Never shorten" must not become "never wait".
+            var clock = new FakeTimeProvider();
+            var machine = CreateMachine(
+                maxRetryCount: 1000, timeProvider: clock, maxRateLimitDuration: 300);
+
+            long began = clock.CurrentTimeMillis();
+            RetryState state = machine.HandleResponse(
+                new RetryState(), new ResponseInfo(429, 60, "b.json", began));
+
+            Assert.Equal(began + 60_000, state.WaitUntilTime);
+            Assert.Equal(PipelineState.RateLimited, state.PipelineState);
+        }
+
+        [Fact]
+        public void ANonRetryableResponseEndsTheRateLimitEpisode()
+        {
+            // The request completed and carried no rate-limit signal. Leaving
+            // RateLimitStartTime set strands it -- nothing else clears it -- and the
+            // next batch evaluated after the budget elapses is dropped for a rate limit
+            // that ended here, without ever being uploaded.
+            var clock = new FakeTimeProvider();
+            var machine = CreateMachine(timeProvider: clock, maxRateLimitDuration: 300);
+
+            RetryState state = machine.HandleResponse(
+                new RetryState(), new ResponseInfo(429, 5, "b.json", clock.CurrentTimeMillis()));
+            Assert.NotNull(state.RateLimitStartTime);
+
+            clock.Time += 1_000;
+            state = machine.HandleResponse(
+                state, new ResponseInfo(400, null, "b.json", clock.CurrentTimeMillis()));
+
+            Assert.Null(state.RateLimitStartTime);
         }
 
         [Fact]

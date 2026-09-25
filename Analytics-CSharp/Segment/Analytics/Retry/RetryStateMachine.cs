@@ -66,7 +66,13 @@ namespace Segment.Analytics.Retry
             if (statusBehavior == RetryBehavior.Retry && _config.BackoffConfig.Enabled)
                 return HandleRetryableError(state, response, currentTime);
 
-            return state.RemoveBatch(response.BatchFile);
+            // The request completed and carried no rate-limit signal, so the episode is
+            // over. Leaving RateLimitStartTime set strands it: nothing else clears it,
+            // and the next batch to be evaluated after the budget elapses is dropped for
+            // a rate limit that ended here, without ever being uploaded.
+            return state
+                .With(clearRateLimitStartTime: true)
+                .RemoveBatch(response.BatchFile);
         }
 
         public Tuple<UploadDecision, RetryState> ShouldUploadBatch(RetryState state, string batchFile)
@@ -200,13 +206,23 @@ namespace Segment.Analytics.Retry
         {
             long waitUntilTimeMs = CalculateWaitUntilTimeMs(response.RetryAfterSeconds, currentTime);
 
-            // Clamped to the end of the budget: ShouldUploadBatch checks elapsed time
-            // before the wait, so without this a check passing just inside the budget
-            // would wait a full Retry-After beyond it.
+            // A wait that runs past the end of the budget ends the episode. Shortening
+            // it to fit would resume inside the window the server asked us to wait out
+            // -- one it has already said it will not serve -- and ShouldUploadBatch
+            // would then drop the batch on the elapsed check anyway, so the shortened
+            // wait buys a single guaranteed-refused request.
             long episodeStart = state.RateLimitStartTime ?? currentTime;
             long deadline = episodeStart + (_config.RateLimitConfig.MaxRateLimitDuration * 1000L);
             if (waitUntilTimeMs > deadline)
-                waitUntilTimeMs = deadline;
+            {
+                return state
+                    .With(
+                        pipelineState: PipelineState.Ready,
+                        clearWaitUntilTime: true,
+                        globalRetryCount: 0,
+                        clearRateLimitStartTime: true)
+                    .RemoveBatch(response.BatchFile);
+            }
             return state.With(
                 pipelineState: PipelineState.RateLimited,
                 waitUntilTime: waitUntilTimeMs,
