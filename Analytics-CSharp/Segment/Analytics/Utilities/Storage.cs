@@ -29,12 +29,14 @@ namespace Segment.Analytics.Utilities
         public const string _AnonymousId = "segment.anonymousId";
         public const string _Settings = "segment.settings";
         public const string _Events = "segment.events";
+        public const string _RetryState = "segment.retry.state";
         // enum alternatives
         public static readonly StorageConstants UserId = new StorageConstants(_UserId);
         public static readonly StorageConstants Traits = new StorageConstants(_Traits);
         public static readonly StorageConstants AnonymousId = new StorageConstants(_AnonymousId);
         public static readonly StorageConstants Settings = new StorageConstants(_Settings);
         public static readonly StorageConstants Events = new StorageConstants(_Events);
+        public static readonly StorageConstants RetryState = new StorageConstants(_RetryState);
     }
 
     #endregion
