@@ -5,8 +5,11 @@ namespace Segment.Analytics.Retry
 {
     public class RateLimitConfig
     {
-        /// <summary>Largest Retry-After the client will honour, in seconds. RFC 7231 allows
-        /// more, but the TAPI agreements cap it here and the other SDKs fix it at this value.</summary>
+        /// <summary>Largest Retry-After the client will honour, in seconds. A guard against
+        /// an absurd header, not a second budget: waiting less than the server asked for does
+        /// not make the next attempt more likely to succeed, it just sends more requests at
+        /// something already rate-limiting us. How long we keep trying is
+        /// <see cref="MaxRateLimitDuration"/>'s job.</summary>
         public const int MaxRetryIntervalCeiling = 300;
 
         public bool Enabled { get; }
@@ -15,18 +18,27 @@ namespace Segment.Analytics.Retry
 
         /// <summary>
         /// Wall-clock ceiling, in seconds, on how long one rate-limit episode may keep a
-        /// batch alive. A last-ditch guard so a pathological Retry-After stream cannot hold
-        /// a batch forever; <see cref="MaxRetryCount"/> is what stops retrying in practice.
-        /// At the defaults the count is reached first by a wide margin, since
-        /// MaxRetryCount * MaxRetryIntervalCeiling is well under this.
+        /// batch alive.
+        ///
+        /// <para>Unlike the other Segment SDKs, this one bounds the rate-limit path by a
+        /// count as well (<see cref="MaxRetryCount"/>), and which of the two binds depends
+        /// on the Retry-After being served: below roughly
+        /// <c>MaxRateLimitDuration / MaxRetryCount</c> — 18 seconds at the defaults — the
+        /// count runs out first, above it the duration does.</para>
+        ///
+        /// <para>Deliberately several times <see cref="MaxRetryInterval"/>. When the two are
+        /// equal, a response with no usable Retry-After waits <see cref="MaxRetryInterval"/>
+        /// by default, which consumes the entire budget — the elapsed check runs before the
+        /// wait, so the batch is dropped after a single attempt having stalled the whole
+        /// pipeline for the duration.</para>
         /// </summary>
         public long MaxRateLimitDuration { get; }
 
         public RateLimitConfig(
             bool enabled = true,
             int maxRetryCount = 100,
-            int maxRetryInterval = 300,
-            long maxRateLimitDuration = 43200)
+            int maxRetryInterval = MaxRetryIntervalCeiling,
+            long maxRateLimitDuration = 1800)
         {
             Enabled = enabled;
             MaxRetryCount = maxRetryCount;
@@ -40,7 +52,10 @@ namespace Segment.Analytics.Retry
             // count, so 0 would drop every batch before it was ever sent.
             maxRetryCount: Math.Max(1, Math.Min(MaxRetryCount, 1000)),
             maxRetryInterval: Math.Max(1, Math.Min(MaxRetryInterval, MaxRetryIntervalCeiling)),
-            maxRateLimitDuration: Math.Max(0, Math.Min(MaxRateLimitDuration, 604800))
+            // Floored at 1 like its siblings: 0 here means "no budget", so every
+            // rate-limited batch is dropped on its first evaluation. A CDN payload
+            // pushing 0 would silently disable rate-limit retrying altogether.
+            maxRateLimitDuration: Math.Max(1, Math.Min(MaxRateLimitDuration, 604800))
         );
     }
 

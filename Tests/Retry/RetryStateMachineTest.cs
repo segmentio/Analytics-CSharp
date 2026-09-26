@@ -487,10 +487,88 @@ namespace Tests.Retry
         }
     
         [Fact]
+        public void ARateLimitWaitThatCannotFitTheBudgetEndsTheEpisode()
+        {
+            // Shortening it to fit would resume inside the window the server named --
+            // one it has already said it will not serve -- and ShouldUploadBatch would
+            // drop the batch on the elapsed check straight afterwards, so the shortened
+            // wait buys exactly one refused request.
+            var clock = new FakeTimeProvider();
+            var machine = CreateMachine(
+                maxRetryCount: 1000, timeProvider: clock, maxRateLimitDuration: 300);
+
+            long began = clock.CurrentTimeMillis();
+            RetryState state = machine.HandleResponse(
+                new RetryState(), new ResponseInfo(429, 5, "b.json", began));
+
+            // 1 second of budget left, and the server asks for 60.
+            clock.Time += 299_000;
+            state = machine.HandleResponse(
+                state, new ResponseInfo(429, 60, "b.json", clock.CurrentTimeMillis()));
+
+            Assert.Null(state.WaitUntilTime);
+            Assert.Null(state.RateLimitStartTime);
+            Assert.Equal(PipelineState.Ready, state.PipelineState);
+            Assert.False(state.BatchMetadata.ContainsKey("b.json"));
+        }
+
+        [Fact]
+        public void ARateLimitWaitThatFitsIsHonouredInFull()
+        {
+            // "Never shorten" must not become "never wait".
+            var clock = new FakeTimeProvider();
+            var machine = CreateMachine(
+                maxRetryCount: 1000, timeProvider: clock, maxRateLimitDuration: 300);
+
+            long began = clock.CurrentTimeMillis();
+            RetryState state = machine.HandleResponse(
+                new RetryState(), new ResponseInfo(429, 60, "b.json", began));
+
+            Assert.Equal(began + 60_000, state.WaitUntilTime);
+            Assert.Equal(PipelineState.RateLimited, state.PipelineState);
+        }
+
+        [Fact]
+        public void ANonRetryableResponseEndsTheRateLimitEpisode()
+        {
+            // The request completed and carried no rate-limit signal. Leaving
+            // RateLimitStartTime set strands it -- nothing else clears it -- and the
+            // next batch evaluated after the budget elapses is dropped for a rate limit
+            // that ended here, without ever being uploaded.
+            var clock = new FakeTimeProvider();
+            var machine = CreateMachine(timeProvider: clock, maxRateLimitDuration: 300);
+
+            RetryState state = machine.HandleResponse(
+                new RetryState(), new ResponseInfo(429, 5, "b.json", clock.CurrentTimeMillis()));
+            Assert.NotNull(state.RateLimitStartTime);
+
+            clock.Time += 1_000;
+            state = machine.HandleResponse(
+                state, new ResponseInfo(400, null, "b.json", clock.CurrentTimeMillis()));
+
+            Assert.Null(state.RateLimitStartTime);
+        }
+
+        [Fact]
+        public void RateLimitWaitIsUnclampedWhileTheBudgetIsAmple()
+        {
+            // The clamp must not shorten a wait that fits, or every Retry-After would
+            // be truncated to the episode deadline rather than honoured.
+            var clock = new FakeTimeProvider();
+            var machine = CreateMachine(timeProvider: clock, maxRateLimitDuration: 300);
+
+            long now = clock.CurrentTimeMillis();
+            RetryState state = machine.HandleResponse(
+                new RetryState(), new ResponseInfo(429, 30, "b.json", now));
+
+            Assert.Equal(now + 30_000, state.WaitUntilTime);
+        }
+
+        [Fact]
         public void RateLimitEpisodeIsBoundedByMaxRateLimitDuration()
         {
-            // A pathological Retry-After stream used to be bounded only by a retry count;
-            // this is the wall-clock backstop the other SDKs have had all along.
+            // The wall-clock bound on one episode. Without it a pathological
+            // Retry-After stream is limited only by the retry count.
             var clock = new FakeTimeProvider();
             var machine = CreateMachine(
                 maxRetryCount: 1000, timeProvider: clock, maxRateLimitDuration: 60);

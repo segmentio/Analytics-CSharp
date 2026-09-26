@@ -50,11 +50,12 @@ namespace Tests.Retry
         public void Parse_RateLimitConfig_ParsesValues()
         {
             var json = JsonUtility.FromJson<JsonObject>(
-                "{\"rateLimitConfig\":{\"maxRetryCount\":\"10\",\"maxRetryInterval\":\"120\"}}");
+                "{\"rateLimitConfig\":{\"maxRetryCount\":\"10\",\"maxRetryInterval\":\"45\"}}");
             HttpConfig config = HttpConfigParser.Parse(json);
 
             Assert.Equal(10, config.RateLimitConfig.MaxRetryCount);
-            Assert.Equal(120, config.RateLimitConfig.MaxRetryInterval);
+            // Under the ceiling, so it survives validation unchanged.
+            Assert.Equal(45, config.RateLimitConfig.MaxRetryInterval);
         }
 
         [Fact]
@@ -95,7 +96,7 @@ namespace Tests.Retry
             HttpConfig config = HttpConfigParser.Parse(json);
 
             Assert.Equal(1000, config.RateLimitConfig.MaxRetryCount);
-            // Retry-After is capped at 300s, matching the other SDKs; it used to allow 3600.
+            // Clamped to the Retry-After ceiling.
             Assert.Equal(300, config.RateLimitConfig.MaxRetryInterval);
             Assert.Equal(60.0, config.BackoffConfig.BaseBackoffInterval);
             Assert.Equal(3600, config.BackoffConfig.MaxBackoffInterval);

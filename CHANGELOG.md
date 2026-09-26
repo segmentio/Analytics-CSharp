@@ -6,16 +6,16 @@ This file carries the notes that need more than a pull-request title.
 
 ## Unreleased
 
-### Behavior change: retries and backoff are on by default
+### Behaviour change: retries and backoff are on by default
 
-Through 2.6.0, rate limiting and exponential backoff were both disabled unless you
-supplied an `HttpConfig` or a CDN settings payload turned them on. Server-side
-deployments receive no CDN settings, so in practice they retried nothing: 408, 410 and
-460 were dropped, `Retry-After` was ignored, and a 429 or 5xx was held with no delay and
-no budget. Both subsystems now default to enabled, so a client that configures nothing
-gets the documented retry behavior.
+Through 2.6.0, rate limiting and exponential backoff were both disabled unless an
+`HttpConfig` was supplied or a CDN settings payload turned them on. Server-side
+deployments receive no CDN settings, so in practice they retried nothing: 408, 410
+and 460 were dropped, `Retry-After` was ignored, and a 429 or 5xx was held with no
+delay and no budget. Both subsystems now default to enabled, so a client that
+configures nothing gets the retry behaviour described below.
 
-To keep the old behavior, disable both explicitly:
+To keep the previous behaviour, disable both explicitly:
 
 ```csharp
 new Configuration("writeKey")
@@ -26,29 +26,30 @@ new Configuration("writeKey")
 }
 ```
 
-CDN settings are unaffected and still take precedence: a payload carrying an
-`httpConfig` key replaces whatever the pipeline is running with, and a payload without
-that key leaves your configuration in effect.
+CDN settings still take precedence: a payload carrying an `httpConfig` key replaces
+whatever the pipeline is running with, and a payload without that key leaves the
+supplied configuration in effect.
 
-- Backoff defaults now match the other Segment SDKs: `MaxRetryCount` 10 (was 100) and `MaxBackoffInterval` 60s (was 300s). With retries off by default those numbers were latent; enabling them unchanged would have had C# clients making an order of magnitude more attempts against the endpoint than any other SDK.
-
-### Upgrade note: new request headers and proxy allowlists
+### Upgrade note: new request headers
 
 This release sends two request headers that 2.6.0 did not: `Authorization`
-(HTTP Basic, carrying your write key) and `X-Retry-Count` (on retries only).
-If your traffic to Segment goes through a proxy, gateway or WAF that
-allowlists request headers, add both before upgrading or uploads will be
-rejected. Unity WebGL builds must also add them to the CORS
-`Access-Control-Allow-Headers` allowlist on any proxy they point at.
+(HTTP Basic, carrying the write key) and `X-Retry-Count` (on retries only). If
+traffic to Segment passes through a proxy, gateway or WAF that allowlists request
+headers, add both before upgrading or uploads will be rejected. Unity WebGL builds
+must also add them to the CORS `Access-Control-Allow-Headers` allowlist on any
+proxy they point at.
 
-- Send the write key as an `Authorization: Basic` header. It is still included in the request body, so no server-side change is required.
-- Send `X-Retry-Count` on retries, so the server can distinguish a retry from a first attempt.
-- `HttpConfig` is now a settable property on `Configuration` rather than a constructor parameter, so retry behavior can be configured after construction. For mobile targets, CDN settings replace `Configuration.HttpConfig` when they are present.
-- `Retry-After` is honoured on every retryable status rather than 429 alone, which brings 529 in through the generic 5xx rule. Numeric seconds and the RFC 7231 HTTP-date formats are both accepted, capped at `MaxRetryInterval`.
-- New `RateLimitConfig.MaxRateLimitDuration` (default 12 hours) bounds how long a single rate-limit episode can keep a batch alive. Every other Segment SDK already had this; C# bounded the rate-limit path by a retry count alone. The count still stops retrying in practice — at the defaults it is reached long before the duration.
-- `MaxRetryInterval` is now capped at 300s rather than 3600s, matching the fixed 300s ceiling in the other SDKs.
-- 511 is dropped rather than retried: it asks the client to authenticate, which this library cannot do.
-- Only 2xx responses count as a successful upload. A 3xx is now reported as a failed upload rather than silently treated as delivered. It is not retried: a redirect the HTTP client already declined to follow will not succeed on a retry. The Segment endpoint does not redirect, so this only affects custom host values.
-- `RateLimitConfig.MaxRetryCount` and `BackoffConfig.MaxRetryCount` are floored at 1. A configured 0 previously dropped every batch before it was ever sent.
-- `BackoffConfig.StatusCodeOverrides` is merged over the built-in defaults rather than replacing them, and is copied rather than held by reference. Previously, supplying an override for one status silently changed seven others: 408, 410, 429 and 460 stopped being retried, and 511 fell through to `Default5xxBehavior` and started being retried. A CDN settings payload whose overrides were all unparseable had the same effect.
-- `BackoffConfig.MaxTotalBackoffDuration` is floored at 1 second. A configured 0 meant "no budget" — the batch was abandoned on its second attempt — rather than "no cap".
+### Retry handling
+
+- A `Retry-After` header is honoured on any retryable response, not only 429. Numeric seconds and the RFC 7231 HTTP-date formats are both accepted, and the value is capped at `RateLimitConfig.MaxRetryInterval` (default 300 seconds).
+- Responses carrying `Retry-After` are retried for up to `RateLimitConfig.MaxRateLimitDuration` (default 30 minutes), or `RateLimitConfig.MaxRetryCount` attempts (default 100), whichever comes first. Which one binds depends on the interval being served: below roughly `MaxRateLimitDuration / MaxRetryCount` — 18 seconds at the defaults — the count runs out first, above it the duration does. A `Retry-After` that will not fit in what is left of the budget ends the episode rather than being shortened, since resuming inside the window the server named sends a request it has already declined to serve. Other failures use exponential backoff from 500ms to a 60 second ceiling, limited by `BackoffConfig.MaxRetryCount` (default 10) and by `BackoffConfig.MaxTotalBackoffDuration` (default 12 hours) as an upper bound.
+- 511 is dropped rather than retried: it asks the client to re-authenticate, which this library cannot do.
+- `RetryBehavior`, `RateLimitConfig`, `BackoffConfig` and `HttpConfig` are now public, and `HttpConfig` is a settable property on `Configuration`, so retry behaviour can be configured in code. On mobile targets, CDN settings replace it when present.
+- `BackoffConfig.StatusCodeOverrides` is merged over the built-in defaults rather than replacing them, so overriding one status leaves the rest unchanged.
+- Retry counts and interval limits are clamped to usable ranges rather than accepted as given.
+
+### Other changes
+
+- The write key is sent as an `Authorization: Basic` header. It remains in the request body, so no server-side change is required.
+- `X-Retry-Count` is sent on retries, allowing the server to distinguish a retry from a first attempt.
+- Only 2xx responses count as a successful upload. A 3xx is reported as a failed upload rather than treated as delivered, and is not retried: a redirect the HTTP client has already declined to follow will not succeed on one. The Segment endpoint does not redirect, so this affects only custom host values.

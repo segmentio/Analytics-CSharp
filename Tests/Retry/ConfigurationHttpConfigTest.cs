@@ -150,30 +150,65 @@ namespace Tests.Retry
         }
 
         [Fact]
-        public void RateLimitCountIsReachedLongBeforeTheDurationBudget()
+        public void WhichRateLimitBoundBindsDependsOnTheRetryAfterBeingServed()
         {
-            // MaxRateLimitDuration is a last-ditch guard, not the working limit: the
-            // count is what should stop retrying at the defaults. If this ever inverts,
-            // batches start dying on a 12h timer instead of a countable number of tries.
+            // The previous version of this test asserted the duration was below the
+            // count's theoretical maximum span (100 x 300s), which is true and says
+            // nothing: it passes while the count is the limit actually reached. The
+            // crossover is what matters, and at the defaults it sits at 18 seconds --
+            // so the count, not the duration, bounds every episode whose Retry-After
+            // is shorter than that, which is most of them.
             var rateLimit = new RateLimitConfig();
 
-            long worstCaseSeconds =
-                (long)rateLimit.MaxRetryCount * RateLimitConfig.MaxRetryIntervalCeiling;
+            double crossoverSeconds =
+                (double)rateLimit.MaxRateLimitDuration / rateLimit.MaxRetryCount;
 
+            // Below the crossover the count runs out first.
             Assert.True(
-                worstCaseSeconds < rateLimit.MaxRateLimitDuration,
-                $"count trips after at most {worstCaseSeconds}s but the duration budget is "
-                + $"{rateLimit.MaxRateLimitDuration}s; the duration should never be reached first");
+                rateLimit.MaxRetryCount * (crossoverSeconds / 2) < rateLimit.MaxRateLimitDuration,
+                "expected the count to bind for a Retry-After below the crossover");
+
+            // Above it the duration does.
+            Assert.True(
+                rateLimit.MaxRetryCount * (crossoverSeconds * 2) > rateLimit.MaxRateLimitDuration,
+                "expected the duration to bind for a Retry-After above the crossover");
+
+            // Documented so a change to either constant has to restate it.
+            Assert.Equal(18.0, crossoverSeconds);
         }
 
         [Fact]
-        public void RetryAfterIsCappedAtFiveMinutes()
+        public void DefaultBudgetLeavesRoomForMoreThanOneMaximalWait()
         {
-            // Other SDKs fix this at 300s; C# allowed configuring up to 3600s.
-            var validated = new RateLimitConfig(maxRetryInterval: 3600).Validated();
+            // At parity the rate-limit path performs no retries at all. A response with
+            // no usable Retry-After waits MaxRetryInterval by default, ShouldUploadBatch
+            // tests elapsed time before the wait, so that one wait spends the budget and
+            // the next evaluation drops the batch — one attempt, having stalled the whole
+            // pipeline for the duration first.
+            var rateLimit = new RateLimitConfig();
 
-            Assert.Equal(RateLimitConfig.MaxRetryIntervalCeiling, validated.MaxRetryInterval);
-            Assert.Equal(300, validated.MaxRetryInterval);
+            Assert.True(
+                rateLimit.MaxRateLimitDuration > rateLimit.MaxRetryInterval,
+                $"budget is {rateLimit.MaxRateLimitDuration}s against a {rateLimit.MaxRetryInterval}s "
+                + "interval; a single maximal wait would consume it and leave no retry");
+
+            Assert.True(
+                rateLimit.MaxRateLimitDuration / rateLimit.MaxRetryInterval >= 2,
+                "budget leaves room for fewer than two maximal waits");
+        }
+
+        [Fact]
+        public void RetryAfterCeilingClampsAnAbsurdValue()
+        {
+            // The ceiling exists to reject a nonsense header, not to shorten a
+            // reasonable one — a value inside it is honoured as given, because waiting
+            // less than asked only adds requests against a server already rate-limiting
+            // us. MaxRateLimitDuration is what bounds how long we keep trying.
+            Assert.Equal(
+                RateLimitConfig.MaxRetryIntervalCeiling,
+                new RateLimitConfig(maxRetryInterval: 3600).Validated().MaxRetryInterval);
+
+            Assert.Equal(120, new RateLimitConfig(maxRetryInterval: 120).Validated().MaxRetryInterval);
         }
 
         [Fact]
