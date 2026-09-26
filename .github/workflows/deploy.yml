@@ -38,9 +38,10 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Configure Artifactory NuGet source
-        uses: ./.github/actions/artifactory-oidc
+        uses: twilio/sdk-actions/artifactory-oidc@c94e420aa64ea686ff25bb03d4c66cdaf8e523e4 # main
         with:
-          artifactory_url: ${{ vars.ARTIFACTORY_URL }}
+          ecosystem: dotnet
+          provider-name: github-actions-segmentio
 
       - name: Restore dependencies
         run: dotnet restore --locked-mode
@@ -66,9 +67,10 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Configure Artifactory NuGet source
-        uses: ./.github/actions/artifactory-oidc
+        uses: twilio/sdk-actions/artifactory-oidc@c94e420aa64ea686ff25bb03d4c66cdaf8e523e4 # main
         with:
-          artifactory_url: ${{ vars.ARTIFACTORY_URL }}
+          ecosystem: dotnet
+          provider-name: github-actions-segmentio
 
       - name: Restore dependencies
         run: dotnet restore --locked-mode
