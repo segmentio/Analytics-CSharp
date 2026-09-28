@@ -55,7 +55,10 @@ jobs:
   publish:
     needs: verify
     runs-on: ubuntu-x64
-    environment: nuget
+    # Must be `deployment`: NUGET_API_KEY is an environment secret scoped to it,
+    # and environment secrets are invisible to jobs using any other name.
+    # Naming a non-existent environment also silently creates an unprotected one.
+    environment: deployment
 
     steps:
       - name: Checkout
