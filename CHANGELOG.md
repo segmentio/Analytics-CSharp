@@ -4,7 +4,7 @@ Release notes for published versions are generated on the
 [Releases page](https://github.com/segmentio/Analytics-CSharp/releases).
 This file carries the notes that need more than a pull-request title.
 
-## Unreleased
+## 3.0.0
 
 ### Behaviour change: retries and backoff are on by default
 
