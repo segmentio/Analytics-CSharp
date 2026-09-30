@@ -25,12 +25,25 @@ jobs:
         run: echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
       - name: Verify tag matches package version
+        env:
+          TAG: ${{ steps.tag.outputs.version }}
         run: |
-          VERSION=$(grep '<Version>' Analytics-CSharp/Analytics-CSharp.csproj | sed "s@.*<Version>\(.*\)</Version>.*@\1@")
-          if [ "${{ steps.tag.outputs.version }}" != "$VERSION" ]; then
-            echo "::error::Tag ${{ steps.tag.outputs.version }} does not match the package version ($VERSION)"
-            exit 1
-          fi
+          set -euo pipefail
+          VERSION=$(sed -nE 's@.*<Version>(.*)</Version>.*@\1@p' Analytics-CSharp/Analytics-CSharp.csproj)
+          # SegmentVersion is what the library reports at runtime — Analytics.Version
+          # and the library version on every event context. A stale value here
+          # publishes a correctly numbered package that misreports itself.
+          RUNTIME=$(sed -nE 's@.*SegmentVersion *= *"([^"]+)".*@\1@p' Analytics-CSharp/Segment/Analytics/Version.cs)
+          for pair in "csproj:$VERSION" "Version.cs:$RUNTIME"; do
+            name="${pair%%:*}"; value="${pair#*:}"
+            if [ -z "$value" ]; then
+              echo "::error::Could not read the version from $name"; exit 1
+            fi
+            if [ "$TAG" != "$value" ]; then
+              echo "::error::Tag $TAG does not match $name ($value)"; exit 1
+            fi
+          done
+          echo "Releasing $TAG"
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
@@ -44,13 +57,13 @@ jobs:
           provider-name: github-actions-segmentio
 
       - name: Restore dependencies
-        run: dotnet restore --locked-mode
+        run: dotnet restore Analytics-CSharp.slnf --locked-mode
 
       - name: Build
-        run: dotnet build --no-restore
+        run: dotnet build Analytics-CSharp.slnf --no-restore
 
       - name: Test
-        run: dotnet test --no-build
+        run: dotnet test Analytics-CSharp.slnf --no-build
 
   publish:
     needs: verify
@@ -76,14 +89,16 @@ jobs:
           provider-name: github-actions-segmentio
 
       - name: Restore dependencies
-        run: dotnet restore --locked-mode
+        run: dotnet restore Analytics-CSharp.slnf --locked-mode
 
+      # Only the library is packable. A solution-wide pack would also produce
+      # packages for the sample projects, and the push glob below would send them.
       - name: Pack
-        run: dotnet pack --no-restore -c Release
+        run: dotnet pack Analytics-CSharp/Analytics-CSharp.csproj --no-restore -c Release -o artifacts
 
       - name: Push to NuGet.org
         run: |
-          dotnet nuget push "**/*.nupkg" \
+          dotnet nuget push "artifacts/*.nupkg" \
             --source https://api.nuget.org/v3/index.json \
             --api-key ${{ secrets.NUGET_API_KEY }} \
             --skip-duplicate

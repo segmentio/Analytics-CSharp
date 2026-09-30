@@ -1,34 +1,54 @@
-Update Version
-==========
-* update `<Version>` value in `Analytics-CSharp.csproj`
-* update `SegmentVersion` value in `Segment/Analytics/Version.cs`
+Releasing
+=========
 
-Release to Nuget
-==========
-1. Create a new branch called `release/X.Y.Z`
-2. `git checkout -b release/X.Y.Z`
-3. Change the version in `Analytics-CSharp.csproj` to your desired release version (see `Update Version`)
-4. `git commit -am "Create release X.Y.Z."` (where X.Y.Z is the new version)
-5. `git tag -a X.Y.Z -m "Version X.Y.Z"` (where X.Y.Z is the new version)
-6. The CI pipeline will recognize the tag and upload the artifacts to nuget and generate changelog automatically
-7. Push to github with `git push && git push --tags`
-8. Create a PR to merge to main
+Publishing runs in CI. `deploy.yml` triggers on a pushed tag, verifies it against
+the version in the source, builds, packs and pushes to NuGet.org, then creates the
+GitHub release.
+
+Update the version in **both** places — the deploy workflow checks both and stops
+if either disagrees with the tag:
+
+* `<Version>` in `Analytics-CSharp/Analytics-CSharp.csproj` — the package version
+* `SegmentVersion` in `Analytics-CSharp/Segment/Analytics/Version.cs` — what the
+  library reports at runtime, through `Analytics.Version` and the library version
+  on every event's context
+
+Release to NuGet
+================
+
+1. `git checkout -b release/X.Y.Z`
+2. Update both versions above.
+3. Update `CHANGELOG.md`.
+4. `git commit -am "Release X.Y.Z."`
+5. Open a PR and merge it to `main`.
+6. Tag the merged commit and push it — no `v` prefix:
+
+   ```
+   git tag X.Y.Z && git push origin X.Y.Z
+   ```
+
+7. Approve the `deployment` environment when the publish job requests review.
+
+Tag after merging, so the tag points at `main` rather than at a branch commit
+that may differ from what was reviewed.
 
 Release to OpenUPM
-==========
-follow the instruction above to `Release to Nuget`. once the new version is available in Nuget and PR merged to main, run the following command in the root of the project:
+==================
+
+Once the new version is live on NuGet and the PR is merged to `main`, run from the
+project root:
+
 ```bash
 sh upm_release.sh <directory>
 ```
-NOTE: `<directory>` is a required folder to setup sandbox for release. it should be **outside** the project folder.
 
-the script will setup a sandbox to pack the artifacts and create a `unity/<version>` tag on github. OpenUPM checks the `unity/<version>` tag periodically and create a release automatically.
+`<directory>` is a scratch folder for the release sandbox and must be **outside**
+the project folder. The script packs the artifacts and creates a `unity/<version>`
+tag; OpenUPM polls for that tag and publishes automatically.
 
 Pre-release
-==========
-Pre-release is useful when testing code compatibility on Unity. To make a pre-release, update the version tag with a suffix of `-alpha.<v>` where `<v>` is the version number of this alpha release. The following is a list of valid pre-release versions:
-* `2.0.0-alpha.1`
-* `2.0.0-alpha.2`
-* `2.0.0-alpha.12`
+===========
 
-The rest of the pre-release progress is the same as a regular release.
+Useful for testing compatibility on Unity. Use a tag with an `-alpha.<n>` suffix —
+`2.0.0-alpha.1`, `2.0.0-alpha.12` — which `deploy.yml` also accepts. The rest of
+the process is unchanged.
