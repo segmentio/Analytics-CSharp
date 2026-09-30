@@ -72,10 +72,16 @@ jobs:
   publish:
     needs: verify
     runs-on: ubuntu-x64
-    # Must be `deployment`: NUGET_API_KEY is an environment secret scoped to it,
-    # and environment secrets are invisible to jobs using any other name.
-    # Naming a non-existent environment also silently creates an unprotected one.
+    # `deployment` exists and carries the required reviewers. Naming an
+    # environment that does not exist silently creates an unprotected one, so
+    # this must match a real environment and the nuget.org policy.
     environment: deployment
+    permissions:
+      # id-token for the nuget.org OIDC exchange; contents:write because the
+      # last step creates the GitHub release. The workflow default is
+      # contents: read, which 403s there.
+      id-token: write
+      contents: write
 
     steps:
       - name: Checkout
@@ -104,18 +110,59 @@ jobs:
       - name: Pack
         run: dotnet pack Analytics-CSharp/Analytics-CSharp.csproj --no-restore -c Release -o artifacts
 
-      - name: Push to NuGet.org
+      # NuGet trusted publishing: exchange the GitHub OIDC token for an API key
+      # that lives one hour. Done inline rather than with NuGet/login, which is
+      # not on the org's allow-list. One OIDC token mints exactly one key, so
+      # this sits immediately before the push.
+      - name: Push to NuGet.org (trusted publishing)
+        env:
+          NUGET_USER: ${{ secrets.NUGET_USER }}
         run: |
+          set -euo pipefail
+
+          if [ -z "${NUGET_USER:-}" ]; then
+            echo "::error::NUGET_USER is not set. It is the nuget.org profile name that owns the trusted publishing policy, not an email address."
+            exit 1
+          fi
+
+          OIDC_JWT=$(curl -sS \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://www.nuget.org" \
+            | jq -r '.value')
+
+          if [ -z "$OIDC_JWT" ] || [ "$OIDC_JWT" = "null" ]; then
+            echo "::error::No GitHub OIDC token. The job needs 'permissions: id-token: write'."
+            exit 1
+          fi
+
+          RESP=$(curl -sS -X POST https://www.nuget.org/api/v2/token \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${OIDC_JWT}" \
+            -d "{\"username\": \"${NUGET_USER}\", \"tokenType\": \"ApiKey\"}")
+
+          API_KEY=$(echo "$RESP" | jq -r '.apiKey // empty')
+          if [ -z "$API_KEY" ]; then
+            echo "::error::nuget.org token exchange failed."
+            echo "$RESP" | jq 'del(.apiKey)' 2>/dev/null || echo "::error::(response withheld - not valid JSON)"
+            exit 1
+          fi
+          echo "::add-mask::$API_KEY"
+
           dotnet nuget push "artifacts/*.nupkg" \
             --source https://api.nuget.org/v3/index.json \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
-            --skip-duplicate
+            --api-key "$API_KEY"
 
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          gh release create "$REF_NAME" \
-            --title "$REF_NAME" \
-            --generate-notes
+          # Guarded so a re-run after a partial failure does not error with
+          # "release already exists".
+          if gh release view "$REF_NAME" >/dev/null 2>&1; then
+            echo "Release $REF_NAME already exists; leaving it as is."
+          else
+            gh release create "$REF_NAME" \
+              --title "$REF_NAME" \
+              --generate-notes
+          fi
