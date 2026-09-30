@@ -31,12 +31,12 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Get tag
-        if: ${{ github.ref_type == 'tag' }}
+        if: ${{ github.event_name == 'push' }}
         id: tag
         run: echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
       - name: Verify tag matches package version
-        if: ${{ github.ref_type == 'tag' }}
+        if: ${{ github.event_name == 'push' }}
         env:
           TAG: ${{ steps.tag.outputs.version }}
         run: |
@@ -120,7 +120,7 @@ jobs:
       # Only the library is packable. A solution-wide pack would also produce
       # packages for the sample projects, and the push glob below would send them.
       - name: Pack
-        if: ${{ github.ref_type == 'tag' }}
+        if: ${{ github.event_name == 'push' }}
         run: dotnet pack Analytics-CSharp/Analytics-CSharp.csproj --no-restore -c Release -o artifacts
 
       # NuGet trusted publishing: exchange the GitHub OIDC token for an API key
@@ -172,7 +172,7 @@ jobs:
             --api-key "$API_KEY"
 
       - name: Create GitHub release
-        if: ${{ github.ref_type == 'tag' }}
+        if: ${{ github.event_name == 'push' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REF_NAME: ${{ github.ref_name }}
