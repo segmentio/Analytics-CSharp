@@ -5,6 +5,16 @@ on:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
       - '[0-9]+.[0-9]+.[0-9]+-alpha.[0-9]+'
+  # Dry run: exchange the OIDC token for a nuget.org key and stop, without
+  # packing or publishing. Lives here rather than in its own workflow because
+  # the trusted publishing policy matches on the workflow filename and the
+  # environment — a separate workflow would fail to match even when correct.
+  workflow_dispatch:
+    inputs:
+      nuget_user:
+        description: "nuget.org profile name to exchange as (defaults to the NUGET_USER secret)"
+        required: false
+        type: string
 
 permissions:
   id-token: write
@@ -21,10 +31,12 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Get tag
+        if: ${{ github.ref_type == 'tag' }}
         id: tag
         run: echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
       - name: Verify tag matches package version
+        if: ${{ github.ref_type == 'tag' }}
         env:
           TAG: ${{ steps.tag.outputs.version }}
         run: |
@@ -108,6 +120,7 @@ jobs:
       # Only the library is packable. A solution-wide pack would also produce
       # packages for the sample projects, and the push glob below would send them.
       - name: Pack
+        if: ${{ github.ref_type == 'tag' }}
         run: dotnet pack Analytics-CSharp/Analytics-CSharp.csproj --no-restore -c Release -o artifacts
 
       # NuGet trusted publishing: exchange the GitHub OIDC token for an API key
@@ -116,7 +129,7 @@ jobs:
       # this sits immediately before the push.
       - name: Push to NuGet.org (trusted publishing)
         env:
-          NUGET_USER: ${{ secrets.NUGET_USER }}
+          NUGET_USER: ${{ inputs.nuget_user || secrets.NUGET_USER }}
         run: |
           set -euo pipefail
 
@@ -147,12 +160,19 @@ jobs:
             exit 1
           fi
           echo "::add-mask::$API_KEY"
+          echo "Exchange succeeded as '${NUGET_USER}' — nuget.org issued a key."
+
+          if [ "${GITHUB_EVENT_NAME}" != "push" ]; then
+            echo "Dry run: not packing or publishing."
+            exit 0
+          fi
 
           dotnet nuget push "artifacts/*.nupkg" \
             --source https://api.nuget.org/v3/index.json \
             --api-key "$API_KEY"
 
       - name: Create GitHub release
+        if: ${{ github.ref_type == 'tag' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REF_NAME: ${{ github.ref_name }}
