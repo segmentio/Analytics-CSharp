@@ -5,6 +5,12 @@ Publishing runs in CI. `deploy.yml` triggers on a pushed tag, verifies it agains
 the version in the source, builds, packs and pushes to NuGet.org, then creates the
 GitHub release.
 
+It publishes through NuGet **trusted publishing**: the workflow exchanges a GitHub
+OIDC token for an API key that lives one hour, so there is no long-lived key to
+store or rotate. nuget.org matches the exchange against a policy naming the
+repository, the workflow file (`deploy.yml`) and the environment (`deployment`) —
+so renaming any of those breaks publishing until the policy is updated to match.
+
 Update the version in **both** places — the deploy workflow checks both and stops
 if either disagrees with the tag:
 
@@ -31,6 +37,26 @@ Release to NuGet
 
 Tag after merging, so the tag points at `main` rather than at a branch commit
 that may differ from what was reviewed.
+
+Checking the credential path without releasing
+==============================================
+
+The publish path only runs at release time, so a broken credential is normally
+discovered by a failed release. To check it first, run **Deploy** manually from
+the Actions tab.
+
+A manual run exchanges the OIDC token for a nuget.org key, reports whether that
+worked, and stops — it does not pack, publish or create a release. Everything
+before the exchange still runs, so it also covers Artifactory auth, the build and
+the tests.
+
+It has to be this workflow rather than a separate one: the trusted publishing
+policy matches on the workflow filename, so a different file fails to match even
+when everything else is right.
+
+The optional `nuget_user` input overrides the `NUGET_USER` secret for that run,
+which is useful when confirming which nuget.org profile the policy is registered
+under. It is a profile name, never an email address.
 
 Release to OpenUPM
 ==================
