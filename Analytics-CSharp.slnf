@@ -1,0 +1,9 @@
+{
+  "solution": {
+    "path": "Analytics-CSharp.sln",
+    "projects": [
+      "Analytics-CSharp\\Analytics-CSharp.csproj",
+      "Tests\\Tests.csproj"
+    ]
+  }
+}
