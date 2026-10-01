@@ -425,7 +425,7 @@ For example you might want to disable flushes if you detect the user has no netw
 
 ###  Creating your own flush policies
 
-You can create a custom FlushPolicy special for your application needs by implementing the  `IFlushPolicy` interface. You can also extend the `FlushPolicyBase` class that already creates and handles the `shouldFlush` value reset.
+You can create a custom FlushPolicy special for your application needs by implementing the  `IFlushPolicy` interface. 
 
 A `FlushPolicy` only needs to implement 2 methods:
 - `Schedule`: Executed when the flush policy is enabled and added to the client. This is a good place to start background operations, make async calls, configure things before execution
